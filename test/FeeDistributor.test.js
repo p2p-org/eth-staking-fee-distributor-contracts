@@ -4,7 +4,7 @@ const { developmentChains } = require("../../helper-hardhat-config")
 
 developmentChains.includes(network.name)
     ? describe.skip
-    : describe("FundMe Staging Tests", function () {
+    : describe("FeeDistributor Tests", function () {
           let deployer
           let fundMe
           const sendValue = ethers.utils.parseEther("0.1")

@@ -12,16 +12,16 @@ error PercentsDoNotMatch();
 */
 contract FeeDistributor {
     // Type Declarations
-    using Address for address;
+    using Address for address payable;
 
     // State variables
     address private immutable i_factory;
     address private immutable i_owner;
-    address private immutable i_service;
+    address payable private immutable i_service;
     uint256 private immutable i_servicePercent;
     uint256 private immutable i_clientPercent;
 
-    address private s_client;
+    address payable private s_client;
 
     // Events
 
@@ -59,13 +59,13 @@ contract FeeDistributor {
 
         i_factory = _factory;
         i_owner = _owner;
-        i_service = _service;
+        i_service = payable(_service);
         i_servicePercent = _servicePercent;
         i_clientPercent = _clientPercent;
     }
 
     function initialize(address _client) external onlyFactory {
-        s_client = _client;
+        s_client = payable(_client);
     }
 
     function withdraw() external onlyOwner {

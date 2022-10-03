@@ -6,28 +6,22 @@ import {
     FeeDistributor,
     FeeDistributorFactory
 } from '../typechain-types'
-import { SignerWithAddress } from "hardhat-deploy-ethers/signers"
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 describe("FeeDistributor", function () {
     let signer: SignerWithAddress
-
     let feeDistributorFactory: FeeDistributorFactory
-    let factoryFactory: FeeDistributorFactory__factory
-
-    let feeDistributor: FeeDistributor
-    let factory: FeeDistributor__factory
-
     const serviceAddress = "0x1234567890123456789012345678901234567890"
 
     before(async () => {
         const { deployer } = await getNamedAccounts()
         signer = await ethers.getSigner(deployer)
 
-        factoryFactory = new FeeDistributorFactory__factory(signer)
+        const factoryFactory = new FeeDistributorFactory__factory(signer)
         feeDistributorFactory = await factoryFactory.deploy()
 
-        factory = new FeeDistributor__factory(signer)
-        feeDistributor = await factory.deploy(
+        const factory = new FeeDistributor__factory(signer)
+        const feeDistributor = await factory.deploy(
             feeDistributorFactory.address,
             deployer,
             serviceAddress,
@@ -40,35 +34,45 @@ describe("FeeDistributor", function () {
 
     it("distributes fees", async function () {
         try {
-            const filter = {
-                address: feeDistributorFactory.address,
-                topics: [
-                    ethers.utils.id("FeeDistributorCreated(address)")
-                ]
-            }
-            ethers.provider.on(filter, async (log, event) => {
-                console.log('FeeDistributorCreated event start')
-                console.log(log)
-                console.log(event)
-
-                const newlyCreatedFeeDistributorAddress = "0x000000000000000000000000000000000000BEEF"
-                const feeOrMev = ethers.utils.parseEther("42")
-
-                const transactionResponse = await signer.sendTransaction(
-                    {
-                        to: newlyCreatedFeeDistributorAddress,
-                        value: feeOrMev,
-                        gasLimit: 21000
-                    }
-                )
-                await transactionResponse.wait(1)
-
-                console.log('FeeDistributorCreated event end')
-            })
+            const filter = feeDistributorFactory.filters["FeeDistributorCreated(address)"]()
 
             const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
+
+            ethers.provider.on(filter, async (log) => {
+                try {
+                    console.log('FeeDistributorCreated event start')
+
+                    const parsedLog = feeDistributorFactory.interface.parseLog(log);
+                    const newlyCreatedFeeDistributorAddress = parsedLog.args.newFeeDistributorAddrress
+
+                    // @ts-ignore
+                    const feeDistributor: FeeDistributor = await ethers.getContractAt(
+                        "FeeDistributor",
+                        newlyCreatedFeeDistributorAddress,
+                        signer
+                    )
+
+                    await ethers.provider.send("hardhat_setCoinbase", [
+                        newlyCreatedFeeDistributorAddress,
+                    ])
+                    await ethers.provider.send("evm_mine", [])
+
+                    await feeDistributor.withdraw()
+
+                    const serviceAddressBalance = await ethers.provider.getBalance(serviceAddress)
+                    console.log(serviceAddressBalance.toString())
+
+                    const clientAddressBalance = await ethers.provider.getBalance(clientAddress)
+                    console.log(clientAddressBalance.toString())
+
+                    console.log('FeeDistributorCreated event end')
+                } catch (err) {
+                    console.log(err)
+                }
+            })
+
             const createFeeDistributorTxReceipt = await feeDistributorFactory.createFeeDistributor(clientAddress)
-            await createFeeDistributorTxReceipt.wait(1)
+            await createFeeDistributorTxReceipt.wait(2)
         } catch (err) {
             console.log(err)
         }

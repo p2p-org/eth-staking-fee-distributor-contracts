@@ -70,8 +70,8 @@ contract FeeDistributor {
 
     function withdraw() external onlyOwner {
         uint256 balance = address(this).balance;
-        uint256 serviceAmount = balance * 100 / i_servicePercent;
-        uint256 clientAmount = balance * 100 / i_clientPercent;
+        uint256 serviceAmount = balance * i_servicePercent / 100;
+        uint256 clientAmount = balance * i_clientPercent / 100;
 
         i_service.sendValue(serviceAmount);
         s_client.sendValue(clientAmount);

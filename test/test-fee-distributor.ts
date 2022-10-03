@@ -51,7 +51,7 @@ describe("FeeDistributor", function () {
                 console.log(log)
                 console.log(event)
 
-                const newlyCreatedFeeDistributorAddress = "0xBEEF"
+                const newlyCreatedFeeDistributorAddress = "0x000000000000000000000000000000000000BEEF"
                 const feeOrMev = ethers.utils.parseEther("42")
 
                 const transactionResponse = await signer.sendTransaction(
@@ -66,7 +66,7 @@ describe("FeeDistributor", function () {
                 console.log('FeeDistributorCreated event end')
             })
 
-            const clientAddress = "0xC0FFEE"
+            const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
             const createFeeDistributorTxReceipt = await feeDistributorFactory.createFeeDistributor(clientAddress)
             await createFeeDistributorTxReceipt.wait(1)
         } catch (err) {

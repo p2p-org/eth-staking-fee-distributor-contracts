@@ -38,7 +38,6 @@ describe("FeeDistributor", function () {
         // deploy a reference instance of FeeDistributor contract - the base for further clones
         const feeDistributor = await factory.deploy(
             feeDistributorFactory.address,
-            deployer,
             serviceAddress,
             servicePercent,
             clientPercent

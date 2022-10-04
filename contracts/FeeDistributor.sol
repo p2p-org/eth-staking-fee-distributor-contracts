@@ -19,9 +19,6 @@ contract FeeDistributor {
     /// address of FeeDistributorFactory
     address private immutable i_factory;
 
-    /// address of the owner
-    address private immutable i_owner;
-
     /// address of the service (P2P) fee recipient
     address payable private immutable i_service;
 
@@ -37,11 +34,6 @@ contract FeeDistributor {
     // Events
 
     // Modifiers
-    modifier onlyOwner() {
-        if (msg.sender != i_owner) revert FeeDistributor__NotOwner();
-        _;
-    }
-
     modifier onlyFactory() {
         if (msg.sender != i_factory) revert FeeDistributor__NotFactory();
         _;
@@ -51,7 +43,6 @@ contract FeeDistributor {
     */
     constructor(
         address _factory,
-        address _owner,
         address _service,
         uint256 _servicePercent,
         uint256 _clientPercent
@@ -61,7 +52,6 @@ contract FeeDistributor {
         }
 
         i_factory = _factory;
-        i_owner = _owner;
         i_service = payable(_service);
         i_servicePercent = _servicePercent;
         i_clientPercent = _clientPercent;

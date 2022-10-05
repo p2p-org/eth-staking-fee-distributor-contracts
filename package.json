@@ -29,6 +29,7 @@
     "lint:fix": "solhint 'contracts/**/*.sol' --fix",
     "format": "prettier --write .",
     "coverage": "hardhat coverage",
-    "typechain": "yarn hardhat typechain"
+    "typechain": "yarn hardhat typechain",
+    "deployToGoerli": "yarn hardhat run --network goerli scripts/deploy.ts"
   }
 }

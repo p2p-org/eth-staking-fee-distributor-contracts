@@ -16,7 +16,7 @@ const PRIVATE_KEY = process.env.PRIVATE_KEY || "00000000000000000000000000000000
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || ""
 
 const config: HardhatUserConfig = {
-  defaultNetwork: "goerli",
+  defaultNetwork: "hardhat",
   networks: {
     hardhat: {
       chainId: 31337,

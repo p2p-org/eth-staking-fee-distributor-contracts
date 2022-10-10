@@ -32,6 +32,7 @@ describe("FeeDistributor", function () {
         // deploy factory contract
         const factoryFactory = new FeeDistributorFactory__factory(signer)
         feeDistributorFactory = await factoryFactory.deploy()
+        await feeDistributorFactory.deployed()
 
         const factory = new FeeDistributor__factory(signer)
 
@@ -42,77 +43,74 @@ describe("FeeDistributor", function () {
             servicePercent,
             clientPercent
         )
+        await feeDistributor.deployed()
 
         // set the reference instance of FeeDistributor to the factory
         await feeDistributorFactory.initialize(feeDistributor.address)
     })
 
     it("distributes fees", async function () {
-        try {
-            // event to listen to
-            const filter = feeDistributorFactory.filters["FeeDistributorCreated(address)"]()
+        // event to listen to
+        const filter = feeDistributorFactory.filters["FeeDistributorCreated(address)"]()
 
-            // an example client address. There can be many more of such.
-            const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
+        // an example client address. There can be many more of such.
+        const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
 
-            // start listening to the FeeDistributorCreated events
-            ethers.provider.on(filter, async (log) => {
-                try {
-                    console.log('FeeDistributorCreated event start')
+        // start listening to the FeeDistributorCreated events
+        ethers.provider.on(filter, async (log) => {
+            try {
+                // retrieve the address of the newly created FeeDistributor contract from the event
+                const parsedLog = feeDistributorFactory.interface.parseLog(log);
+                const newlyCreatedFeeDistributorAddress = parsedLog.args.newFeeDistributorAddrress
 
-                    // retrieve the address of the newly created FeeDistributor contract from the event
-                    const parsedLog = feeDistributorFactory.interface.parseLog(log);
-                    const newlyCreatedFeeDistributorAddress = parsedLog.args.newFeeDistributorAddrress
+                // set the newly created FeeDistributor contract as coinbase (block rewards recipient)
+                // In the real world this will be done in a validator's settings
+                await ethers.provider.send("hardhat_setCoinbase", [
+                    newlyCreatedFeeDistributorAddress,
+                ])
 
-                    // set the newly created FeeDistributor contract as coinbase (block rewards recipient)
-                    // In the real world this will be done in a validator's settings
-                    await ethers.provider.send("hardhat_setCoinbase", [
-                        newlyCreatedFeeDistributorAddress,
-                    ])
+                // simulate producing a new block so that our FeeDistributor contract can get its rewards
+                await ethers.provider.send("evm_mine", [])
 
-                    // simulate producing a new block so that our FeeDistributor contract can get its rewards
-                    await ethers.provider.send("evm_mine", [])
+                // attach to the FeeDistributor contract with the owner (signer)
+                // @ts-ignore
+                const feeDistributor: FeeDistributor = await ethers.getContractAt(
+                    "FeeDistributor",
+                    newlyCreatedFeeDistributorAddress,
+                    signer
+                )
 
-                    // attach to the FeeDistributor contract with the owner (signer)
-                    // @ts-ignore
-                    const feeDistributor: FeeDistributor = await ethers.getContractAt(
-                        "FeeDistributor",
-                        newlyCreatedFeeDistributorAddress,
-                        signer
-                    )
+                // call withdraw
+                await feeDistributor.withdraw()
 
-                    // call withdraw
-                    await feeDistributor.withdraw()
+                const totalBlockReward = ethers.utils.parseEther('2')
 
-                    const totalBlockReward = ethers.utils.parseEther('2')
+                // get service address balance
+                const serviceAddressBalance = await ethers.provider.getBalance(serviceAddress)
 
-                    // get service address balance
-                    const serviceAddressBalance = await ethers.provider.getBalance(serviceAddress)
-                    console.log(serviceAddressBalance.toString())
+                // make sure P2P (service) got its percent
+                expect(serviceAddressBalance).to.equal(totalBlockReward.mul(servicePercent).div(100))
 
-                    // make sure P2P (service) got its percent
-                    expect(serviceAddressBalance).to.equal(totalBlockReward.mul(servicePercent).div(100))
+                // get client address balance
+                const clientAddressBalance = await ethers.provider.getBalance(clientAddress)
 
-                    // get client address balance
-                    const clientAddressBalance = await ethers.provider.getBalance(clientAddress)
-                    console.log(clientAddressBalance.toString())
+                // make sure client got its percent
+                expect(clientAddressBalance).to.equal(totalBlockReward.mul(clientPercent).div(100))
+            } catch (err) {
+                console.error(err)
+            }
+        })
 
-                    // make sure client got its percent
-                    expect(clientAddressBalance).to.equal(totalBlockReward.mul(clientPercent).div(100))
+        // create an instance of FeeDistributor for the client
+        const createFeeDistributorTxReceipt = await feeDistributorFactory.createFeeDistributor(clientAddress)
 
-                    console.log('FeeDistributorCreated event end')
-                } catch (err) {
-                    console.log(err)
-                }
-            })
+        // wait for 2 blocks to avoid a prematute exit from the test
+        await createFeeDistributorTxReceipt.wait(2)
+    })
 
-            // create an instance of FeeDistributor for the client
-            const createFeeDistributorTxReceipt = await feeDistributorFactory.createFeeDistributor(clientAddress)
-
-            // wait for 2 blocks to avoid a prematute exit from the test
-            await createFeeDistributorTxReceipt.wait(2)
-        } catch (err) {
-            console.log(err)
-        }
+    it("renounceOwnership should revert", async function () {
+        await expect(feeDistributorFactory.renounceOwnership()).to.be.revertedWith(
+            "DISABLED"
+        )
     })
 })

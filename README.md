@@ -1,10 +1,12 @@
-# Staking draft
+# eth-staking-fee-distributor-contracts
 
 ## Running tests
 
 ```shell
-cd staking-draft
+cd eth-staking-fee-distributor-contracts
 yarn
+cp .env.example .env
+# edit .env with the actual values
 yarn typechain
 yarn test
 ```

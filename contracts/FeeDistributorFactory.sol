@@ -49,4 +49,12 @@ contract FeeDistributorFactory is Ownable {
         // emit event with the address of the newly created instance for the external listener
         emit FeeDistributorCreated(newFeeDistributorAddrress);
     }
+
+    /**
+     * @notice forbids owner from renouncing ownership and locking assets forever
+     * @dev overrides Ownable's `renounceOwnership` to always revert
+     */
+    function renounceOwnership() public pure override {
+        revert("DISABLED");
+    }
 }

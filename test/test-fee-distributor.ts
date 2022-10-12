@@ -23,7 +23,7 @@ describe("FeeDistributor", function () {
     const servicePercent =  30;
 
     // client should get 70% (subject to chioce at deploy time)
-    const clientPercent = 70;
+    const clientPercent = 100 - servicePercent;
 
     before(async () => {
         const { deployer } = await getNamedAccounts()
@@ -31,7 +31,7 @@ describe("FeeDistributor", function () {
 
         // deploy factory contract
         const factoryFactory = new FeeDistributorFactory__factory(signer)
-        feeDistributorFactory = await factoryFactory.deploy()
+        feeDistributorFactory = await factoryFactory.deploy({gasLimit: 9000000})
         await feeDistributorFactory.deployed()
 
         const factory = new FeeDistributor__factory(signer)
@@ -41,17 +41,20 @@ describe("FeeDistributor", function () {
             feeDistributorFactory.address,
             serviceAddress,
             servicePercent,
-            clientPercent
+            {gasLimit: 9000000}
         )
         await feeDistributor.deployed()
 
+        const REFERENCE_INSTANCE_SETTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("REFERENCE_INSTANCE_SETTER_ROLE"))
+        await feeDistributorFactory.grantRole(REFERENCE_INSTANCE_SETTER_ROLE, signer.address)
+
         // set the reference instance of FeeDistributor to the factory
-        await feeDistributorFactory.initialize(feeDistributor.address)
+        await feeDistributorFactory.setReferenceInstance(feeDistributor.address)
     })
 
     it("distributes fees", async function () {
         // event to listen to
-        const filter = feeDistributorFactory.filters["FeeDistributorCreated(address)"]()
+        const filter = feeDistributorFactory.filters["FeeDistributorCreated(address,address)"]()
 
         // an example client address. There can be many more of such.
         const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
@@ -61,7 +64,7 @@ describe("FeeDistributor", function () {
             try {
                 // retrieve the address of the newly created FeeDistributor contract from the event
                 const parsedLog = feeDistributorFactory.interface.parseLog(log);
-                const newlyCreatedFeeDistributorAddress = parsedLog.args.newFeeDistributorAddrress
+                const newlyCreatedFeeDistributorAddress = parsedLog.args._newFeeDistributorAddrress
 
                 // set the newly created FeeDistributor contract as coinbase (block rewards recipient)
                 // In the real world this will be done in a validator's settings
@@ -101,6 +104,9 @@ describe("FeeDistributor", function () {
             }
         })
 
+        const INSTANCE_CREATOR_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("INSTANCE_CREATOR_ROLE"))
+        await feeDistributorFactory.grantRole(INSTANCE_CREATOR_ROLE, signer.address)
+
         // create an instance of FeeDistributor for the client
         const createFeeDistributorTxReceipt = await feeDistributorFactory.createFeeDistributor(clientAddress)
 
@@ -108,9 +114,9 @@ describe("FeeDistributor", function () {
         await createFeeDistributorTxReceipt.wait(2)
     })
 
-    it("renounceOwnership should revert", async function () {
-        await expect(feeDistributorFactory.renounceOwnership()).to.be.revertedWith(
-            "DISABLED"
-        )
-    })
+    // it("renounceOwnership should revert", async function () {
+    //     await expect(feeDistributorFactory.renounceOwnership()).to.be.revertedWith(
+    //         "DISABLED"
+    //     )
+    // })
 })

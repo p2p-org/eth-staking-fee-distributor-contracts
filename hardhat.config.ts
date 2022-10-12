@@ -6,7 +6,7 @@ import "hardhat-gas-reporter"
 import "dotenv/config"
 import "solidity-coverage"
 import "hardhat-deploy"
-import "solidity-coverage"
+import "hardhat-contract-sizer"
 import { HardhatUserConfig } from "hardhat/config"
 
 const GOERLI_RPC_URL = process.env.GOERLI_RPC_URL || "https://goerli.alchemyapi.io/v2/your-api-key"
@@ -20,7 +20,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       chainId: 31337,
-      blockGasLimit: 20000000,
+      blockGasLimit: 30000000,
       gasPrice: 0,
       initialBaseFeePerGas: 0,
       allowUnlimitedContractSize: true,
@@ -28,7 +28,7 @@ const config: HardhatUserConfig = {
         mnemonic: 'explain tackle mirror kit van hammer degree position ginger unfair soup bonus',
         count: 20,
         accountsBalance: '100000000000000000000000',
-      }
+      },
     },
     goerli: {
         url: GOERLI_RPC_URL,
@@ -42,6 +42,13 @@ const config: HardhatUserConfig = {
         version: "0.8.17",
       },
     ],
+    settings: {
+        optimizer: {
+            enabled: true,
+            runs: 10,
+            details: { yul: false },
+        },
+    },
   },
   etherscan: {
     apiKey: ETHERSCAN_API_KEY,

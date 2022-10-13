@@ -32,7 +32,6 @@ describe("FeeDistributor", function () {
         // deploy factory contract
         const factoryFactory = new FeeDistributorFactory__factory(signer)
         feeDistributorFactory = await factoryFactory.deploy({gasLimit: 9000000})
-        await feeDistributorFactory.deployed()
 
         const factory = new FeeDistributor__factory(signer)
 
@@ -43,7 +42,6 @@ describe("FeeDistributor", function () {
             servicePercent,
             {gasLimit: 9000000}
         )
-        await feeDistributor.deployed()
 
         const REFERENCE_INSTANCE_SETTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("REFERENCE_INSTANCE_SETTER_ROLE"))
         await feeDistributorFactory.grantRole(REFERENCE_INSTANCE_SETTER_ROLE, signer.address)

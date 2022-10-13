@@ -1,6 +1,5 @@
 import { ethers, getNamedAccounts } from "hardhat"
 import { FeeDistributor, FeeDistributor__factory, FeeDistributorFactory__factory } from "../typechain-types"
-import { expect } from "chai"
 
 async function main() {
     try {
@@ -10,33 +9,39 @@ async function main() {
         // P2P should get 30% (subject to chioce at deploy time)
         const servicePercent = 30;
 
-        // client should get 70% (subject to chioce at deploy time)
-        const clientPercent = 70;
-
         const { deployer } = await getNamedAccounts()
         const signer = await ethers.getSigner(deployer)
 
         // deploy factory contract
         const factoryFactory = new FeeDistributorFactory__factory(signer)
-        const feeDistributorFactory = await factoryFactory.deploy()
-        await feeDistributorFactory.deployed()
+        let nonce = await ethers.provider.getTransactionCount(deployer)
+        const feeDistributorFactory = await factoryFactory.deploy({gasLimit: 9000000, nonce})
+        nonce++;
 
         const factory = new FeeDistributor__factory(signer)
-
         // deploy a reference instance of FeeDistributor contract - the base for further clones
         const feeDistributor = await factory.deploy(
             feeDistributorFactory.address,
             serviceAddress,
             servicePercent,
-            clientPercent
+            {gasLimit: 9000000, nonce}
         )
-        await feeDistributor.deployed()
+        nonce++;
+
+        const REFERENCE_INSTANCE_SETTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("REFERENCE_INSTANCE_SETTER_ROLE"))
+        await feeDistributorFactory.grantRole(REFERENCE_INSTANCE_SETTER_ROLE, signer.address, {gasLimit: 1000000, nonce})
+        nonce++;
+
+        const INSTANCE_CREATOR_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("INSTANCE_CREATOR_ROLE"))
+        await feeDistributorFactory.grantRole(INSTANCE_CREATOR_ROLE, signer.address, {gasLimit: 1000000, nonce})
+        nonce++;
 
         // set the reference instance of FeeDistributor to the factory
-        await feeDistributorFactory.initialize(feeDistributor.address)
+        await feeDistributorFactory.setReferenceInstance(feeDistributor.address, {gasLimit: 1000000, nonce})
+        nonce++;
 
         // event to listen to
-        const filter = feeDistributorFactory.filters["FeeDistributorCreated(address)"]()
+        const filter = feeDistributorFactory.filters["FeeDistributorCreated(address,address)"]()
 
         // an example client address. There can be many more of such.
         const clientAddress = "0x27E9727FD9b8CdDdd0854F56712AD9DF647FaB74"
@@ -48,7 +53,7 @@ async function main() {
 
                 // retrieve the address of the newly created FeeDistributor contract from the event
                 const parsedLog = feeDistributorFactory.interface.parseLog(log);
-                const newlyCreatedFeeDistributorAddress = parsedLog.args.newFeeDistributorAddrress
+                const newlyCreatedFeeDistributorAddress = parsedLog.args._newFeeDistributorAddrress
 
                 // set the newly created FeeDistributor contract as coinbase (block rewards recipient)
                 // In the real world this will be done in a validator's settings
@@ -62,7 +67,8 @@ async function main() {
         })
 
         // create an instance of FeeDistributor for the client
-        const createFeeDistributorTxReceipt = await feeDistributorFactory.createFeeDistributor(clientAddress)
+        const createFeeDistributorTxReceipt = await feeDistributorFactory.createFeeDistributor(clientAddress, {gasLimit: 1000000, nonce})
+        nonce++;
 
         // wait for 2 blocks to avoid a prematute exit from the test
         await createFeeDistributorTxReceipt.wait(2)

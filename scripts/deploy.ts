@@ -5,8 +5,9 @@ async function main() {
     try {
         // P2P should get 30% (subject to chioce at deploy time)
         const servicePercent = 30;
+        const serviceAddress = '0xceCFc058DB458c00d0e89D39B2F5e6EF0A473114'
 
-        const { deployer, serviceAddress } = await getNamedAccounts()
+        const { deployer } = await getNamedAccounts()
         const signer = await ethers.getSigner(deployer)
 
         // deploy factory contract

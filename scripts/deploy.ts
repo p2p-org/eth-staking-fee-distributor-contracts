@@ -24,7 +24,7 @@ async function main() {
             feeDistributorFactory.address,
             serviceAddress,
             servicePercent,
-            {gasLimit: 1000000, nonce}
+            {gasLimit: 3000000, nonce}
         )
         nonce++;
 

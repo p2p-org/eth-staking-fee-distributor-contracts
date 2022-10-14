@@ -15,7 +15,7 @@ async function main() {
         // deploy factory contract
         const factoryFactory = new FeeDistributorFactory__factory(signer)
         let nonce = await ethers.provider.getTransactionCount(deployer)
-        const feeDistributorFactory = await factoryFactory.deploy({gasLimit: 9000000, nonce})
+        const feeDistributorFactory = await factoryFactory.deploy({gasLimit: 3000000, nonce})
         nonce++;
 
         const factory = new FeeDistributor__factory(signer)
@@ -24,7 +24,7 @@ async function main() {
             feeDistributorFactory.address,
             serviceAddress,
             servicePercent,
-            {gasLimit: 9000000, nonce}
+            {gasLimit: 1000000, nonce}
         )
         nonce++;
 

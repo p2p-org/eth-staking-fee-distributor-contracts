@@ -8,7 +8,7 @@ import {
 } from '../typechain-types'
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
-describe("FeeDistributor", function () {
+describe("Integration", function () {
 
     // deployer, owner of contracts
     let signer: SignerWithAddress
@@ -31,7 +31,7 @@ describe("FeeDistributor", function () {
 
         // deploy factory contract
         const factoryFactory = new FeeDistributorFactory__factory(signer)
-        feeDistributorFactory = await factoryFactory.deploy({gasLimit: 9000000})
+        feeDistributorFactory = await factoryFactory.deploy({gasLimit: 3000000})
 
         const factory = new FeeDistributor__factory(signer)
 
@@ -40,7 +40,7 @@ describe("FeeDistributor", function () {
             feeDistributorFactory.address,
             serviceAddress,
             servicePercent,
-            {gasLimit: 9000000}
+            {gasLimit: 1000000}
         )
 
         const REFERENCE_INSTANCE_SETTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("REFERENCE_INSTANCE_SETTER_ROLE"))
@@ -111,10 +111,4 @@ describe("FeeDistributor", function () {
         // wait for 2 blocks to avoid a prematute exit from the test
         await createFeeDistributorTxReceipt.wait(2)
     })
-
-    // it("renounceOwnership should revert", async function () {
-    //     await expect(feeDistributorFactory.renounceOwnership()).to.be.revertedWith(
-    //         "DISABLED"
-    //     )
-    // })
 })

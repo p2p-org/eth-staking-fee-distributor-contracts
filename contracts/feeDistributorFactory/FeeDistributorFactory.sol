@@ -4,9 +4,16 @@ pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "../assetRecovering/PublicAssetRecoverer.sol";
 import "./IFeeDistributorFactory.sol";
 import "../feeDistributor/IFeeDistributor.sol";
+
+/**
+* @notice Should be a FeeDistributor contract
+* @param _passedAddress passed address that does not support IFeeDistributor interface
+*/
+error FeeDistributorFactory__NotFeeDistributor(address _passedAddress);
 
 /**
 * @notice Reference FeeDistributor should be set before calling `createFeeDistributor`
@@ -47,6 +54,10 @@ contract FeeDistributorFactory is PublicAssetRecoverer, IFeeDistributorFactory {
     * @param _referenceFeeDistributor the address of the new reference implementation contract
     */
     function setReferenceInstance(address _referenceFeeDistributor) external onlyRole(REFERENCE_INSTANCE_SETTER_ROLE) {
+        if (!ERC165Checker.supportsInterface(_referenceFeeDistributor, type(IFeeDistributor).interfaceId)) {
+            revert FeeDistributorFactory__NotFeeDistributor(_referenceFeeDistributor);
+        }
+
         s_referenceFeeDistributor = _referenceFeeDistributor;
         emit ReferenceInstanceSet(_referenceFeeDistributor);
     }

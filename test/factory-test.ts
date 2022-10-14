@@ -18,6 +18,8 @@ describe("FeeDistributorFactory", function () {
     const INSTANCE_CREATOR_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("INSTANCE_CREATOR_ROLE"))
     const ASSET_RECOVERER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("ASSET_RECOVERER_ROLE"))
 
+    const servicePercent = 30
+
     // factory contract for deploying individual FeeDistributor contract instances for each user on demand
     let factoryFactory: FeeDistributorFactory__factory
 
@@ -26,6 +28,7 @@ describe("FeeDistributorFactory", function () {
     let inctanceCreator: string
     let assetRecoverer: string
     let nobody : string
+    let serviceAddress: string
 
     before(async () => {
         const namedAccounts = await getNamedAccounts()
@@ -34,6 +37,7 @@ describe("FeeDistributorFactory", function () {
         inctanceCreator = namedAccounts.inctanceCreator
         assetRecoverer = namedAccounts.assetRecoverer
         nobody = namedAccounts.nobody
+        serviceAddress = namedAccounts.serviceAddress
 
         deployerSigner = await ethers.getSigner(deployer)
         factoryFactory = new FeeDistributorFactory__factory(deployerSigner)
@@ -55,7 +59,7 @@ describe("FeeDistributorFactory", function () {
         expect(noRole).to.be.false
     })
 
-    it("setReferenceInstance can only be called with REFERENCE_INSTANCE_SETTER_ROLE", async function () {
+    it("setReferenceInstance can only be called with REFERENCE_INSTANCE_SETTER_ROLE and with valid FeeDistributor", async function () {
         const feeDistributorFactory = await factoryFactory.deploy({gasLimit: 3000000})
 
         const referenceInctanceSetterSigner = await ethers.getSigner(referenceInctanceSetter)
@@ -68,7 +72,19 @@ describe("FeeDistributorFactory", function () {
 
         await feeDistributorFactory.grantRole(REFERENCE_INSTANCE_SETTER_ROLE, referenceInctanceSetter)
 
-        await expect(factorySignedByReferenceInctanceSetter.setReferenceInstance(nobody)).to.emit(
+        await expect(factorySignedByReferenceInctanceSetter.setReferenceInstance(nobody)).to.be.revertedWith(
+            `FeeDistributorFactory__NotFeeDistributor(\"${nobody}\")`
+        )
+
+        const factory = new FeeDistributor__factory(deployerSigner)
+        const feeDistributor = await factory.deploy(
+            feeDistributorFactory.address,
+            serviceAddress,
+            servicePercent,
+            {gasLimit: 3000000}
+        )
+
+        await expect(factorySignedByReferenceInctanceSetter.setReferenceInstance(feeDistributor.address)).to.emit(
             factorySignedByReferenceInctanceSetter,
             "ReferenceInstanceSet"
         )
@@ -97,7 +113,19 @@ describe("FeeDistributorFactory", function () {
 
         await feeDistributorFactory.grantRole(REFERENCE_INSTANCE_SETTER_ROLE, referenceInctanceSetter)
 
-        await expect(factorySignedByReferenceInctanceSetter.setReferenceInstance(nobody)).to.emit(
+        await expect(factorySignedByReferenceInctanceSetter.setReferenceInstance(nobody)).to.be.revertedWith(
+            `FeeDistributorFactory__NotFeeDistributor(\"${nobody}\")`
+        )
+
+        const factory = new FeeDistributor__factory(deployerSigner)
+        const feeDistributor = await factory.deploy(
+            feeDistributorFactory.address,
+            serviceAddress,
+            servicePercent,
+            {gasLimit: 3000000}
+        )
+
+        await expect(factorySignedByReferenceInctanceSetter.setReferenceInstance(feeDistributor.address)).to.emit(
             factorySignedByReferenceInctanceSetter,
             "ReferenceInstanceSet"
         )

@@ -74,8 +74,11 @@ const config: HardhatUserConfig = {
     assetRecoverer: {
       default: 3
     },
-    nobody: {
+    serviceAddress: {
       default: 4
+    },
+    nobody: {
+      default: 5
     },
   },
 }

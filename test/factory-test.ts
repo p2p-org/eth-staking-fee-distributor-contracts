@@ -24,7 +24,7 @@ describe("FeeDistributorFactory", function () {
     let factoryFactory: FeeDistributorFactory__factory
 
     let deployer: string
-    let referenceInctanceSetter: string
+    let referenceInstanceSetter: string
     let inctanceCreator: string
     let assetRecoverer: string
     let nobody : string
@@ -33,7 +33,7 @@ describe("FeeDistributorFactory", function () {
     before(async () => {
         const namedAccounts = await getNamedAccounts()
         deployer = namedAccounts.deployer
-        referenceInctanceSetter = namedAccounts.referenceInctanceSetter
+        referenceInstanceSetter = namedAccounts.referenceInstanceSetter
         inctanceCreator = namedAccounts.inctanceCreator
         assetRecoverer = namedAccounts.assetRecoverer
         nobody = namedAccounts.nobody
@@ -62,15 +62,15 @@ describe("FeeDistributorFactory", function () {
     it("setReferenceInstance can only be called with REFERENCE_INSTANCE_SETTER_ROLE and with valid FeeDistributor", async function () {
         const feeDistributorFactory = await factoryFactory.deploy({gasLimit: 3000000})
 
-        const referenceInctanceSetterSigner = await ethers.getSigner(referenceInctanceSetter)
+        const referenceInctanceSetterSigner = await ethers.getSigner(referenceInstanceSetter)
         const referenceInctanceFactoryFactory = new FeeDistributorFactory__factory(referenceInctanceSetterSigner)
         const factorySignedByReferenceInctanceSetter = referenceInctanceFactoryFactory.attach(feeDistributorFactory.address)
 
         await expect(factorySignedByReferenceInctanceSetter.setReferenceInstance(nobody)).to.be.revertedWith(
-            `AccessControl: account ${referenceInctanceSetter.toLowerCase()} is missing role ${REFERENCE_INSTANCE_SETTER_ROLE}`
+            `AccessControl: account ${referenceInstanceSetter.toLowerCase()} is missing role ${REFERENCE_INSTANCE_SETTER_ROLE}`
         )
 
-        await feeDistributorFactory.grantRole(REFERENCE_INSTANCE_SETTER_ROLE, referenceInctanceSetter)
+        await feeDistributorFactory.grantRole(REFERENCE_INSTANCE_SETTER_ROLE, referenceInstanceSetter)
 
         await expect(factorySignedByReferenceInctanceSetter.setReferenceInstance(nobody)).to.be.revertedWith(
             `FeeDistributorFactory__NotFeeDistributor(\"${nobody}\")`
@@ -107,11 +107,11 @@ describe("FeeDistributorFactory", function () {
             `FeeDistributorFactory__ReferenceFeeDistributorNotSet`
         )
 
-        const referenceInctanceSetterSigner = await ethers.getSigner(referenceInctanceSetter)
+        const referenceInctanceSetterSigner = await ethers.getSigner(referenceInstanceSetter)
         const referenceInctanceFactoryFactory = new FeeDistributorFactory__factory(referenceInctanceSetterSigner)
         const factorySignedByReferenceInctanceSetter = referenceInctanceFactoryFactory.attach(feeDistributorFactory.address)
 
-        await feeDistributorFactory.grantRole(REFERENCE_INSTANCE_SETTER_ROLE, referenceInctanceSetter)
+        await feeDistributorFactory.grantRole(REFERENCE_INSTANCE_SETTER_ROLE, referenceInstanceSetter)
 
         await expect(factorySignedByReferenceInctanceSetter.setReferenceInstance(nobody)).to.be.revertedWith(
             `FeeDistributorFactory__NotFeeDistributor(\"${nobody}\")`

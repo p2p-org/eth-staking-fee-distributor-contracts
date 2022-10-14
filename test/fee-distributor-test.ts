@@ -26,7 +26,7 @@ describe("FeeDistributor", function () {
     const clientPercent = 100 - servicePercent;
 
     let deployer: string
-    let referenceInctanceSetter: string
+    let referenceInstanceSetter: string
     let inctanceCreator: string
     let assetRecoverer: string
     let nobody : string
@@ -34,7 +34,7 @@ describe("FeeDistributor", function () {
     before(async () => {
         const namedAccounts = await getNamedAccounts()
         deployer = namedAccounts.deployer
-        referenceInctanceSetter = namedAccounts.referenceInctanceSetter
+        referenceInstanceSetter = namedAccounts.referenceInstanceSetter
         inctanceCreator = namedAccounts.inctanceCreator
         assetRecoverer = namedAccounts.assetRecoverer
         nobody = namedAccounts.nobody

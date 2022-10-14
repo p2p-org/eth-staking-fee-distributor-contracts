@@ -19,7 +19,7 @@ describe("FeeDistributorFactory", function () {
     const ASSET_RECOVERER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("ASSET_RECOVERER_ROLE"))
 
     // factory contract for deploying individual FeeDistributor contract instances for each user on demand
-    let feeDistributorFactory: FeeDistributorFactory
+    let factoryFactory: FeeDistributorFactory__factory
 
     let deployer: string
     let referenceInctanceSetter: string
@@ -36,13 +36,12 @@ describe("FeeDistributorFactory", function () {
         nobody = namedAccounts.nobody
 
         deployerSigner = await ethers.getSigner(deployer)
-
-        // deploy factory contract
-        const factoryFactory = new FeeDistributorFactory__factory(deployerSigner)
-        feeDistributorFactory = await factoryFactory.deploy({gasLimit: 3000000})
+        factoryFactory = new FeeDistributorFactory__factory(deployerSigner)
     })
 
     it("deployer should get DEFAULT_ADMIN_ROLE", async function () {
+        const feeDistributorFactory = await factoryFactory.deploy({gasLimit: 3000000})
+
         const firstAdmin = await feeDistributorFactory.getRoleMember(DEFAULT_ADMIN_ROLE, 0)
         expect(firstAdmin).to.be.equal(deployerSigner.address)
 
@@ -57,9 +56,11 @@ describe("FeeDistributorFactory", function () {
     })
 
     it("setReferenceInstance can only be called with REFERENCE_INSTANCE_SETTER_ROLE", async function () {
+        const feeDistributorFactory = await factoryFactory.deploy({gasLimit: 3000000})
+
         const referenceInctanceSetterSigner = await ethers.getSigner(referenceInctanceSetter)
-        const factoryFactory = new FeeDistributorFactory__factory(referenceInctanceSetterSigner)
-        const factorySignedByReferenceInctanceSetter = factoryFactory.attach(feeDistributorFactory.address)
+        const referenceInctanceFactoryFactory = new FeeDistributorFactory__factory(referenceInctanceSetterSigner)
+        const factorySignedByReferenceInctanceSetter = referenceInctanceFactoryFactory.attach(feeDistributorFactory.address)
 
         await expect(factorySignedByReferenceInctanceSetter.setReferenceInstance(nobody)).to.be.revertedWith(
             `AccessControl: account ${referenceInctanceSetter.toLowerCase()} is missing role ${REFERENCE_INSTANCE_SETTER_ROLE}`
@@ -67,6 +68,43 @@ describe("FeeDistributorFactory", function () {
 
         await feeDistributorFactory.grantRole(REFERENCE_INSTANCE_SETTER_ROLE, referenceInctanceSetter)
 
-        await factorySignedByReferenceInctanceSetter.setReferenceInstance(nobody)
+        await expect(factorySignedByReferenceInctanceSetter.setReferenceInstance(nobody)).to.emit(
+            factorySignedByReferenceInctanceSetter,
+            "ReferenceInstanceSet"
+        )
+    })
+
+    it("createFeeDistributor can only be called with INSTANCE_CREATOR_ROLE and after setReferenceInstance", async function () {
+        const feeDistributorFactory = await factoryFactory.deploy({gasLimit: 3000000})
+
+        const inctanceCreatorSigner = await ethers.getSigner(inctanceCreator)
+        const inctanceCreatorSignerFactoryFactory = new FeeDistributorFactory__factory(inctanceCreatorSigner)
+        const factorySignedByInctanceCreator = inctanceCreatorSignerFactoryFactory.attach(feeDistributorFactory.address)
+
+        await expect(factorySignedByInctanceCreator.createFeeDistributor(nobody)).to.be.revertedWith(
+            `AccessControl: account ${inctanceCreator.toLowerCase()} is missing role ${INSTANCE_CREATOR_ROLE}`
+        )
+
+        await feeDistributorFactory.grantRole(INSTANCE_CREATOR_ROLE, inctanceCreator)
+
+        await expect(factorySignedByInctanceCreator.createFeeDistributor(nobody)).to.be.revertedWith(
+            `FeeDistributorFactory__ReferenceFeeDistributorNotSet`
+        )
+
+        const referenceInctanceSetterSigner = await ethers.getSigner(referenceInctanceSetter)
+        const referenceInctanceFactoryFactory = new FeeDistributorFactory__factory(referenceInctanceSetterSigner)
+        const factorySignedByReferenceInctanceSetter = referenceInctanceFactoryFactory.attach(feeDistributorFactory.address)
+
+        await feeDistributorFactory.grantRole(REFERENCE_INSTANCE_SETTER_ROLE, referenceInctanceSetter)
+
+        await expect(factorySignedByReferenceInctanceSetter.setReferenceInstance(nobody)).to.emit(
+            factorySignedByReferenceInctanceSetter,
+            "ReferenceInstanceSet"
+        )
+
+        await expect(factorySignedByInctanceCreator.createFeeDistributor(nobody)).to.emit(
+            factorySignedByInctanceCreator,
+            "FeeDistributorCreated"
+        )
     })
 })

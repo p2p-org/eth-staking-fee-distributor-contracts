@@ -5,7 +5,10 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-import "./IFeeDistributorFactory.sol";
+import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
+import "../feeDistributorFactory/IFeeDistributorFactory.sol";
+import "../assetRecovering/PublicTokenRecoverer.sol";
+import "./IFeeDistributor.sol";
 
 /**
 * @notice Should be a FeeDistributorFactory contract
@@ -52,7 +55,7 @@ error FeeDistributor__ClientNotSet();
 * @title Contract receiving MEV and priority fees
 * and distibuting them to the service and the client.
 */
-contract FeeDistributor is ReentrancyGuard {
+contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, IFeeDistributor {
     // Type Declarations
 
     using Address for address payable;
@@ -78,21 +81,6 @@ contract FeeDistributor is ReentrancyGuard {
     * @notice address of the client
     */
     address payable private s_client;
-
-    // Events
-
-    /**
-    * @notice Emits on successful withdrawal
-    * @param _serviceAmount how much wei service received
-    * @param _clientAmount how much wei client received
-    */
-    event Withdrawn(uint256 _serviceAmount, uint256 _clientAmount);
-
-    /**
-    * @notice Emits once the client address has been set.
-    * @param _client address of the client.
-    */
-    event Initialized(address indexed _client);
 
     /**
     * @dev Set values that are constant, common for all the clients, known at the initial deploy time.
@@ -166,5 +154,14 @@ contract FeeDistributor is ReentrancyGuard {
         s_client.sendValue(clientAmount);
 
         emit Withdrawn(serviceAmount, clientAmount);
+    }
+
+    // from AccessControl
+
+    /**
+    * @dev See {IERC165-supportsInterface}.
+    */
+    function supportsInterface(bytes4 interfaceId) public view virtual override (AccessControlEnumerable, IERC165) returns (bool) {
+        return interfaceId == type(IFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
     }
 }

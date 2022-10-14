@@ -40,7 +40,7 @@ describe("Integration", function () {
             feeDistributorFactory.address,
             serviceAddress,
             servicePercent,
-            {gasLimit: 1000000}
+            {gasLimit: 3000000}
         )
 
         const REFERENCE_INSTANCE_SETTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("REFERENCE_INSTANCE_SETTER_ROLE"))

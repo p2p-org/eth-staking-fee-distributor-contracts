@@ -106,6 +106,10 @@ contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, IFeeDistributo
         i_factory = IFeeDistributorFactory(_factory);
         i_service = payable(_service);
         i_servicePercent = _servicePercent;
+
+        // Grant the contract deployer the default admin role: it will be able
+        // to grant and revoke any roles
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     // Functions

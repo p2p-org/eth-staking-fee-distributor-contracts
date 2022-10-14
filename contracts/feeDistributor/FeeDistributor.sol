@@ -106,6 +106,10 @@ contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, IFeeDistributo
         i_factory = IFeeDistributorFactory(_factory);
         i_service = payable(_service);
         i_servicePercent = _servicePercent;
+
+        // Grant the contract deployer the default admin role: it will be able
+        // to grant and revoke any roles
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     // Functions
@@ -154,6 +158,34 @@ contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, IFeeDistributo
         s_client.sendValue(clientAmount);
 
         emit Withdrawn(serviceAmount, clientAmount);
+    }
+
+    /**
+     * @dev Returns the factory address
+     */
+    function getFactory() external view returns (address) {
+        return address(i_factory);
+    }
+
+    /**
+     * @dev Returns the service address
+     */
+    function getService() external view returns (address) {
+        return i_service;
+    }
+
+    /**
+     * @dev Returns the client address
+     */
+    function getClient() external view returns (address) {
+        return s_client;
+    }
+
+    /**
+     * @dev Returns the service percent
+     */
+    function getServicePercent() external view returns (uint256) {
+        return i_servicePercent;
     }
 
     // from AccessControl

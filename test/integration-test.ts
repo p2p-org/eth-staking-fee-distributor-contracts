@@ -12,12 +12,10 @@ describe("Integration", function () {
 
     // deployer, owner of contracts
     let signer: SignerWithAddress
+    let service: string
 
     // factory contract for deploying individual FeeDistributor contract instances for each user on demand
     let feeDistributorFactory: FeeDistributorFactory
-
-    // P2P secure address (cold storage, multisig, etc.)
-    const serviceAddress = "0x1234567890123456789012345678901234567890"
 
     // P2P should get 30% (subject to chioce at deploy time)
     const servicePercent =  30;
@@ -26,8 +24,9 @@ describe("Integration", function () {
     const clientPercent = 100 - servicePercent;
 
     before(async () => {
-        const { deployer } = await getNamedAccounts()
+        const { deployer, serviceAddress } = await getNamedAccounts()
         signer = await ethers.getSigner(deployer)
+        service = serviceAddress
 
         // deploy factory contract
         const factoryFactory = new FeeDistributorFactory__factory(signer)
@@ -81,16 +80,18 @@ describe("Integration", function () {
                     signer
                 )
 
+                const serviceAddressBalanceBefore = await ethers.provider.getBalance(service)
+
                 // call withdraw
                 await feeDistributor.withdraw()
 
                 const totalBlockReward = ethers.utils.parseEther('2')
 
                 // get service address balance
-                const serviceAddressBalance = await ethers.provider.getBalance(serviceAddress)
+                const serviceAddressBalance = await ethers.provider.getBalance(service)
 
                 // make sure P2P (service) got its percent
-                expect(serviceAddressBalance).to.equal(totalBlockReward.mul(servicePercent).div(100))
+                expect(serviceAddressBalance.sub(serviceAddressBalanceBefore)).to.equal(totalBlockReward.mul(servicePercent).div(100))
 
                 // get client address balance
                 const clientAddressBalance = await ethers.provider.getBalance(clientAddress)

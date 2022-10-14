@@ -3,13 +3,10 @@ import { FeeDistributor, FeeDistributor__factory, FeeDistributorFactory__factory
 
 async function main() {
     try {
-        // P2P secure address (cold storage, multisig, etc.)
-        const serviceAddress = "0xDcC5dD922fb1D0fd0c450a0636a8cE827521f0eD"
-
         // P2P should get 30% (subject to chioce at deploy time)
         const servicePercent = 30;
 
-        const { deployer } = await getNamedAccounts()
+        const { deployer, serviceAddress } = await getNamedAccounts()
         const signer = await ethers.getSigner(deployer)
 
         // deploy factory contract

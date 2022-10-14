@@ -16,6 +16,11 @@ import "./IFeeDistributorFactory.sol";
 error FeeDistributorFactory__CannotRevokeTheOnlyAdmin();
 
 /**
+* @notice Reference FeeDistributor should be set before calling `createFeeDistributor`
+*/
+error FeeDistributorFactory__ReferenceFeeDistributorNotSet();
+
+/**
 * @title Factory for cloning (EIP-1167) FeeDistributor instances pre client
 */
 contract FeeDistributorFactory is AccessControlEnumerable, AssetRecoverer, IFeeDistributorFactory {
@@ -60,6 +65,10 @@ contract FeeDistributorFactory is AccessControlEnumerable, AssetRecoverer, IFeeD
     * @param _client the address of the client
     */
     function createFeeDistributor(address _client) external onlyRole(INSTANCE_CREATOR_ROLE) {
+        if (s_referenceFeeDistributor == address(0)) {
+            revert FeeDistributorFactory__ReferenceFeeDistributorNotSet();
+        }
+
         // clone the reference implementation of FeeDistributor
         address newFeeDistributorAddrress = s_referenceFeeDistributor.clone();
 

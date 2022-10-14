@@ -9,12 +9,11 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/// @title Asset Recoverer
-/// @notice Recover ether, ERC20, ERC721 and ERC1155 from a derived contract
-abstract contract AssetRecoverer {
+/// @title Token Recoverer
+/// @notice Recover ERC20, ERC721 and ERC1155 from a derived contract
+abstract contract TokenRecoverer {
     using SafeERC20 for IERC20;
 
-    event EtherTransferred(address indexed _recipient, uint256 _amount);
     event ERC20Transferred(address indexed _token, address indexed _recipient, uint256 _amount);
     event ERC721Transferred(address indexed _token, address indexed _recipient, uint256 _tokenId, bytes _data);
     event ERC1155Transferred(address indexed _token, address indexed _recipient, uint256 _tokenId, uint256 _amount, bytes _data);
@@ -27,18 +26,6 @@ abstract contract AssetRecoverer {
     modifier burnDisallowed(address _recipient) {
         require(_recipient != address(0), "NO BURN");
         _;
-    }
-
-    /**
-     * @notice transfers ether from this contract
-     * @dev using `address.call` is safer to transfer to other contracts
-     * @param _recipient address to transfer ether to
-     * @param _amount amount of ether to transfer
-     */
-    function _transferEther(address _recipient, uint256 _amount) internal virtual burnDisallowed(_recipient) {
-        (bool success, ) = _recipient.call{value: _amount}("");
-        require(success, "TRANSFER FAILED");
-        emit EtherTransferred(_recipient, _amount);
     }
 
     /**

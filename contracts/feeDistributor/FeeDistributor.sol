@@ -160,6 +160,34 @@ contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, IFeeDistributo
         emit Withdrawn(serviceAmount, clientAmount);
     }
 
+    /**
+     * @dev Returns the factory address
+     */
+    function getFactory() external view returns (address) {
+        return address(i_factory);
+    }
+
+    /**
+     * @dev Returns the service address
+     */
+    function getService() external view returns (address) {
+        return i_service;
+    }
+
+    /**
+     * @dev Returns the client address
+     */
+    function getClient() external view returns (address) {
+        return s_client;
+    }
+
+    /**
+     * @dev Returns the service percent
+     */
+    function getServicePercent() external view returns (uint256) {
+        return i_servicePercent;
+    }
+
     // from AccessControl
 
     /**

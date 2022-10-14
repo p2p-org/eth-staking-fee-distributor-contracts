@@ -38,4 +38,9 @@ interface IFeeDistributorFactory is IAccessControl, IERC165 {
     * @param _client the address of the client
     */
     function createFeeDistributor(address _client) external;
+
+    /**
+     * @dev Returns the reference FeeDistributor contract address
+     */
+    function getReferenceFeeDistributor() external view returns (address);
 }

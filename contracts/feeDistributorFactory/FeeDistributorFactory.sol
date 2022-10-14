@@ -85,6 +85,13 @@ contract FeeDistributorFactory is PublicAssetRecoverer, IFeeDistributorFactory {
         emit FeeDistributorCreated(newFeeDistributorAddrress, _client);
     }
 
+    /**
+     * @dev Returns the reference FeeDistributor contract address
+     */
+    function getReferenceFeeDistributor() external view returns (address) {
+        return s_referenceFeeDistributor;
+    }
+
     // from AccessControl
 
     /**

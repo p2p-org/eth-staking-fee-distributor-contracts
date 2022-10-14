@@ -130,6 +130,10 @@ describe("FeeDistributorFactory", function () {
             "ReferenceInstanceSet"
         )
 
+        await expect(factorySignedByInctanceCreator.createFeeDistributor(ethers.constants.AddressZero)).to.be.revertedWith(
+            `FeeDistributor__ZeroAddressClient`
+        )
+
         await expect(factorySignedByInctanceCreator.createFeeDistributor(nobody)).to.emit(
             factorySignedByInctanceCreator,
             "FeeDistributorCreated"

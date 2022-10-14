@@ -37,4 +37,24 @@ interface IFeeDistributor is IAccessControl, IERC165 {
     * @notice Withdraw the whole balance of the contract according to the pre-defined percentages.
     */
     function withdraw() external;
+
+    /**
+     * @dev Returns the factory address
+     */
+    function getFactory() external view returns (address);
+
+    /**
+     * @dev Returns the service address
+     */
+    function getService() external view returns (address);
+
+    /**
+     * @dev Returns the client address
+     */
+    function getClient() external view returns (address);
+
+    /**
+     * @dev Returns the service percent
+     */
+    function getServicePercent() external view returns (uint256);
 }

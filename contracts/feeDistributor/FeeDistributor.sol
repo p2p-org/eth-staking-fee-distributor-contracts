@@ -5,7 +5,6 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "../feeDistributorFactory/IFeeDistributorFactory.sol";
 import "../assetRecovering/PublicTokenRecoverer.sol";
 import "./IFeeDistributor.sol";
@@ -106,10 +105,6 @@ contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, IFeeDistributo
         i_factory = IFeeDistributorFactory(_factory);
         i_service = payable(_service);
         i_servicePercent = _servicePercent;
-
-        // Grant the contract deployer the default admin role: it will be able
-        // to grant and revoke any roles
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     // Functions
@@ -188,12 +183,24 @@ contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, IFeeDistributo
         return i_servicePercent;
     }
 
-    // from AccessControl
-
     /**
     * @dev See {IERC165-supportsInterface}.
     */
-    function supportsInterface(bytes4 interfaceId) public view virtual override (AccessControlEnumerable, IERC165) returns (bool) {
-        return interfaceId == type(IFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId) public view virtual override (IERC165) returns (bool) {
+        return interfaceId == type(IFeeDistributor).interfaceId;
+    }
+
+    /**
+     * @dev Ownership of this contract is managed by the factory.
+     */
+    function _transferOwnership(address newOwner) internal override {
+        // Do nothing
+    }
+
+    /**
+     * @dev Returns the address of the current owner.
+     */
+    function owner() public view override returns (address) {
+        return i_factory.owner();
     }
 }

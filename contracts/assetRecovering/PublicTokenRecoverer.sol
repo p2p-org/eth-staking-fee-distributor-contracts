@@ -4,26 +4,13 @@
 // https://github.com/lidofinance/lido-otc-seller/blob/master/contracts/lib/AssetRecoverer.sol
 pragma solidity 0.8.17;
 
-import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./TokenRecoverer.sol";
 
-/**
-* @notice if the only 1 address with DEFAULT_ADMIN_ROLE is left,
-* it should not be possible to renounce it
-* to prevent losing control over the contract.
-*/
-error PublicTokenRecoverer__CannotRevokeTheOnlyAdmin();
-
-/// @title Token Recoverer with public functions callable by ASSET_RECOVERER_ROLE
+/// @title Token Recoverer with public functions callable by assetAccessingAddress
 /// @notice Recover ERC20, ERC721 and ERC1155 from a derived contract
-abstract contract PublicTokenRecoverer is TokenRecoverer, AccessControlEnumerable {
-    // Constants
-
-    bytes32 public constant ASSET_RECOVERER_ROLE = keccak256("ASSET_RECOVERER_ROLE");
-
+abstract contract PublicTokenRecoverer is TokenRecoverer, Ownable {
     // Functions
-
-    // from AssetRecoverer
 
     /**
      * @notice transfer an ERC20 token from this contract
@@ -37,7 +24,7 @@ abstract contract PublicTokenRecoverer is TokenRecoverer, AccessControlEnumerabl
         address _token,
         address _recipient,
         uint256 _amount
-    ) public onlyRole(ASSET_RECOVERER_ROLE) {
+    ) public onlyOwner {
         _transferERC20(_token, _recipient, _amount);
     }
 
@@ -55,7 +42,7 @@ abstract contract PublicTokenRecoverer is TokenRecoverer, AccessControlEnumerabl
         address _recipient,
         uint256 _tokenId,
         bytes calldata _data
-    ) public onlyRole(ASSET_RECOVERER_ROLE) {
+    ) public onlyOwner {
         _transferERC721(_token, _recipient, _tokenId, _data);
     }
 
@@ -74,24 +61,7 @@ abstract contract PublicTokenRecoverer is TokenRecoverer, AccessControlEnumerabl
         uint256 _tokenId,
         uint256 _amount,
         bytes calldata _data
-    ) public onlyRole(ASSET_RECOVERER_ROLE) {
+    ) public onlyOwner {
         _transferERC1155(_token, _recipient, _tokenId, _amount, _data);
-    }
-
-    // from AccessControl
-
-    /**
-     * @dev Revokes `role` from `account`.
-     * May emit a {RoleRevoked} event.
-     * Overrides AccessControl _revokeRole
-     * to prevent renouncing the only admin
-     * and losing control over the contract.
-     */
-    function _revokeRole(bytes32 role, address account) internal override {
-        if (role == DEFAULT_ADMIN_ROLE && getRoleMemberCount(DEFAULT_ADMIN_ROLE) == 1) {
-            revert PublicTokenRecoverer__CannotRevokeTheOnlyAdmin();
-        }
-
-        super._revokeRole(role, account);
     }
 }

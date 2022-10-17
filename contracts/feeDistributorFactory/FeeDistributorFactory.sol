@@ -3,11 +3,11 @@
 pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/proxy/Clones.sol";
-import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "../assetRecovering/PublicAssetRecoverer.sol";
 import "./IFeeDistributorFactory.sol";
 import "../feeDistributor/IFeeDistributor.sol";
+import "../access/Access.sol";
 
 /**
 * @notice Should be a FeeDistributor contract
@@ -23,15 +23,10 @@ error FeeDistributorFactory__ReferenceFeeDistributorNotSet();
 /**
 * @title Factory for cloning (EIP-1167) FeeDistributor instances pre client
 */
-contract FeeDistributorFactory is PublicAssetRecoverer, IFeeDistributorFactory {
+contract FeeDistributorFactory is PublicAssetRecoverer, Access, IFeeDistributorFactory {
     // Type Declarations
 
     using Clones for address;
-
-    // Constants
-
-    bytes32 public constant REFERENCE_INSTANCE_SETTER_ROLE = keccak256("REFERENCE_INSTANCE_SETTER_ROLE");
-    bytes32 public constant INSTANCE_CREATOR_ROLE = keccak256("INSTANCE_CREATOR_ROLE");
 
     // State variables
 
@@ -41,19 +36,13 @@ contract FeeDistributorFactory is PublicAssetRecoverer, IFeeDistributorFactory {
     */
     address private s_referenceFeeDistributor;
 
-    constructor() {
-        // Grant the contract deployer the default admin role: it will be able
-        // to grant and revoke any roles
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    }
-
     // Functions
 
     /**
     * @notice Set a new reference implementation of FeeDistributor contract
     * @param _referenceFeeDistributor the address of the new reference implementation contract
     */
-    function setReferenceInstance(address _referenceFeeDistributor) external onlyRole(REFERENCE_INSTANCE_SETTER_ROLE) {
+    function setReferenceInstance(address _referenceFeeDistributor) external onlyOwner {
         if (!ERC165Checker.supportsInterface(_referenceFeeDistributor, type(IFeeDistributor).interfaceId)) {
             revert FeeDistributorFactory__NotFeeDistributor(_referenceFeeDistributor);
         }
@@ -67,7 +56,7 @@ contract FeeDistributorFactory is PublicAssetRecoverer, IFeeDistributorFactory {
     * @dev Emits `FeeDistributorCreated` event with the address of the newly created instance
     * @param _client the address of the client
     */
-    function createFeeDistributor(address _client) external onlyRole(INSTANCE_CREATOR_ROLE) {
+    function createFeeDistributor(address _client) external onlyOperator {
         if (s_referenceFeeDistributor == address(0)) {
             revert FeeDistributorFactory__ReferenceFeeDistributorNotSet();
         }
@@ -92,12 +81,25 @@ contract FeeDistributorFactory is PublicAssetRecoverer, IFeeDistributorFactory {
         return s_referenceFeeDistributor;
     }
 
-    // from AccessControl
-
     /**
     * @dev See {IERC165-supportsInterface}.
     */
-    function supportsInterface(bytes4 interfaceId) public view virtual override (AccessControlEnumerable, IERC165) returns (bool) {
-        return interfaceId == type(IFeeDistributorFactory).interfaceId || super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId) public view virtual override (IERC165) returns (bool) {
+        return interfaceId == type(IFeeDistributorFactory).interfaceId;
+    }
+
+    /**
+     * @dev Returns the address of the current owner.
+     */
+    function owner() public view override(IFeeDistributorFactory, Ownable) returns (address) {
+        return super.owner();
+    }
+
+    /**
+     * @dev it should not be possible to renounceOwnership
+     * to prevent losing control over the contract.
+     */
+    function renounceOwnership() public pure override {
+        revert Access__CannotRenounceOwnership();
     }
 }

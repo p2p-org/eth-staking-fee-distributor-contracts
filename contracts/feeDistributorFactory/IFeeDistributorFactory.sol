@@ -2,13 +2,12 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/IAccessControl.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
  * @dev External interface of FeeDistributorFactory declared to support ERC165 detection.
  */
-interface IFeeDistributorFactory is IAccessControl, IERC165 {
+interface IFeeDistributorFactory is IERC165 {
     // Events
 
     /**
@@ -43,4 +42,9 @@ interface IFeeDistributorFactory is IAccessControl, IERC165 {
      * @dev Returns the reference FeeDistributor contract address
      */
     function getReferenceFeeDistributor() external view returns (address);
+
+    /**
+     * @dev Returns the address of the current owner.
+     */
+    function owner() external view returns (address);
 }

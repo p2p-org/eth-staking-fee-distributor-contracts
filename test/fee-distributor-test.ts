@@ -4,7 +4,7 @@ import {
     FeeDistributor__factory,
     FeeDistributorFactory__factory,
     FeeDistributor,
-    FeeDistributorFactory, MockERC20__factory
+    FeeDistributorFactory, MockERC20__factory, MockERC721__factory
 } from "../typechain-types"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
@@ -215,12 +215,21 @@ describe("FeeDistributor", function () {
         // retrieve client instance address from event
         const newFeeDistributorAddrress = event.args?._newFeeDistributorAddrress;
 
+        // ERC20
         const mockERC20Factory = new MockERC20__factory(deployerSigner)
         const erc20Supply = ethers.utils.parseEther('100')
         // deploy mock ERC20
         const erc20 = await mockERC20Factory.deploy(erc20Supply)
         // transfer mock ERC20 tokens to client instance
         await erc20.transfer(newFeeDistributorAddrress, erc20Supply)
+
+        // ERC721
+        const mockERC721Factory = new MockERC721__factory(deployerSigner)
+        // deploy mock ERC721
+        const erc721 = await mockERC721Factory.deploy()
+        // transfer mock ERC721 tokens to client instance
+        const erc721TokenId = 0
+        await erc721.transferFrom(deployerSigner.address, newFeeDistributorAddrress, erc721TokenId)
 
         const feeDistributorSignedByAssetOwner = ownerFactory.attach(newFeeDistributorAddrress)
 
@@ -229,11 +238,20 @@ describe("FeeDistributor", function () {
             `Ownable: caller is not the owner`
             )
 
+        await expect(feeDistributorSignedByAssetOwner.transferERC721(erc721.address, nobody, erc721TokenId, "0x"))
+            .to.be.revertedWith(
+                `Ownable: caller is not the owner`
+            )
+
         await feeDistributorFactory.transferOwnership(owner)
 
         await feeDistributorSignedByAssetOwner.transferERC20(erc20.address, nobody, erc20Supply)
         const recipientErc20Balance = await erc20.balanceOf(nobody)
 
+        await feeDistributorSignedByAssetOwner.transferERC721(erc721.address, nobody, erc721TokenId, "0x")
+        const recipientErc721Balance = await erc721.balanceOf(nobody)
+
         expect(recipientErc20Balance).to.be.equal(erc20Supply)
+        expect(recipientErc721Balance).to.be.equal(1)
     })
 })

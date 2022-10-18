@@ -10,41 +10,48 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 describe("FeeDistributor", function () {
 
-    // deployer, owner of contracts
-    let deployerSigner: SignerWithAddress
-
-    // factory contract for deploying individual FeeDistributor contract instances for each user on demand
-    let feeDistributorFactory: FeeDistributorFactory
-
-    // P2P secure address (cold storage, multisig, etc.)
-    const serviceAddress = "0x1234567890123456789012345678901234567890"
-
-    const DEFAULT_ADMIN_ROLE = ethers.constants.HashZero
-    const ASSET_RECOVERER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("ASSET_RECOVERER_ROLE"))
-    const REFERENCE_INSTANCE_SETTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("REFERENCE_INSTANCE_SETTER_ROLE"))
-    const INSTANCE_CREATOR_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("INSTANCE_CREATOR_ROLE"))
-
     // P2P should get 30% (subject to chioce at deploy time)
     const servicePercent =  30;
 
     // client should get 70% (subject to chioce at deploy time)
     const clientPercent = 100 - servicePercent;
 
+    let deployerSigner: SignerWithAddress
+    let ownerSigner: SignerWithAddress
+    let operatorSigner: SignerWithAddress
+    let nobodySigner: SignerWithAddress
+
+    let deployerFactory: FeeDistributor__factory
+    let ownerFactory: FeeDistributor__factory
+    let operatorFactory: FeeDistributor__factory
+    let nobodyFactory: FeeDistributor__factory
+
+    let feeDistributorFactory: FeeDistributorFactory
+
     let deployer: string
-    let referenceInstanceSetter: string
-    let inctanceCreator: string
-    let assetRecoverer: string
+    let owner: string
+    let operator: string
     let nobody : string
+    let serviceAddress: string
 
     before(async () => {
         const namedAccounts = await getNamedAccounts()
+
         deployer = namedAccounts.deployer
-        referenceInstanceSetter = namedAccounts.referenceInstanceSetter
-        inctanceCreator = namedAccounts.inctanceCreator
-        assetRecoverer = namedAccounts.assetRecoverer
+        owner = namedAccounts.owner
+        operator = namedAccounts.operator
         nobody = namedAccounts.nobody
+        serviceAddress = namedAccounts.serviceAddress
 
         deployerSigner = await ethers.getSigner(deployer)
+        ownerSigner = await ethers.getSigner(owner)
+        operatorSigner = await ethers.getSigner(operator)
+        nobodySigner = await ethers.getSigner(nobody)
+
+        deployerFactory = new FeeDistributor__factory(deployerSigner)
+        ownerFactory = new FeeDistributor__factory(ownerSigner)
+        operatorFactory = new FeeDistributor__factory(operatorSigner)
+        nobodyFactory = new FeeDistributor__factory(nobodySigner)
 
         // deploy factory contract
         const factoryFactory = new FeeDistributorFactory__factory(deployerSigner)
@@ -114,7 +121,7 @@ describe("FeeDistributor", function () {
         )
     })
 
-    it("deployer should get DEFAULT_ADMIN_ROLE", async function () {
+    it("deployer should get ownership", async function () {
         const factory = new FeeDistributor__factory(deployerSigner)
 
         const feeDistributor = await factory.deploy(
@@ -124,20 +131,11 @@ describe("FeeDistributor", function () {
             {gasLimit: 3000000}
         )
 
-        const firstAdmin = await feeDistributor.getRoleMember(DEFAULT_ADMIN_ROLE, 0)
-        expect(firstAdmin).to.be.equal(deployerSigner.address)
-
-        const adminCount = await feeDistributor.getRoleMemberCount(DEFAULT_ADMIN_ROLE)
-        expect(adminCount).to.be.equal(1)
-
-        const hasRole = await feeDistributor.hasRole(DEFAULT_ADMIN_ROLE, deployerSigner.address)
-        expect(hasRole).to.be.true
-
-        const noRole = await feeDistributor.hasRole(DEFAULT_ADMIN_ROLE, nobody)
-        expect(noRole).to.be.false
+        const feeDistributorOwner = await feeDistributor.owner()
+        expect(feeDistributorOwner).to.be.equal(deployerSigner.address)
     })
 
-    it("ASSET_RECOVERER_ROLE not assigned after deployment", async function () {
+    it("cannot renounce ownership", async function () {
         const factory = new FeeDistributor__factory(deployerSigner)
 
         const feeDistributor = await factory.deploy(
@@ -147,49 +145,13 @@ describe("FeeDistributor", function () {
             {gasLimit: 3000000}
         )
 
-        const ASSET_RECOVERER_ROLECount = await feeDistributor.getRoleMemberCount(ASSET_RECOVERER_ROLE)
-        expect(ASSET_RECOVERER_ROLECount).to.be.equal(0)
+        await feeDistributor.renounceOwnership()
+
+        const feeDistributorOwner = await feeDistributor.owner()
+        expect(feeDistributorOwner).to.be.equal(deployerSigner.address)
     })
 
-    it("cannot revoke the only admin", async function () {
-        const factory = new FeeDistributor__factory(deployerSigner)
-
-        const feeDistributor = await factory.deploy(
-            feeDistributorFactory.address,
-            serviceAddress,
-            servicePercent,
-            {gasLimit: 3000000}
-        )
-
-        const adminCount = await feeDistributor.getRoleMemberCount(DEFAULT_ADMIN_ROLE)
-        expect(adminCount).to.be.equal(1)
-
-        await expect(feeDistributor.renounceRole(DEFAULT_ADMIN_ROLE, deployerSigner.address)).to.be.revertedWith(
-            `PublicTokenRecoverer__CannotRevokeTheOnlyAdmin`
-        )
-
-        await expect(feeDistributor.revokeRole(DEFAULT_ADMIN_ROLE, deployerSigner.address)).to.be.revertedWith(
-            `PublicTokenRecoverer__CannotRevokeTheOnlyAdmin`
-        )
-
-        await feeDistributor.grantRole(DEFAULT_ADMIN_ROLE, nobody)
-
-        const adminCountAfterAdding = await feeDistributor.getRoleMemberCount(DEFAULT_ADMIN_ROLE)
-        expect(adminCountAfterAdding).to.be.equal(2)
-
-        await feeDistributor.renounceRole(DEFAULT_ADMIN_ROLE, deployerSigner.address)
-
-        const adminCountAfterRemoving = await feeDistributor.getRoleMemberCount(DEFAULT_ADMIN_ROLE)
-        expect(adminCountAfterRemoving).to.be.equal(1)
-
-        const deployerHasRole = await feeDistributor.hasRole(DEFAULT_ADMIN_ROLE, deployerSigner.address)
-        expect(deployerHasRole).to.be.false
-
-        const newAdminHasRole = await feeDistributor.hasRole(DEFAULT_ADMIN_ROLE, nobody)
-        expect(newAdminHasRole).to.be.true
-    })
-
-    it("an admin of the reference instance should become an admin of a client instance", async function () {
+    it("the owner of the reference instance should become the owner of a client instance", async function () {
         // deoply factory
         const deployerSignerFactory = new FeeDistributor__factory(deployerSigner)
 
@@ -201,14 +163,13 @@ describe("FeeDistributor", function () {
             { gasLimit: 3000000 }
         )
 
-        // grant oneself REFERENCE_INSTANCE_SETTER_ROLE
-        await feeDistributorFactory.grantRole(REFERENCE_INSTANCE_SETTER_ROLE, deployerSigner.address)
         // set reference instance
         await feeDistributorFactory.setReferenceInstance(feeDistributorReferenceInstance.address)
 
+        // become an operator to create a client instance
+        await feeDistributorFactory.transferOperator(deployerSigner.address)
+
         const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
-        // grant oneself INSTANCE_CREATOR_ROLE
-        await feeDistributorFactory.grantRole(INSTANCE_CREATOR_ROLE, deployerSigner.address)
         // create client instance
         const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(clientAddress)
         const createFeeDistributorTxReceipt = await createFeeDistributorTx.wait();
@@ -221,11 +182,11 @@ describe("FeeDistributor", function () {
 
         const feeDistributorSignedByDeployer = deployerSignerFactory.attach(newFeeDistributorAddrress)
 
-        const deployerHasRole = await feeDistributorSignedByDeployer.hasRole(DEFAULT_ADMIN_ROLE, deployerSigner.address)
-        expect(deployerHasRole).to.be.true
+        const clientInstanceOwner = await feeDistributorSignedByDeployer.owner()
+        expect(clientInstanceOwner).to.be.equal(deployerSigner.address)
     })
 
-    it("only ASSET_RECOVERER_ROLE can recover tokens", async function () {
+    it("only owner can recover tokens", async function () {
         // deoply factory
         const deployerSignerFactory = new FeeDistributor__factory(deployerSigner)
 
@@ -237,14 +198,13 @@ describe("FeeDistributor", function () {
             { gasLimit: 3000000 }
         )
 
-        // grant oneself REFERENCE_INSTANCE_SETTER_ROLE
-        await feeDistributorFactory.grantRole(REFERENCE_INSTANCE_SETTER_ROLE, deployerSigner.address)
         // set reference instance
         await feeDistributorFactory.setReferenceInstance(feeDistributorReferenceInstance.address)
 
+        // become an operator to create a client instance
+        await feeDistributorFactory.transferOperator(deployerSigner.address)
+
         const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
-        // grant oneself INSTANCE_CREATOR_ROLE
-        await feeDistributorFactory.grantRole(INSTANCE_CREATOR_ROLE, deployerSigner.address)
         // create client instance
         const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(clientAddress)
         const createFeeDistributorTxReceipt = await createFeeDistributorTx.wait();
@@ -262,22 +222,22 @@ describe("FeeDistributor", function () {
         // transfer mock ERC20 tokens to client instance
         await erc20.transfer(newFeeDistributorAddrress, erc20Supply)
 
-        const assetRecovererSigner = await ethers.getSigner(assetRecoverer)
-        const assetRecovererSignerFactory = new FeeDistributor__factory(assetRecovererSigner)
-        const feeDistributorSignedByAssetRecoverer = assetRecovererSignerFactory.attach(newFeeDistributorAddrress)
+        await feeDistributorFactory.transferOwnership(owner)
 
-        await expect(feeDistributorSignedByAssetRecoverer.transferERC20(erc20.address, nobody, erc20Supply))
-            .to.be.revertedWith(
-            `AccessControl: account ${assetRecoverer.toLowerCase()} is missing role ${ASSET_RECOVERER_ROLE}`
-            )
+        const feeDistributorSignedByAssetOwner = ownerFactory.attach(newFeeDistributorAddrress)
 
-        const feeDistributorSignedByDeployer = deployerSignerFactory.attach(newFeeDistributorAddrress)
-
-        await feeDistributorSignedByDeployer.grantRole(ASSET_RECOVERER_ROLE, assetRecoverer)
-
-        await feeDistributorSignedByAssetRecoverer.transferERC20(erc20.address, nobody, erc20Supply)
-        const recipientErc20Balance = await erc20.balanceOf(nobody)
-
-        expect(recipientErc20Balance).to.be.equal(erc20Supply)
+        // await expect(feeDistributorSignedByAssetOwner.transferERC20(erc20.address, nobody, erc20Supply))
+        //     .to.be.revertedWith(
+        //     `AccessControl: account ${assetRecoverer.toLowerCase()} is missing role ${ASSET_RECOVERER_ROLE}`
+        //     )
+        //
+        // const feeDistributorSignedByDeployer = deployerSignerFactory.attach(newFeeDistributorAddrress)
+        //
+        // await feeDistributorSignedByDeployer.grantRole(ASSET_RECOVERER_ROLE, assetRecoverer)
+        //
+        // await feeDistributorSignedByAssetOwner.transferERC20(erc20.address, nobody, erc20Supply)
+        // const recipientErc20Balance = await erc20.balanceOf(nobody)
+        //
+        // expect(recipientErc20Balance).to.be.equal(erc20Supply)
     })
 })

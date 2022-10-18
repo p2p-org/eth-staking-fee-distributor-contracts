@@ -60,23 +60,20 @@ const config: HardhatUserConfig = {
     noColors: true,
   },
   namedAccounts: {
-    deployer: { // will be the default admin for roles
+    deployer: {
       default: 0
     },
-    referenceInstanceSetter: { // will be able to set new FeeDistributor reference instances
+    owner: { // manages all aspects of contracts, can recover accidentally sent assets, P2P secure address (cold storage, multisig, etc.)
       default: 1
     },
-    inctanceCreator: {
+    operator: { // instance creator
       default: 2
     },
-    assetRecoverer: {
+    serviceAddress: { // will receive EL rewards, P2P secure address (cold storage, multisig, etc.)
       default: 3
     },
-    serviceAddress: { // P2P secure address (cold storage, multisig, etc.)
-      default: 4
-    },
     nobody: {
-      default: 5
+      default: 4
     },
   },
 }

@@ -4,6 +4,7 @@ pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "../feeDistributorFactory/IFeeDistributorFactory.sol";
 import "../assetRecovering/PublicTokenRecoverer.sol";
@@ -54,7 +55,7 @@ error FeeDistributor__ClientNotSet();
 * @title Contract receiving MEV and priority fees
 * and distibuting them to the service and the client.
 */
-contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, IFeeDistributor {
+contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
     // Type Declarations
 
     using Address for address payable;
@@ -186,8 +187,8 @@ contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, IFeeDistributo
     /**
     * @dev See {IERC165-supportsInterface}.
     */
-    function supportsInterface(bytes4 interfaceId) public view virtual override (IERC165) returns (bool) {
-        return interfaceId == type(IFeeDistributor).interfaceId;
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
+        return interfaceId == type(IFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
     }
 
     /**

@@ -9,73 +9,75 @@ import {
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 describe("FeeDistributorFactory", function () {
-
-    // deployer, owner of contracts
-    let deployerSigner: SignerWithAddress
-
-    const DEFAULT_ADMIN_ROLE = ethers.constants.HashZero
-    const REFERENCE_INSTANCE_SETTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("REFERENCE_INSTANCE_SETTER_ROLE"))
-    const INSTANCE_CREATOR_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("INSTANCE_CREATOR_ROLE"))
-    const ASSET_RECOVERER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("ASSET_RECOVERER_ROLE"))
-
     const servicePercent = 30
 
-    // factory contract for deploying individual FeeDistributor contract instances for each user on demand
-    let factoryFactory: FeeDistributorFactory__factory
-
     let deployer: string
-    let referenceInstanceSetter: string
-    let inctanceCreator: string
-    let assetRecoverer: string
+    let owner: string
+    let operator: string
     let nobody : string
     let serviceAddress: string
 
+    let deployerSigner: SignerWithAddress
+    let ownerSigner: SignerWithAddress
+    let operatorSigner: SignerWithAddress
+    let nobodySigner: SignerWithAddress
+
+    let deployerFactoryFactory: FeeDistributorFactory__factory
+    let ownerFactoryFactory: FeeDistributorFactory__factory
+    let operatorFactoryFactory: FeeDistributorFactory__factory
+    let nobodyFactoryFactory: FeeDistributorFactory__factory
+
     before(async () => {
         const namedAccounts = await getNamedAccounts()
+
         deployer = namedAccounts.deployer
-        referenceInstanceSetter = namedAccounts.referenceInstanceSetter
-        inctanceCreator = namedAccounts.inctanceCreator
-        assetRecoverer = namedAccounts.assetRecoverer
+        owner = namedAccounts.owner
+        operator = namedAccounts.operator
         nobody = namedAccounts.nobody
         serviceAddress = namedAccounts.serviceAddress
 
         deployerSigner = await ethers.getSigner(deployer)
-        factoryFactory = new FeeDistributorFactory__factory(deployerSigner)
+        ownerSigner = await ethers.getSigner(owner)
+        operatorSigner = await ethers.getSigner(operator)
+        nobodySigner = await ethers.getSigner(nobody)
+
+        deployerFactoryFactory = new FeeDistributorFactory__factory(deployerSigner)
+        ownerFactoryFactory = new FeeDistributorFactory__factory(ownerSigner)
+        operatorFactoryFactory = new FeeDistributorFactory__factory(operatorSigner)
+        nobodyFactoryFactory = new FeeDistributorFactory__factory(nobodySigner)
     })
 
-    it("setReferenceInstance can only be called with REFERENCE_INSTANCE_SETTER_ROLE and with valid FeeDistributor", async function () {
-        const feeDistributorFactory = await factoryFactory.deploy({gasLimit: 3000000})
+    it("setReferenceInstance can only be called by owner and with valid FeeDistributor", async function () {
+        const deployerFactory = await deployerFactoryFactory.deploy({gasLimit: 3000000})
 
-        const referenceInctanceSetterSigner = await ethers.getSigner(referenceInstanceSetter)
-        const referenceInctanceFactoryFactory = new FeeDistributorFactory__factory(referenceInctanceSetterSigner)
-        const factorySignedByReferenceInctanceSetter = referenceInctanceFactoryFactory.attach(feeDistributorFactory.address)
+        const factorySignedByOwner = ownerFactoryFactory.attach(deployerFactory.address)
 
-        await expect(factorySignedByReferenceInctanceSetter.setReferenceInstance(nobody)).to.be.revertedWith(
-            `AccessControl: account ${referenceInstanceSetter.toLowerCase()} is missing role ${REFERENCE_INSTANCE_SETTER_ROLE}`
+        await expect(factorySignedByOwner.setReferenceInstance(nobody)).to.be.revertedWith(
+            `Ownable: caller is not the owner`
         )
 
-        await feeDistributorFactory.grantRole(REFERENCE_INSTANCE_SETTER_ROLE, referenceInstanceSetter)
+        await deployerFactory.transferOwnership(owner)
 
-        await expect(factorySignedByReferenceInctanceSetter.setReferenceInstance(nobody)).to.be.revertedWith(
-            `FeeDistributorFactory__NotFeeDistributor(\"${nobody}\")`
+        await expect(factorySignedByOwner.setReferenceInstance(nobody)).to.be.revertedWith(
+            `FeeDistributorFactory__NotFeeDistributor`
         )
 
-        const factory = new FeeDistributor__factory(deployerSigner)
+        const factory = new FeeDistributor__factory(ownerSigner)
         const feeDistributor = await factory.deploy(
-            feeDistributorFactory.address,
+            deployerFactory.address,
             serviceAddress,
             servicePercent,
             {gasLimit: 3000000}
         )
 
-        await expect(factorySignedByReferenceInctanceSetter.setReferenceInstance(feeDistributor.address)).to.emit(
-            factorySignedByReferenceInctanceSetter,
+        await expect(factorySignedByOwner.setReferenceInstance(feeDistributor.address)).to.emit(
+            factorySignedByOwner,
             "ReferenceInstanceSet"
         )
     })
 
     it("createFeeDistributor can only be called with INSTANCE_CREATOR_ROLE and after setReferenceInstance", async function () {
-        const feeDistributorFactory = await factoryFactory.deploy({gasLimit: 3000000})
+        const feeDistributorFactory = await deployerFactoryFactory.deploy({gasLimit: 3000000})
 
         const inctanceCreatorSigner = await ethers.getSigner(inctanceCreator)
         const inctanceCreatorSignerFactoryFactory = new FeeDistributorFactory__factory(inctanceCreatorSigner)
@@ -125,7 +127,7 @@ describe("FeeDistributorFactory", function () {
     })
 
     it("deployer should get DEFAULT_ADMIN_ROLE", async function () {
-        const feeDistributorFactory = await factoryFactory.deploy({gasLimit: 3000000})
+        const feeDistributorFactory = await deployerFactoryFactory.deploy({gasLimit: 3000000})
 
         const firstAdmin = await feeDistributorFactory.getRoleMember(DEFAULT_ADMIN_ROLE, 0)
         expect(firstAdmin).to.be.equal(deployerSigner.address)
@@ -141,7 +143,7 @@ describe("FeeDistributorFactory", function () {
     })
 
     it("no roles are assigned after deployment (except admin)", async function () {
-        const feeDistributorFactory = await factoryFactory.deploy({ gasLimit: 3000000 })
+        const feeDistributorFactory = await deployerFactoryFactory.deploy({ gasLimit: 3000000 })
 
         const REFERENCE_INSTANCE_SETTER_ROLECount = await feeDistributorFactory.getRoleMemberCount(REFERENCE_INSTANCE_SETTER_ROLE)
         expect(REFERENCE_INSTANCE_SETTER_ROLECount).to.be.equal(0)
@@ -154,7 +156,7 @@ describe("FeeDistributorFactory", function () {
     })
 
     it("cannot revoke the only admin", async function () {
-        const feeDistributorFactory = await factoryFactory.deploy({gasLimit: 3000000})
+        const feeDistributorFactory = await deployerFactoryFactory.deploy({gasLimit: 3000000})
 
         const adminCount = await feeDistributorFactory.getRoleMemberCount(DEFAULT_ADMIN_ROLE)
         expect(adminCount).to.be.equal(1)

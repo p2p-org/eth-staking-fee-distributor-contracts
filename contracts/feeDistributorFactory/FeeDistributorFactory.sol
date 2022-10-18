@@ -3,6 +3,7 @@
 pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/proxy/Clones.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "../assetRecovering/PublicAssetRecoverer.sol";
 import "./IFeeDistributorFactory.sol";
@@ -23,7 +24,7 @@ error FeeDistributorFactory__ReferenceFeeDistributorNotSet();
 /**
 * @title Factory for cloning (EIP-1167) FeeDistributor instances pre client
 */
-contract FeeDistributorFactory is PublicAssetRecoverer, Access, IFeeDistributorFactory {
+contract FeeDistributorFactory is PublicAssetRecoverer, Access, ERC165, IFeeDistributorFactory {
     // Type Declarations
 
     using Clones for address;
@@ -84,8 +85,8 @@ contract FeeDistributorFactory is PublicAssetRecoverer, Access, IFeeDistributorF
     /**
     * @dev See {IERC165-supportsInterface}.
     */
-    function supportsInterface(bytes4 interfaceId) public view virtual override (IERC165) returns (bool) {
-        return interfaceId == type(IFeeDistributorFactory).interfaceId;
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
+        return interfaceId == type(IFeeDistributorFactory).interfaceId || super.supportsInterface(interfaceId);
     }
 
     /**

@@ -4,7 +4,7 @@ import {
     FeeDistributor__factory,
     FeeDistributorFactory__factory,
     FeeDistributor,
-    FeeDistributorFactory, MockERC20__factory, MockERC721__factory
+    FeeDistributorFactory, MockERC20__factory, MockERC721__factory, MockERC1155__factory
 } from "../typechain-types"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
@@ -230,6 +230,19 @@ describe("FeeDistributor", function () {
         // transfer mock ERC721 tokens to client instance
         const erc721TokenId = 0
         await erc721.transferFrom(deployerSigner.address, newFeeDistributorAddrress, erc721TokenId)
+
+        // ERC1155
+        const mockERC1155Factory = new MockERC1155__factory(deployerSigner)
+        const erc1155TokenId = 0
+        const erc1155Amount = 1
+        // deploy mock ERC1155
+        const erc1155 = await mockERC1155Factory.deploy(erc1155TokenId, erc1155Amount)
+        // transfer mock ERC1155 tokens to client instance
+        // there is no unsafe transfer in ERC1155
+        await expect(erc1155.safeTransferFrom(deployerSigner.address, newFeeDistributorAddrress, erc1155TokenId, erc1155Amount, "0x"))
+            .to.be.revertedWith(
+                `ERC1155: transfer to non ERC1155Receiver implementer`
+            )
 
         const feeDistributorSignedByAssetOwner = ownerFactory.attach(newFeeDistributorAddrress)
 

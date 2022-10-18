@@ -195,7 +195,7 @@ contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, ERC165, IFeeDi
      * @dev Ownership of this contract is managed by the factory.
      */
     function _transferOwnership(address newOwner) internal override {
-        // Do nothing
+        // Do nothing. Cannot revert because otherwise the constructor would revert too.
     }
 
     /**

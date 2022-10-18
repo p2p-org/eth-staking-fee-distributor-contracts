@@ -26,14 +26,6 @@ async function main() {
         )
         nonce++;
 
-        const REFERENCE_INSTANCE_SETTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("REFERENCE_INSTANCE_SETTER_ROLE"))
-        await feeDistributorFactory.grantRole(REFERENCE_INSTANCE_SETTER_ROLE, signer.address, {gasLimit: 1000000, nonce})
-        nonce++;
-
-        const INSTANCE_CREATOR_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("INSTANCE_CREATOR_ROLE"))
-        await feeDistributorFactory.grantRole(INSTANCE_CREATOR_ROLE, signer.address, {gasLimit: 1000000, nonce})
-        nonce++;
-
         // set the reference instance of FeeDistributor to the factory
         await feeDistributorFactory.setReferenceInstance(feeDistributor.address, {gasLimit: 1000000, nonce})
         nonce++;
@@ -63,6 +55,9 @@ async function main() {
                 console.log(err)
             }
         })
+
+        // become an operator to create a client instance
+        await feeDistributorFactory.transferOperator(signer.address)
 
         // create an instance of FeeDistributor for the client
         const createFeeDistributorTxReceipt = await feeDistributorFactory.createFeeDistributor(clientAddress, {gasLimit: 1000000, nonce})

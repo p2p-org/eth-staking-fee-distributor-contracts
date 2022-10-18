@@ -144,7 +144,7 @@ describe("FeeDistributorFactory", function () {
         )
     })
 
-    it("only owner can recover tokens", async function () {
+    it("only owner can recover tokens and ether", async function () {
         // deoply factory
         const feeDistributorFactory = await deployerFactoryFactory.deploy({gasLimit: 3000000})
 
@@ -153,14 +153,14 @@ describe("FeeDistributorFactory", function () {
         const erc20Supply = ethers.utils.parseEther('100')
         // deploy mock ERC20
         const erc20 = await mockERC20Factory.deploy(erc20Supply)
-        // transfer mock ERC20 tokens to client instance
+        // transfer mock ERC20 tokens to factory
         await erc20.transfer(feeDistributorFactory.address, erc20Supply)
 
         // ERC721
         const mockERC721Factory = new MockERC721__factory(deployerSigner)
         // deploy mock ERC721
         const erc721 = await mockERC721Factory.deploy()
-        // transfer mock ERC721 tokens to client instance
+        // transfer mock ERC721 tokens to factory
         const erc721TokenId = 0
         await erc721.transferFrom(deployerSigner.address, feeDistributorFactory.address, erc721TokenId)
 
@@ -170,12 +170,27 @@ describe("FeeDistributorFactory", function () {
         const erc1155Amount = 1
         // deploy mock ERC1155
         const erc1155 = await mockERC1155Factory.deploy(erc1155TokenId, erc1155Amount)
-        // transfer mock ERC1155 tokens to client instance
+        // transfer mock ERC1155 tokens to factory
         // there is no unsafe transfer in ERC1155
         await expect(erc1155.safeTransferFrom(deployerSigner.address, feeDistributorFactory.address, erc1155TokenId, erc1155Amount, "0x"))
             .to.be.revertedWith(
                 `ERC1155: transfer to non ERC1155Receiver implementer`
             )
+
+        // Ether
+        const etherAmount = ethers.utils.parseEther('2')
+        // cannot transfer ether to factory
+        await expect(deployerSigner.sendTransaction({to: feeDistributorFactory.address, value: etherAmount}))
+            .to.be.revertedWith(
+                `Transaction reverted: function selector was not recognized and there's no fallback nor receive function`
+            )
+
+        // push ether to the factory forcefully by mining (staking, whatever)
+        await ethers.provider.send("hardhat_setCoinbase", [
+            feeDistributorFactory.address,
+        ])
+        // simulate producing a new block so that the factory can get its rewards
+        await ethers.provider.send("evm_mine", [])
 
         const factorySignedByOwner = ownerFactoryFactory.attach(feeDistributorFactory.address)
 
@@ -189,15 +204,24 @@ describe("FeeDistributorFactory", function () {
                 `Ownable: caller is not the owner`
             )
 
+        await expect(factorySignedByOwner.transferEther(nobody, etherAmount))
+            .to.be.revertedWith(
+                `Ownable: caller is not the owner`
+            )
+
         await feeDistributorFactory.transferOwnership(owner)
 
         await factorySignedByOwner.transferERC20(erc20.address, nobody, erc20Supply)
         const recipientErc20Balance = await erc20.balanceOf(nobody)
+        expect(recipientErc20Balance).to.be.equal(erc20Supply)
 
         await factorySignedByOwner.transferERC721(erc721.address, nobody, erc721TokenId, "0x")
         const recipientErc721Balance = await erc721.balanceOf(nobody)
-
-        expect(recipientErc20Balance).to.be.equal(erc20Supply)
         expect(recipientErc721Balance).to.be.equal(1)
+
+        const nobodyBalanceBefore = await ethers.provider.getBalance(nobody)
+        await factorySignedByOwner.transferEther(nobody, etherAmount)
+        const nobodyBalanceAfter = await ethers.provider.getBalance(nobody)
+        expect(nobodyBalanceAfter.sub(nobodyBalanceBefore)).to.be.equal(etherAmount)
     })
 })

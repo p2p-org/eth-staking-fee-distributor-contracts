@@ -222,22 +222,18 @@ describe("FeeDistributor", function () {
         // transfer mock ERC20 tokens to client instance
         await erc20.transfer(newFeeDistributorAddrress, erc20Supply)
 
-        await feeDistributorFactory.transferOwnership(owner)
-
         const feeDistributorSignedByAssetOwner = ownerFactory.attach(newFeeDistributorAddrress)
 
-        // await expect(feeDistributorSignedByAssetOwner.transferERC20(erc20.address, nobody, erc20Supply))
-        //     .to.be.revertedWith(
-        //     `AccessControl: account ${assetRecoverer.toLowerCase()} is missing role ${ASSET_RECOVERER_ROLE}`
-        //     )
-        //
-        // const feeDistributorSignedByDeployer = deployerSignerFactory.attach(newFeeDistributorAddrress)
-        //
-        // await feeDistributorSignedByDeployer.grantRole(ASSET_RECOVERER_ROLE, assetRecoverer)
-        //
-        // await feeDistributorSignedByAssetOwner.transferERC20(erc20.address, nobody, erc20Supply)
-        // const recipientErc20Balance = await erc20.balanceOf(nobody)
-        //
-        // expect(recipientErc20Balance).to.be.equal(erc20Supply)
+        await expect(feeDistributorSignedByAssetOwner.transferERC20(erc20.address, nobody, erc20Supply))
+            .to.be.revertedWith(
+            `Ownable: caller is not the owner`
+            )
+
+        await feeDistributorFactory.transferOwnership(owner)
+
+        await feeDistributorSignedByAssetOwner.transferERC20(erc20.address, nobody, erc20Supply)
+        const recipientErc20Balance = await erc20.balanceOf(nobody)
+
+        expect(recipientErc20Balance).to.be.equal(erc20Supply)
     })
 })

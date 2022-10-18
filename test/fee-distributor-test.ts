@@ -4,8 +4,8 @@ import {
     FeeDistributor__factory,
     FeeDistributorFactory__factory,
     FeeDistributor,
-    FeeDistributorFactory
-} from '../typechain-types'
+    FeeDistributorFactory, MockERC20__factory
+} from "../typechain-types"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 describe("FeeDistributor", function () {
@@ -21,6 +21,8 @@ describe("FeeDistributor", function () {
 
     const DEFAULT_ADMIN_ROLE = ethers.constants.HashZero
     const ASSET_RECOVERER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("ASSET_RECOVERER_ROLE"))
+    const REFERENCE_INSTANCE_SETTER_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("REFERENCE_INSTANCE_SETTER_ROLE"))
+    const INSTANCE_CREATOR_ROLE = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("INSTANCE_CREATOR_ROLE"))
 
     // P2P should get 30% (subject to chioce at deploy time)
     const servicePercent =  30;
@@ -185,5 +187,97 @@ describe("FeeDistributor", function () {
 
         const newAdminHasRole = await feeDistributor.hasRole(DEFAULT_ADMIN_ROLE, nobody)
         expect(newAdminHasRole).to.be.true
+    })
+
+    it("an admin of the reference instance should become an admin of a client instance", async function () {
+        // deoply factory
+        const deployerSignerFactory = new FeeDistributor__factory(deployerSigner)
+
+        // deoply reference instance
+        const feeDistributorReferenceInstance = await deployerSignerFactory.deploy(
+            feeDistributorFactory.address,
+            serviceAddress,
+            servicePercent,
+            { gasLimit: 3000000 }
+        )
+
+        // grant oneself REFERENCE_INSTANCE_SETTER_ROLE
+        await feeDistributorFactory.grantRole(REFERENCE_INSTANCE_SETTER_ROLE, deployerSigner.address)
+        // set reference instance
+        await feeDistributorFactory.setReferenceInstance(feeDistributorReferenceInstance.address)
+
+        const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
+        // grant oneself INSTANCE_CREATOR_ROLE
+        await feeDistributorFactory.grantRole(INSTANCE_CREATOR_ROLE, deployerSigner.address)
+        // create client instance
+        const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(clientAddress)
+        const createFeeDistributorTxReceipt = await createFeeDistributorTx.wait();
+        const event = createFeeDistributorTxReceipt?.events?.find(event => event.event === 'FeeDistributorCreated');
+        if (!event) {
+            throw Error('No FeeDistributorCreated found')
+        }
+        // retrieve client instance address from event
+        const newFeeDistributorAddrress = event.args?._newFeeDistributorAddrress
+
+        const feeDistributorSignedByDeployer = deployerSignerFactory.attach(newFeeDistributorAddrress)
+
+        const deployerHasRole = await feeDistributorSignedByDeployer.hasRole(DEFAULT_ADMIN_ROLE, deployerSigner.address)
+        expect(deployerHasRole).to.be.true
+    })
+
+    it("only ASSET_RECOVERER_ROLE can recover tokens", async function () {
+        // deoply factory
+        const deployerSignerFactory = new FeeDistributor__factory(deployerSigner)
+
+        // deoply reference instance
+        const feeDistributorReferenceInstance = await deployerSignerFactory.deploy(
+            feeDistributorFactory.address,
+            serviceAddress,
+            servicePercent,
+            { gasLimit: 3000000 }
+        )
+
+        // grant oneself REFERENCE_INSTANCE_SETTER_ROLE
+        await feeDistributorFactory.grantRole(REFERENCE_INSTANCE_SETTER_ROLE, deployerSigner.address)
+        // set reference instance
+        await feeDistributorFactory.setReferenceInstance(feeDistributorReferenceInstance.address)
+
+        const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
+        // grant oneself INSTANCE_CREATOR_ROLE
+        await feeDistributorFactory.grantRole(INSTANCE_CREATOR_ROLE, deployerSigner.address)
+        // create client instance
+        const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(clientAddress)
+        const createFeeDistributorTxReceipt = await createFeeDistributorTx.wait();
+        const event = createFeeDistributorTxReceipt?.events?.find(event => event.event === 'FeeDistributorCreated');
+        if (!event) {
+            throw Error('No FeeDistributorCreated found')
+        }
+        // retrieve client instance address from event
+        const newFeeDistributorAddrress = event.args?._newFeeDistributorAddrress;
+
+        const mockERC20Factory = new MockERC20__factory(deployerSigner)
+        const erc20Supply = ethers.utils.parseEther('100')
+        // deploy mock ERC20
+        const erc20 = await mockERC20Factory.deploy(erc20Supply)
+        // transfer mock ERC20 tokens to client instance
+        await erc20.transfer(newFeeDistributorAddrress, erc20Supply)
+
+        const assetRecovererSigner = await ethers.getSigner(assetRecoverer)
+        const assetRecovererSignerFactory = new FeeDistributor__factory(assetRecovererSigner)
+        const feeDistributorSignedByAssetRecoverer = assetRecovererSignerFactory.attach(newFeeDistributorAddrress)
+
+        await expect(feeDistributorSignedByAssetRecoverer.transferERC20(erc20.address, nobody, erc20Supply))
+            .to.be.revertedWith(
+            `AccessControl: account ${assetRecoverer.toLowerCase()} is missing role ${ASSET_RECOVERER_ROLE}`
+            )
+
+        const feeDistributorSignedByDeployer = deployerSignerFactory.attach(newFeeDistributorAddrress)
+
+        await feeDistributorSignedByDeployer.grantRole(ASSET_RECOVERER_ROLE, assetRecoverer)
+
+        await feeDistributorSignedByAssetRecoverer.transferERC20(erc20.address, nobody, erc20Supply)
+        const recipientErc20Balance = await erc20.balanceOf(nobody)
+
+        expect(recipientErc20Balance).to.be.equal(erc20Supply)
     })
 })

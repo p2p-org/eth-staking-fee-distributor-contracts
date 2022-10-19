@@ -6,7 +6,7 @@ pragma solidity 0.8.10;
 import "../@openzeppelin/contracts/proxy/Clones.sol";
 import "../@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "../@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-import "../assetRecovering/PublicAssetRecoverer.sol";
+import "../assetRecovering/OwnableAssetRecoverer.sol";
 import "./IFeeDistributorFactory.sol";
 import "../feeDistributor/IFeeDistributor.sol";
 import "../access/Access.sol";
@@ -25,7 +25,7 @@ error FeeDistributorFactory__ReferenceFeeDistributorNotSet();
 /**
 * @title Factory for cloning (EIP-1167) FeeDistributor instances pre client
 */
-contract FeeDistributorFactory is PublicAssetRecoverer, Access, ERC165, IFeeDistributorFactory {
+contract FeeDistributorFactory is OwnableAssetRecoverer, Access, ERC165, IFeeDistributorFactory {
     // Type Declarations
 
     using Clones for address;

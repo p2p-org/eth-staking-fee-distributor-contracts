@@ -110,7 +110,7 @@ describe("FeeDistributorFactory", function () {
             `Access__CallerNotOperator`
         )
 
-        await factorySignedByOwner.transferOperator(operator)
+        await factorySignedByOwner.changeOperator(operator)
 
         await expect(factorySignedByOperator.createFeeDistributor(ethers.constants.AddressZero)).to.be.revertedWith(
             `FeeDistributor__ZeroAddressClient`
@@ -147,7 +147,7 @@ describe("FeeDistributorFactory", function () {
     it("owner can dismiss operator", async function () {
         const deployerFactory = await deployerFactoryFactory.deploy({gasLimit: 3000000})
 
-        await deployerFactory.transferOperator(operator)
+        await deployerFactory.changeOperator(operator)
         const operatorAfterSetting = await deployerFactory.operator()
         expect(operatorAfterSetting).to.be.equal(operator)
 

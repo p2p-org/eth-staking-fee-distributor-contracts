@@ -8,7 +8,7 @@ import "../@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "../@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "../feeDistributorFactory/IFeeDistributorFactory.sol";
-import "../assetRecovering/PublicTokenRecoverer.sol";
+import "../assetRecovering/OwnableTokenRecoverer.sol";
 import "./IFeeDistributor.sol";
 
 /**
@@ -56,7 +56,7 @@ error FeeDistributor__ClientNotSet();
 * @title Contract receiving MEV and priority fees
 * and distibuting them to the service and the client.
 */
-contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
+contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
     // Type Declarations
 
     using Address for address payable;

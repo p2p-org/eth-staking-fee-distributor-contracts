@@ -9,7 +9,7 @@ import "./TokenRecoverer.sol";
 
 /// @title Token Recoverer with public functions callable by assetAccessingAddress
 /// @notice Recover ERC20, ERC721 and ERC1155 from a derived contract
-abstract contract PublicTokenRecoverer is TokenRecoverer, Ownable {
+abstract contract OwnableTokenRecoverer is TokenRecoverer, Ownable {
     // Functions
 
     /**

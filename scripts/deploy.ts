@@ -57,7 +57,7 @@ async function main() {
         })
 
         // become an operator to create a client instance
-        await feeDistributorFactory.transferOperator(signer.address)
+        await feeDistributorFactory.changeOperator(signer.address)
 
         // create an instance of FeeDistributor for the client
         const createFeeDistributorTxReceipt = await feeDistributorFactory.createFeeDistributor(clientAddress, {gasLimit: 1000000, nonce})

@@ -167,7 +167,7 @@ describe("FeeDistributor", function () {
         await feeDistributorFactory.setReferenceInstance(feeDistributorReferenceInstance.address)
 
         // become an operator to create a client instance
-        await feeDistributorFactory.transferOperator(deployerSigner.address)
+        await feeDistributorFactory.changeOperator(deployerSigner.address)
 
         const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
         // create client instance
@@ -202,7 +202,7 @@ describe("FeeDistributor", function () {
         await feeDistributorFactory.setReferenceInstance(feeDistributorReferenceInstance.address)
 
         // become an operator to create a client instance
-        await feeDistributorFactory.transferOperator(deployerSigner.address)
+        await feeDistributorFactory.changeOperator(deployerSigner.address)
 
         const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
         // create client instance

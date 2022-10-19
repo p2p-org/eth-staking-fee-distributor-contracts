@@ -25,7 +25,7 @@ error Access__CallerNotOperator(address _caller, address _operator);
 abstract contract Access is Ownable {
     address private _operator;
 
-    event OperatorTransferred(
+    event OperatorChanges(
         address indexed previousOperator,
         address indexed newOperator
     );
@@ -58,21 +58,21 @@ abstract contract Access is Ownable {
      * @dev Transfers operator to a new account (`newOperator`).
      * Can only be called by the current owner.
      */
-    function transferOperator(address newOperator) public virtual onlyOwner {
+    function changeOperator(address newOperator) public virtual onlyOwner {
         if (newOperator == address(0)) {
             revert Access__ZeroNewOperator();
         }
-        _transferOperator(newOperator);
+        _changeOperator(newOperator);
     }
 
     /**
      * @dev Transfers operator to a new account (`newOperator`).
      * Internal function without access restriction.
      */
-    function _transferOperator(address newOperator) internal virtual {
+    function _changeOperator(address newOperator) internal virtual {
         address oldOperator = _operator;
         _operator = newOperator;
-        emit OperatorTransferred(oldOperator, newOperator);
+        emit OperatorChanges(oldOperator, newOperator);
     }
 
     /**
@@ -80,6 +80,6 @@ abstract contract Access is Ownable {
      * Can only be called by the current owner.
      */
     function dismissOperator() public virtual onlyOwner {
-        _transferOperator(address(0));
+        _changeOperator(address(0));
     }
 }

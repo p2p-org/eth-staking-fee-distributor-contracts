@@ -56,6 +56,9 @@ describe("FeeDistributor", function () {
         // deploy factory contract
         const factoryFactory = new FeeDistributorFactory__factory(deployerSigner)
         feeDistributorFactory = await factoryFactory.deploy({gasLimit: 3000000})
+
+        // become an operator to create a client instance
+        await feeDistributorFactory.changeOperator(deployerSigner.address)
     })
 
     it("should not be created with incorrect factory", async function () {
@@ -166,9 +169,6 @@ describe("FeeDistributor", function () {
         // set reference instance
         await feeDistributorFactory.setReferenceInstance(feeDistributorReferenceInstance.address)
 
-        // become an operator to create a client instance
-        await feeDistributorFactory.changeOperator(deployerSigner.address)
-
         const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
         // create client instance
         const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(clientAddress)
@@ -200,9 +200,6 @@ describe("FeeDistributor", function () {
 
         // set reference instance
         await feeDistributorFactory.setReferenceInstance(feeDistributorReferenceInstance.address)
-
-        // become an operator to create a client instance
-        await feeDistributorFactory.changeOperator(deployerSigner.address)
 
         const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
         // create client instance

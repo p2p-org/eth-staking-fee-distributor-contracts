@@ -17,6 +17,11 @@ error Access__CannotRenounceOwnership();
 error Access__ZeroNewOperator();
 
 /**
+* @notice newOperator is the same as the old one
+*/
+error Access__SameOperator(address _operator);
+
+/**
 * @notice caller is not the operator
 */
 error Access__CallerNotOperator(address _caller, address _operator);
@@ -62,6 +67,10 @@ abstract contract Access is Ownable {
         if (newOperator == address(0)) {
             revert Access__ZeroNewOperator();
         }
+        if (newOperator == _operator) {
+            revert Access__SameOperator(newOperator);
+        }
+
         _changeOperator(newOperator);
     }
 

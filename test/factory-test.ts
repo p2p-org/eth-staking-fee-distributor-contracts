@@ -110,7 +110,15 @@ describe("FeeDistributorFactory", function () {
             `Access__CallerNotOperator`
         )
 
+        await expect(factorySignedByOwner.changeOperator(ethers.constants.AddressZero)).to.be.revertedWith(
+            `Access__ZeroNewOperator`
+        )
+
         await factorySignedByOwner.changeOperator(operator)
+
+        await expect(factorySignedByOwner.changeOperator(operator)).to.be.revertedWith(
+            `Access__SameOperator`
+        )
 
         await expect(factorySignedByOperator.createFeeDistributor(ethers.constants.AddressZero)).to.be.revertedWith(
             `FeeDistributor__ZeroAddressClient`

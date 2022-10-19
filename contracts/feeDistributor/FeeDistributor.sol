@@ -193,13 +193,6 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     }
 
     /**
-     * @dev Ownership of this contract is managed by the factory.
-     */
-    function _transferOwnership(address newOwner) internal override {
-        // Do nothing. Cannot revert because otherwise the constructor would revert too.
-    }
-
-    /**
      * @dev Returns the address of the current owner.
      */
     function owner() public view override returns (address) {

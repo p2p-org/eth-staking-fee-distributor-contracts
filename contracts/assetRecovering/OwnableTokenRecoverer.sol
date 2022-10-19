@@ -4,12 +4,12 @@
 // https://github.com/lidofinance/lido-otc-seller/blob/master/contracts/lib/AssetRecoverer.sol
 pragma solidity 0.8.10;
 
-import "../@openzeppelin/contracts/access/Ownable.sol";
 import "./TokenRecoverer.sol";
+import "../access/OwnableBase.sol";
 
 /// @title Token Recoverer with public functions callable by assetAccessingAddress
 /// @notice Recover ERC20, ERC721 and ERC1155 from a derived contract
-abstract contract OwnableTokenRecoverer is TokenRecoverer, Ownable {
+abstract contract OwnableTokenRecoverer is TokenRecoverer, OwnableBase {
     // Functions
 
     /**

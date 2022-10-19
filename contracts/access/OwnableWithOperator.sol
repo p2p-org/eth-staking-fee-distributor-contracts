@@ -3,7 +3,8 @@
 
 pragma solidity 0.8.10;
 
-import "../@openzeppelin/contracts/access/Ownable.sol";
+import "./Ownable.sol";
+
 
 /**
 * @notice it should not be possible to renounceOwnership
@@ -26,10 +27,17 @@ error Access__SameOperator(address _operator);
 */
 error Access__CallerNotOperator(address _caller, address _operator);
 
-
-abstract contract Access is Ownable {
+/**
+ * @dev Ownable with an additional role of operator
+ */
+abstract contract OwnableWithOperator is Ownable {
     address private s_operator;
 
+    /**
+     * @dev Emits when the operator has been changed
+     * @param _previousOperator address of the previous pperator
+     * @param _newOperator address of the new operator
+     */
     event OperatorChanges(
         address indexed _previousOperator,
         address indexed _newOperator

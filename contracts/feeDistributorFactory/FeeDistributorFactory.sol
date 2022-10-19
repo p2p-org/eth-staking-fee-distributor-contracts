@@ -9,7 +9,8 @@ import "../@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "../assetRecovering/OwnableAssetRecoverer.sol";
 import "./IFeeDistributorFactory.sol";
 import "../feeDistributor/IFeeDistributor.sol";
-import "../access/Access.sol";
+import "../access/Ownable.sol";
+import "../access/OwnableWithOperator.sol";
 
 /**
 * @notice Should be a FeeDistributor contract
@@ -25,7 +26,7 @@ error FeeDistributorFactory__ReferenceFeeDistributorNotSet();
 /**
 * @title Factory for cloning (EIP-1167) FeeDistributor instances pre client
 */
-contract FeeDistributorFactory is OwnableAssetRecoverer, Access, ERC165, IFeeDistributorFactory {
+contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ERC165, IFeeDistributorFactory {
     // Type Declarations
 
     using Clones for address;
@@ -93,15 +94,7 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, Access, ERC165, IFeeDis
     /**
      * @dev Returns the address of the current owner.
      */
-    function owner() public view override(IFeeDistributorFactory, Ownable) returns (address) {
+    function owner() public view override(Ownable, OwnableBase, IOwnable) returns (address) {
         return super.owner();
-    }
-
-    /**
-     * @dev it should not be possible to renounceOwnership
-     * to prevent losing control over the contract.
-     */
-    function renounceOwnership() public pure override {
-        revert Access__CannotRenounceOwnership();
     }
 }

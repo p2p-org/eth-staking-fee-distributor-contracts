@@ -19,7 +19,7 @@ abstract contract OwnableAssetRecoverer is OwnableTokenRecoverer, AssetRecoverer
      * @param _recipient address to transfer ether to
      * @param _amount amount of ether to transfer
      */
-    function transferEther(address _recipient, uint256 _amount) public onlyOwner {
+    function transferEther(address _recipient, uint256 _amount) external onlyOwner {
         _transferEther(_recipient, _amount);
     }
 }

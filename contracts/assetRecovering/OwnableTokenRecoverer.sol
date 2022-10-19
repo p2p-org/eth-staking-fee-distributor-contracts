@@ -24,7 +24,7 @@ abstract contract OwnableTokenRecoverer is TokenRecoverer, Ownable {
         address _token,
         address _recipient,
         uint256 _amount
-    ) public onlyOwner {
+    ) external onlyOwner {
         _transferERC20(_token, _recipient, _amount);
     }
 
@@ -42,7 +42,7 @@ abstract contract OwnableTokenRecoverer is TokenRecoverer, Ownable {
         address _recipient,
         uint256 _tokenId,
         bytes calldata _data
-    ) public onlyOwner {
+    ) external onlyOwner {
         _transferERC721(_token, _recipient, _tokenId, _data);
     }
 
@@ -61,7 +61,7 @@ abstract contract OwnableTokenRecoverer is TokenRecoverer, Ownable {
         uint256 _tokenId,
         uint256 _amount,
         bytes calldata _data
-    ) public onlyOwner {
+    ) external onlyOwner {
         _transferERC1155(_token, _recipient, _tokenId, _amount, _data);
     }
 }

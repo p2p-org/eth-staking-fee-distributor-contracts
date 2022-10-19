@@ -4,7 +4,7 @@
 // https://github.com/lidofinance/lido-otc-seller/blob/master/contracts/lib/AssetRecoverer.sol
 pragma solidity 0.8.17;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "../@openzeppelin/contracts/access/Ownable.sol";
 import "./TokenRecoverer.sol";
 
 /// @title Token Recoverer with public functions callable by assetAccessingAddress

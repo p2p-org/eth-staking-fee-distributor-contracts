@@ -2,9 +2,9 @@
 
 pragma solidity 0.8.17;
 
-import "@openzeppelin/contracts/proxy/Clones.sol";
-import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import "../@openzeppelin/contracts/proxy/Clones.sol";
+import "../@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import "../@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "../assetRecovering/PublicAssetRecoverer.sol";
 import "./IFeeDistributorFactory.sol";
 import "../feeDistributor/IFeeDistributor.sol";

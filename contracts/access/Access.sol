@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "../@openzeppelin/contracts/access/Ownable.sol";
 
 /**
 * @notice it should not be possible to renounceOwnership

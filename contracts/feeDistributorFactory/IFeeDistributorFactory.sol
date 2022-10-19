@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "../@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
  * @dev External interface of FeeDistributorFactory declared to support ERC165 detection.

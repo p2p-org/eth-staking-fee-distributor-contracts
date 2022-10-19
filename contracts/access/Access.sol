@@ -74,4 +74,12 @@ abstract contract Access is Ownable {
         _operator = newOperator;
         emit OperatorTransferred(oldOperator, newOperator);
     }
+
+    /**
+     * @dev Dismisses the old operator without setting a new one.
+     * Can only be called by the current owner.
+     */
+    function dismissOperator() public virtual onlyOwner {
+        _transferOperator(address(0));
+    }
 }

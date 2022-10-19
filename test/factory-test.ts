@@ -144,6 +144,26 @@ describe("FeeDistributorFactory", function () {
         )
     })
 
+    it("owner can dismiss operator", async function () {
+        const deployerFactory = await deployerFactoryFactory.deploy({gasLimit: 3000000})
+
+        await deployerFactory.transferOperator(operator)
+        const operatorAfterSetting = await deployerFactory.operator()
+        expect(operatorAfterSetting).to.be.equal(operator)
+
+        const factorySignedByOwner = ownerFactoryFactory.attach(deployerFactory.address)
+
+        await expect(factorySignedByOwner.dismissOperator()).to.be.revertedWith(
+            `Ownable: caller is not the owner`
+        )
+
+        await deployerFactory.transferOwnership(owner)
+
+        await factorySignedByOwner.dismissOperator()
+        const operatorAfterDismisssing = await deployerFactory.operator()
+        expect(operatorAfterDismisssing).to.be.equal(ethers.constants.AddressZero)
+    })
+
     it("only owner can recover tokens and ether", async function () {
         // deoply factory
         const feeDistributorFactory = await deployerFactoryFactory.deploy({gasLimit: 3000000})

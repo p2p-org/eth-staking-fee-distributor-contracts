@@ -53,7 +53,7 @@ describe("FeeDistributorFactory", function () {
         const factorySignedByOwner = ownerFactoryFactory.attach(deployerFactory.address)
 
         await expect(factorySignedByOwner.setReferenceInstance(nobody)).to.be.revertedWith(
-            `Ownable: caller is not the owner`
+            `OwnableBase__CallerNotOwner`
         )
 
         await deployerFactory.transferOwnership(owner)
@@ -82,7 +82,7 @@ describe("FeeDistributorFactory", function () {
         const factorySignedByOwner = ownerFactoryFactory.attach(deployerFactory.address)
 
         await expect(factorySignedByOwner.setReferenceInstance(nobody)).to.be.revertedWith(
-            `Ownable: caller is not the owner`
+            `OwnableBase__CallerNotOwner`
         )
 
         await deployerFactory.transferOwnership(owner)
@@ -144,14 +144,6 @@ describe("FeeDistributorFactory", function () {
         expect(feeDistributorFactoryOperator).to.be.equal(ethers.constants.AddressZero)
     })
 
-    it("cannot renounce ownership", async function () {
-        const feeDistributorFactory = await deployerFactoryFactory.deploy({gasLimit: 3000000})
-
-        await expect(feeDistributorFactory.renounceOwnership()).to.be.revertedWith(
-            `Access__CannotRenounceOwnership`
-        )
-    })
-
     it("owner can dismiss operator", async function () {
         const deployerFactory = await deployerFactoryFactory.deploy({gasLimit: 3000000})
 
@@ -162,7 +154,7 @@ describe("FeeDistributorFactory", function () {
         const factorySignedByOwner = ownerFactoryFactory.attach(deployerFactory.address)
 
         await expect(factorySignedByOwner.dismissOperator()).to.be.revertedWith(
-            `Ownable: caller is not the owner`
+            `OwnableBase__CallerNotOwner`
         )
 
         await deployerFactory.transferOwnership(owner)
@@ -224,17 +216,17 @@ describe("FeeDistributorFactory", function () {
 
         await expect(factorySignedByOwner.transferERC20(erc20.address, nobody, erc20Supply))
             .to.be.revertedWith(
-                `Ownable: caller is not the owner`
+                `OwnableBase__CallerNotOwner`
             )
 
         await expect(factorySignedByOwner.transferERC721(erc721.address, nobody, erc721TokenId, "0x"))
             .to.be.revertedWith(
-                `Ownable: caller is not the owner`
+                `OwnableBase__CallerNotOwner`
             )
 
         await expect(factorySignedByOwner.transferEther(nobody, etherAmount))
             .to.be.revertedWith(
-                `Ownable: caller is not the owner`
+                `OwnableBase__CallerNotOwner`
             )
 
         await feeDistributorFactory.transferOwnership(owner)

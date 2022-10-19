@@ -138,22 +138,6 @@ describe("FeeDistributor", function () {
         expect(feeDistributorOwner).to.be.equal(deployerSigner.address)
     })
 
-    it("cannot renounce ownership", async function () {
-        const factory = new FeeDistributor__factory(deployerSigner)
-
-        const feeDistributor = await factory.deploy(
-            feeDistributorFactory.address,
-            serviceAddress,
-            servicePercent,
-            {gasLimit: 3000000}
-        )
-
-        await feeDistributor.renounceOwnership()
-
-        const feeDistributorOwner = await feeDistributor.owner()
-        expect(feeDistributorOwner).to.be.equal(deployerSigner.address)
-    })
-
     it("the owner of the reference instance should become the owner of a client instance", async function () {
         // deoply factory
         const deployerSignerFactory = new FeeDistributor__factory(deployerSigner)
@@ -245,12 +229,12 @@ describe("FeeDistributor", function () {
 
         await expect(feeDistributorSignedByAssetOwner.transferERC20(erc20.address, nobody, erc20Supply))
             .to.be.revertedWith(
-            `Ownable: caller is not the owner`
+            `OwnableBase__CallerNotOwner`
             )
 
         await expect(feeDistributorSignedByAssetOwner.transferERC721(erc721.address, nobody, erc721TokenId, "0x"))
             .to.be.revertedWith(
-                `Ownable: caller is not the owner`
+                `OwnableBase__CallerNotOwner`
             )
 
         await feeDistributorFactory.transferOwnership(owner)

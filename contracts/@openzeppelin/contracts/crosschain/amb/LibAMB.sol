@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.7.0) (crosschain/amb/LibAMB.sol)
 
-pragma solidity ^0.8.4;
+pragma solidity 0.8.10;
 
 import {IAMB as AMB_Bridge} from "../../vendor/amb/IAMB.sol";
 import "../errors.sol";

@@ -31,7 +31,7 @@ An alternative to npm is to use the GitHub repository `openzeppelin/openzeppelin
 Once installed, you can use the contracts in the library by importing them:
 
 ```solidity
-pragma solidity ^0.8.0;
+pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 

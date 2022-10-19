@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.7.0) (crosschain/amb/CrossChainEnabledAMB.sol)
 
-pragma solidity ^0.8.4;
+pragma solidity 0.8.10;
 
 import "../CrossChainEnabled.sol";
 import "./LibAMB.sol";

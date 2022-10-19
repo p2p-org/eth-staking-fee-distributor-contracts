@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // https://github.com/lidofinance/lido-otc-seller/blob/master/contracts/lib/AssetRecoverer.sol
-pragma solidity 0.8.17;
+pragma solidity 0.8.10;
 
 import {IERC20} from "../@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "../@openzeppelin/contracts/token/ERC721/IERC721.sol";

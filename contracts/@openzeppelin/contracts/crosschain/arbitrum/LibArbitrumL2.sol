@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.7.2) (crosschain/arbitrum/LibArbitrumL2.sol)
 
-pragma solidity ^0.8.4;
+pragma solidity 0.8.10;
 
 import {IArbSys as ArbitrumL2_Bridge} from "../../vendor/arbitrum/IArbSys.sol";
 import "../errors.sol";

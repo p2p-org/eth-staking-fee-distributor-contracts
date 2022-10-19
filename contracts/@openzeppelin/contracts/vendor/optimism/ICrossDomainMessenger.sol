@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.6.0) (vendor/optimism/ICrossDomainMessenger.sol)
-pragma solidity >0.5.0 <0.9.0;
+pragma solidity 0.8.10;
 
 /**
  * @title ICrossDomainMessenger

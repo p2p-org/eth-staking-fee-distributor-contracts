@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.7.0) (finance/PaymentSplitter.sol)
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.10;
 
 import "../token/ERC20/utils/SafeERC20.sol";
 import "../utils/Address.sol";

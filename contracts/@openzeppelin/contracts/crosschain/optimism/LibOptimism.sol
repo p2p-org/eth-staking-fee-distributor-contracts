@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.7.0) (crosschain/optimism/LibOptimism.sol)
 
-pragma solidity ^0.8.4;
+pragma solidity 0.8.10;
 
 import {ICrossDomainMessenger as Optimism_Bridge} from "../../vendor/optimism/ICrossDomainMessenger.sol";
 import "../errors.sol";

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (token/ERC777/IERC777Sender.sol)
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.10;
 
 /**
  * @dev Interface of the ERC777TokensSender standard as defined in the EIP.

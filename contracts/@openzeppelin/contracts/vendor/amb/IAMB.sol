@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.6.0) (vendor/amb/IAMB.sol)
-pragma solidity ^0.8.0;
+pragma solidity 0.8.10;
 
 interface IAMB {
     event UserRequestForAffirmation(bytes32 indexed messageId, bytes encodedData);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.7.0) (proxy/utils/Initializable.sol)
 
-pragma solidity ^0.8.2;
+pragma solidity 0.8.10;
 
 import "../../utils/Address.sol";
 

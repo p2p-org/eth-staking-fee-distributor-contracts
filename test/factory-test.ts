@@ -9,7 +9,7 @@ import {
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 describe("FeeDistributorFactory", function () {
-    const servicePercent = 30
+    const serviceBasisPoints = 3000
 
     let deployer: string
     let owner: string
@@ -66,7 +66,7 @@ describe("FeeDistributorFactory", function () {
         const feeDistributor = await factory.deploy(
             deployerFactory.address,
             serviceAddress,
-            servicePercent,
+            serviceBasisPoints,
             {gasLimit: 3000000}
         )
 
@@ -95,7 +95,7 @@ describe("FeeDistributorFactory", function () {
         const feeDistributor = await factory.deploy(
             deployerFactory.address,
             serviceAddress,
-            servicePercent,
+            serviceBasisPoints,
             {gasLimit: 3000000}
         )
 

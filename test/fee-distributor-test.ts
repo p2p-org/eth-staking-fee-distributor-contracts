@@ -11,10 +11,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 describe("FeeDistributor", function () {
 
     // P2P should get 30% (subject to chioce at deploy time)
-    const servicePercent =  30;
-
-    // client should get 70% (subject to chioce at deploy time)
-    const clientPercent = 100 - servicePercent;
+    const serviceBasisPoints =  3000;
 
     let deployerSigner: SignerWithAddress
     let ownerSigner: SignerWithAddress
@@ -67,7 +64,7 @@ describe("FeeDistributor", function () {
         await expect(factory.deploy(
             nobody,
             serviceAddress,
-            servicePercent,
+            serviceBasisPoints,
             {gasLimit: 3000000}
         )).to.be.revertedWith(
             `FeeDistributor__NotFactory("${nobody}")`
@@ -80,23 +77,23 @@ describe("FeeDistributor", function () {
         await expect(factory.deploy(
             feeDistributorFactory.address,
             ethers.constants.AddressZero,
-            servicePercent,
+            serviceBasisPoints,
             {gasLimit: 1000000}
         )).to.be.revertedWith(
             `FeeDistributor__ZeroAddressService`
         )
     })
 
-    it("should not be created with servicePercent outside [0, 100]", async function () {
+    it("should not be created with serviceBasisPoints outside [0, 10000]", async function () {
         const factory = new FeeDistributor__factory(deployerSigner)
 
         await expect(factory.deploy(
             feeDistributorFactory.address,
             serviceAddress,
-            101,
+            10001,
             {gasLimit: 3000000}
         )).to.be.revertedWith(
-            `FeeDistributor__InvalidServicePercent`
+            `FeeDistributor__InvalidServiceBasisPoints`
         )
 
         await expect(factory.deploy(
@@ -113,7 +110,7 @@ describe("FeeDistributor", function () {
         const feeDistributor = await factory.deploy(
             feeDistributorFactory.address,
             serviceAddress,
-            servicePercent,
+            serviceBasisPoints,
             {gasLimit: 3000000}
         )
 
@@ -130,7 +127,7 @@ describe("FeeDistributor", function () {
         const feeDistributor = await factory.deploy(
             feeDistributorFactory.address,
             serviceAddress,
-            servicePercent,
+            serviceBasisPoints,
             {gasLimit: 3000000}
         )
 
@@ -146,7 +143,7 @@ describe("FeeDistributor", function () {
         const feeDistributorReferenceInstance = await deployerSignerFactory.deploy(
             feeDistributorFactory.address,
             serviceAddress,
-            servicePercent,
+            serviceBasisPoints,
             { gasLimit: 3000000 }
         )
 
@@ -178,7 +175,7 @@ describe("FeeDistributor", function () {
         const feeDistributorReferenceInstance = await deployerSignerFactory.deploy(
             feeDistributorFactory.address,
             serviceAddress,
-            servicePercent,
+            serviceBasisPoints,
             { gasLimit: 3000000 }
         )
 

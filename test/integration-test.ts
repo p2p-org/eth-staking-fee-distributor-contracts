@@ -11,10 +11,10 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 describe("Integration", function () {
 
     // P2P should get 30% (subject to chioce at deploy time)
-    const servicePercent =  30;
+    const serviceBasisPoints =  3000;
 
     // client should get 70% (subject to chioce at deploy time)
-    const clientPercent = 100 - servicePercent;
+    const clientBasisPoints = 10000 - serviceBasisPoints;
 
     let deployerSigner: SignerWithAddress
     let ownerSigner: SignerWithAddress
@@ -66,7 +66,7 @@ describe("Integration", function () {
         const feeDistributorReferenceInstance = await deployerSignerFactory.deploy(
             feeDistributorFactory.address,
             serviceAddress,
-            servicePercent,
+            serviceBasisPoints,
             { gasLimit: 3000000 }
         )
 
@@ -109,13 +109,13 @@ describe("Integration", function () {
         // get service address balance
         const serviceAddressBalance = await ethers.provider.getBalance(serviceAddress)
 
-        // make sure P2P (service) got its percent
-        expect(serviceAddressBalance.sub(serviceAddressBalanceBefore)).to.equal(totalBlockReward.mul(servicePercent).div(100))
+        // make sure P2P (service) got its share
+        expect(serviceAddressBalance.sub(serviceAddressBalanceBefore)).to.equal(totalBlockReward.mul(serviceBasisPoints).div(10000))
 
         // get client address balance
         const clientAddressBalance = await ethers.provider.getBalance(clientAddress)
 
-        // make sure client got its percent
-        expect(clientAddressBalance).to.equal(totalBlockReward.mul(clientPercent).div(100))
+        // make sure client got its share
+        expect(clientAddressBalance).to.equal(totalBlockReward.mul(clientBasisPoints).div(10000))
     })
 })

@@ -28,10 +28,10 @@ error FeeDistributor__ZeroAddressService();
 error FeeDistributor__ZeroAddressClient();
 
 /**
-* @notice Service percent should be >= 0 and <= 100
-* @param _servicePercent passed incorrect service percent
+* @notice Service basis points should be >= 0 and <= 10000
+* @param _serviceBasisPoints passed incorrect service basis points
 */
-error FeeDistributor__InvalidServicePercent(uint256 _servicePercent);
+error FeeDistributor__InvalidServiceBasisPoints(uint256 _serviceBasisPoints);
 
 /**
 * @notice Only factory can call `initialize`.
@@ -74,9 +74,9 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     address payable private immutable i_service;
 
     /**
-    * @notice % of EL rewards that should go to the service (P2P)
+    * @notice basis points (percent * 100) of EL rewards that should go to the service (P2P)
     */
-    uint256 private immutable i_servicePercent;
+    uint256 private immutable i_serviceBasisPoints;
 
     /**
     * @notice address of the client
@@ -87,12 +87,12 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     * @dev Set values that are constant, common for all the clients, known at the initial deploy time.
     * @param _factory address of FeeDistributorFactory
     * @param _service address of the service (P2P) fee recipient
-    * @param _servicePercent % of EL rewards that should go to the service (P2P)
+    * @param _serviceBasisPoints basis points (percent * 100) of EL rewards that should go to the service (P2P)
     */
     constructor(
         address _factory,
         address _service,
-        uint256 _servicePercent
+        uint256 _serviceBasisPoints
     ) {
         if (!ERC165Checker.supportsInterface(_factory, type(IFeeDistributorFactory).interfaceId)) {
             revert FeeDistributor__NotFactory(_factory);
@@ -100,13 +100,13 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         if (_service == address(0)) {
             revert FeeDistributor__ZeroAddressService();
         }
-        if (_servicePercent > 100) {
-            revert FeeDistributor__InvalidServicePercent(_servicePercent);
+        if (_serviceBasisPoints > 10000) {
+            revert FeeDistributor__InvalidServiceBasisPoints(_serviceBasisPoints);
         }
 
         i_factory = IFeeDistributorFactory(_factory);
         i_service = payable(_service);
-        i_servicePercent = _servicePercent;
+        i_serviceBasisPoints = _serviceBasisPoints;
     }
 
     // Functions
@@ -132,7 +132,7 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     }
 
     /**
-    * @notice Withdraw the whole balance of the contract according to the pre-defined percentages.
+    * @notice Withdraw the whole balance of the contract according to the pre-defined basis points.
     */
     function withdraw() external nonReentrant {
         if (s_client == address(0)) {
@@ -143,7 +143,7 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         uint256 balance = address(this).balance;
 
         // how much should service get
-        uint256 serviceAmount = (balance * i_servicePercent) / 100;
+        uint256 serviceAmount = (balance * i_serviceBasisPoints) / 10000;
 
         // how much should client get
         uint256 clientAmount = balance - serviceAmount;
@@ -179,10 +179,10 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     }
 
     /**
-     * @dev Returns the service percent
+     * @dev Returns the service basis points
      */
-    function getServicePercent() external view returns (uint256) {
-        return i_servicePercent;
+    function getServiceBasisPoints() external view returns (uint256) {
+        return i_serviceBasisPoints;
     }
 
     /**

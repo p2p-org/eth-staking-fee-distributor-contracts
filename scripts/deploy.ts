@@ -4,7 +4,7 @@ import { FeeDistributor, FeeDistributor__factory, FeeDistributorFactory__factory
 async function main() {
     try {
         // P2P should get 30% (subject to chioce at deploy time)
-        const servicePercent = 30;
+        const serviceBasisPoints = 3000;
         const serviceAddress = '0xceCFc058DB458c00d0e89D39B2F5e6EF0A473114'
 
         const { deployer } = await getNamedAccounts()
@@ -21,7 +21,7 @@ async function main() {
         const feeDistributor = await factory.deploy(
             feeDistributorFactory.address,
             serviceAddress,
-            servicePercent,
+            serviceBasisPoints,
             {gasLimit: 3000000, nonce}
         )
         nonce++;

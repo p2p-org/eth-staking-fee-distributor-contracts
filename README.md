@@ -20,11 +20,9 @@ The basic use case is reflected in `./test/integration-test.ts`
 2. Anyone (deployer, does not matter who) deploys a reference implementation of `FeeDistributor` providing the constant arguments:
    - address of `FeeDistributorFactory`
    - address of the service (P2P) fee recipient
-   - basis points (percent * 100) of EL rewards that should go to the service (P2P)
-   - basis points (percent * 100) of EL rewards that should go to the client
 
 
-3. The deployer calls `initialize` on `FeeDistributorFactory` with the address of the reference implementation of `FeeDistributor` from Step 2.
+3. The deployer calls `initialize` on `FeeDistributorFactory` with the address of the reference implementation of `FeeDistributor` from Step 2 and basis points (percent * 100) of EL rewards that should go to the service (P2P).
 
 
 4. The deployer calls `transferOwnership` with the secure P2P address as an argument.

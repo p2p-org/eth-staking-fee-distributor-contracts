@@ -37,8 +37,9 @@ interface IFeeDistributorFactory is IOwnable, IERC165 {
     * @notice Creates a FeeDistributor instance for a client
     * @dev Emits `FeeDistributorCreated` event with the address of the newly created instance
     * @param _client the address of the client
+    * @param _serviceBasisPoints basis points (percent * 100) of EL rewards that should go to the service (P2P)
     */
-    function createFeeDistributor(address _client) external;
+    function createFeeDistributor(address _client, uint256 _serviceBasisPoints) external;
 
     /**
      * @dev Returns the reference FeeDistributor contract address

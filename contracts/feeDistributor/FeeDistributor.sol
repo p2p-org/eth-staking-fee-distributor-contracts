@@ -82,7 +82,7 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     /**
     * @notice basis points (percent * 100) of EL rewards that should go to the service (P2P)
     */
-    uint256 private immutable i_serviceBasisPoints;
+    uint256 private s_serviceBasisPoints;
 
     /**
     * @notice address of the client
@@ -93,12 +93,10 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     * @dev Set values that are constant, common for all the clients, known at the initial deploy time.
     * @param _factory address of FeeDistributorFactory
     * @param _service address of the service (P2P) fee recipient
-    * @param _serviceBasisPoints basis points (percent * 100) of EL rewards that should go to the service (P2P)
     */
     constructor(
         address _factory,
-        address _service,
-        uint256 _serviceBasisPoints
+        address _service
     ) {
         if (!ERC165Checker.supportsInterface(_factory, type(IFeeDistributorFactory).interfaceId)) {
             revert FeeDistributor__NotFactory(_factory);
@@ -106,13 +104,9 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         if (_service == address(0)) {
             revert FeeDistributor__ZeroAddressService();
         }
-        if (_serviceBasisPoints > 10000) {
-            revert FeeDistributor__InvalidServiceBasisPoints(_serviceBasisPoints);
-        }
 
         i_factory = IFeeDistributorFactory(_factory);
         i_service = payable(_service);
-        i_serviceBasisPoints = _serviceBasisPoints;
     }
 
     // Functions
@@ -121,8 +115,9 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     * @notice Set client address.
     * @dev Could not be in the constructor since it is different for different clients.
     * @param _client the address of the client
+    * @param _serviceBasisPoints basis points (percent * 100) of EL rewards that should go to the service (P2P)
     */
-    function initialize(address _client) external {
+    function initialize(address _client, uint256 _serviceBasisPoints) external {
         if (msg.sender != address(i_factory)) {
             revert FeeDistributor__NotFactoryCalled(msg.sender, i_factory);
         }
@@ -135,9 +130,13 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         if (s_client != address(0)) {
             revert FeeDistributor__ClientAlreadySet(s_client);
         }
+        if (_serviceBasisPoints > 10000) {
+            revert FeeDistributor__InvalidServiceBasisPoints(_serviceBasisPoints);
+        }
 
         s_client = payable(_client);
-        emit Initialized(_client);
+        s_serviceBasisPoints = _serviceBasisPoints;
+        emit Initialized(_client, _serviceBasisPoints);
     }
 
     /**
@@ -152,7 +151,7 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         uint256 balance = address(this).balance;
 
         // how much should service get
-        uint256 serviceAmount = (balance * i_serviceBasisPoints) / 10000;
+        uint256 serviceAmount = (balance * s_serviceBasisPoints) / 10000;
 
         // how much should client get
         uint256 clientAmount = balance - serviceAmount;
@@ -191,7 +190,7 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
      * @dev Returns the service basis points
      */
     function getServiceBasisPoints() external view returns (uint256) {
-        return i_serviceBasisPoints;
+        return s_serviceBasisPoints;
     }
 
     /**

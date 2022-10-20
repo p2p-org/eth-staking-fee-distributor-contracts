@@ -9,7 +9,8 @@ import "hardhat-deploy"
 import "hardhat-contract-sizer"
 import { HardhatUserConfig } from "hardhat/config"
 
-const GOERLI_RPC_URL = process.env.GOERLI_RPC_URL || "https://goerli.alchemyapi.io/v2/your-api-key"
+const GOERLI_RPC_URL = process.env.GOERLI_RPC_URL || "https://goerli.alchemyapi.io/v3/your-api-key"
+const MAINNET_RPC_URL = process.env.MAINNET_RPC_URL || "https://mainnet.alchemyapi.io/v3/your-api-key"
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "0000000000000000000000000000000000000000000000000000000000000000"
 
@@ -29,6 +30,10 @@ const config: HardhatUserConfig = {
         count: 20,
         accountsBalance: '100000000000000000000000',
       },
+      forking: {
+        url: MAINNET_RPC_URL,
+        blockNumber: 15789305
+      }
     },
     goerli: {
         url: GOERLI_RPC_URL,

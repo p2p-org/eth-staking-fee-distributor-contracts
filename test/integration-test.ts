@@ -3,7 +3,6 @@ import {ethers, getNamedAccounts} from "hardhat"
 import {
     FeeDistributor__factory,
     FeeDistributorFactory__factory,
-    FeeDistributor,
     FeeDistributorFactory
 } from '../typechain-types'
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
@@ -66,7 +65,6 @@ describe("Integration", function () {
         const feeDistributorReferenceInstance = await deployerSignerFactory.deploy(
             feeDistributorFactory.address,
             serviceAddress,
-            serviceBasisPoints,
             { gasLimit: 3000000 }
         )
 
@@ -81,7 +79,7 @@ describe("Integration", function () {
 
         const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
         // create client instance
-        const createFeeDistributorTx = await operatorFeeDistributorFactory.createFeeDistributor(clientAddress)
+        const createFeeDistributorTx = await operatorFeeDistributorFactory.createFeeDistributor(clientAddress, serviceBasisPoints)
         const createFeeDistributorTxReceipt = await createFeeDistributorTx.wait();
         const event = createFeeDistributorTxReceipt?.events?.find(event => event.event === 'FeeDistributorCreated');
         if (!event) {

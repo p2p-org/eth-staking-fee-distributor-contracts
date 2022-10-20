@@ -21,8 +21,9 @@ interface IFeeDistributor is IERC165 {
     /**
     * @notice Emits once the client address has been set.
     * @param _client address of the client.
+    * @param _serviceBasisPoints basis points (percent * 100) of EL rewards that should go to the service (P2P)
     */
-    event Initialized(address indexed _client);
+    event Initialized(address indexed _client, uint256 _serviceBasisPoints);
 
     // Functions
 
@@ -30,8 +31,9 @@ interface IFeeDistributor is IERC165 {
     * @notice Set client address.
     * @dev Could not be in the constructor since it is different for different clients.
     * @param _client the address of the client
+    * @param _serviceBasisPoints basis points (percent * 100) of EL rewards that should go to the service (P2P)
     */
-    function initialize(address _client) external;
+    function initialize(address _client, uint256 _serviceBasisPoints) external;
 
     /**
     * @notice Withdraw the whole balance of the contract according to the pre-defined percentages.

@@ -23,6 +23,12 @@ error FeeDistributor__NotFactory(address _passedAddress);
 error FeeDistributor__ZeroAddressService();
 
 /**
+* @notice Client address should be different from service address.
+* @param _passedAddress passed client address that equals to the service address
+*/
+error FeeDistributor__ClientAddressEqualsService(address _passedAddress);
+
+/**
 * @notice Client address should be an actual client address, not zero.
 */
 error FeeDistributor__ZeroAddressClient();
@@ -122,6 +128,9 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         }
         if (_client == address(0)) {
             revert FeeDistributor__ZeroAddressClient();
+        }
+        if (_client == i_service) {
+            revert FeeDistributor__ClientAddressEqualsService(_client);
         }
         if (s_client != address(0)) {
             revert FeeDistributor__ClientAlreadySet(s_client);

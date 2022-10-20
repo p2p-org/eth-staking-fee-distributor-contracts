@@ -124,6 +124,10 @@ describe("FeeDistributorFactory", function () {
             `FeeDistributor__ZeroAddressClient`
         )
 
+        await expect(factorySignedByOperator.createFeeDistributor(serviceAddress)).to.be.revertedWith(
+            `FeeDistributor__ClientAddressEqualsService`
+        )
+
         await expect(factorySignedByOperator.createFeeDistributor(nobody)).to.emit(
             factorySignedByOperator,
             "FeeDistributorCreated"

@@ -35,7 +35,7 @@ abstract contract OwnableWithOperator is Ownable {
 
     /**
      * @dev Emits when the operator has been changed
-     * @param _previousOperator address of the previous pperator
+     * @param _previousOperator address of the previous operator
      * @param _newOperator address of the new operator
      */
     event OperatorChanges(

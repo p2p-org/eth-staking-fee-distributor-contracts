@@ -88,7 +88,7 @@ describe("Integration", function () {
             throw Error('No FeeDistributorCreated found')
         }
         // retrieve client instance address from event
-        const newlyCreatedFeeDistributorAddress = event.args?._newFeeDistributorAddrress
+        const newlyCreatedFeeDistributorAddress = event.args?._newFeeDistributorAddress
 
         // set the newly created FeeDistributor contract as coinbase (block rewards recipient)
         // In the real world this will be done in a validator's settings

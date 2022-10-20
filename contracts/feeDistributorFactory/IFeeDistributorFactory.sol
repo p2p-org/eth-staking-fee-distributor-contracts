@@ -14,10 +14,10 @@ interface IFeeDistributorFactory is IOwnable, IERC165 {
 
     /**
     * @notice Emits when a new FeeDistributor instance has been created for a client
-    * @param _newFeeDistributorAddrress address of the newly created FeeDistributor contract instance
+    * @param _newFeeDistributorAddress address of the newly created FeeDistributor contract instance
     * @param _clientAddress address of the client for whom the new instance was created
     */
-    event FeeDistributorCreated(address indexed _newFeeDistributorAddrress, address indexed _clientAddress);
+    event FeeDistributorCreated(address indexed _newFeeDistributorAddress, address indexed _clientAddress);
 
     /**
     * @notice Emits when a new FeeDistributor contract address has been set as a reference instance.

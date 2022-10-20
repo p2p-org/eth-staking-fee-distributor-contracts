@@ -169,8 +169,8 @@ describe("FeeDistributorFactory", function () {
         await deployerFactory.transferOwnership(owner)
 
         await factorySignedByOwner.dismissOperator()
-        const operatorAfterDismisssing = await deployerFactory.operator()
-        expect(operatorAfterDismisssing).to.be.equal(ethers.constants.AddressZero)
+        const operatorAfterDismissing = await deployerFactory.operator()
+        expect(operatorAfterDismissing).to.be.equal(ethers.constants.AddressZero)
     })
 
     it("only owner can recover tokens and ether", async function () {

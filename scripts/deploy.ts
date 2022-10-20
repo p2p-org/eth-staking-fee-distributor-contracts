@@ -42,7 +42,7 @@ async function main() {
         }
 
         // retrieve client instance address from event
-        const newlyCreatedFeeDistributorAddress = event.args?._newFeeDistributorAddrress
+        const newlyCreatedFeeDistributorAddress = event.args?._newFeeDistributorAddress
         console.log('SET THIS IN VALIDATOR:')
         console.log(newlyCreatedFeeDistributorAddress)
     } catch (err) {

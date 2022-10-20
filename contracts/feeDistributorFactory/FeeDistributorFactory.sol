@@ -65,16 +65,16 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
         }
 
         // clone the reference implementation of FeeDistributor
-        address newFeeDistributorAddrress = s_referenceFeeDistributor.clone();
+        address newFeeDistributorAddress = s_referenceFeeDistributor.clone();
 
         // cast address to FeeDistributor
-        IFeeDistributor newFeeDistributor = IFeeDistributor(newFeeDistributorAddrress);
+        IFeeDistributor newFeeDistributor = IFeeDistributor(newFeeDistributorAddress);
 
         // set the client address to the cloned FeeDistributor instance
         newFeeDistributor.initialize(_client);
 
         // emit event with the address of the newly created instance for the external listener
-        emit FeeDistributorCreated(newFeeDistributorAddrress, _client);
+        emit FeeDistributorCreated(newFeeDistributorAddress, _client);
     }
 
     /**

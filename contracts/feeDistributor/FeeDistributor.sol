@@ -60,7 +60,7 @@ error FeeDistributor__ClientNotSet();
 
 /**
 * @title Contract receiving MEV and priority fees
-* and distibuting them to the service and the client.
+* and distributing them to the service and the client.
 */
 contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
     // Type Declarations

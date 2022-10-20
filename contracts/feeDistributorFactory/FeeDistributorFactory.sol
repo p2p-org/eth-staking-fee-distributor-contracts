@@ -59,7 +59,7 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     * @dev Emits `FeeDistributorCreated` event with the address of the newly created instance
     * @param _client the address of the client
     */
-    function createFeeDistributor(address _client) external onlyOperator {
+    function createFeeDistributor(address _client) external onlyOperatorOrOwner {
         if (s_referenceFeeDistributor == address(0)) {
             revert FeeDistributorFactory__ReferenceFeeDistributorNotSet();
         }

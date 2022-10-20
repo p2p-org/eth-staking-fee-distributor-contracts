@@ -76,7 +76,7 @@ describe("FeeDistributorFactory", function () {
         )
     })
 
-    it("createFeeDistributor can only be called by operator and after setReferenceInstance", async function () {
+    it("createFeeDistributor can only be called by operator or owner and after setReferenceInstance", async function () {
         const deployerFactory = await deployerFactoryFactory.deploy({gasLimit: 3000000})
 
         const factorySignedByOwner = ownerFactoryFactory.attach(deployerFactory.address)
@@ -107,7 +107,7 @@ describe("FeeDistributorFactory", function () {
         const factorySignedByOperator = operatorFactoryFactory.attach(deployerFactory.address)
 
         await expect(factorySignedByOperator.createFeeDistributor(ethers.constants.AddressZero)).to.be.revertedWith(
-            `Access__CallerNotOperator`
+            `Access__CallerNeitherOperatorNorOwner`
         )
 
         await expect(factorySignedByOwner.changeOperator(ethers.constants.AddressZero)).to.be.revertedWith(
@@ -125,6 +125,11 @@ describe("FeeDistributorFactory", function () {
         )
 
         await expect(factorySignedByOperator.createFeeDistributor(nobody)).to.emit(
+            factorySignedByOperator,
+            "FeeDistributorCreated"
+        )
+
+        await expect(factorySignedByOwner.createFeeDistributor(nobody)).to.emit(
             factorySignedByOperator,
             "FeeDistributorCreated"
         )

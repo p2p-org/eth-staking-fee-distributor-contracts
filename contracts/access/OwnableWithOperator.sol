@@ -25,7 +25,7 @@ error Access__SameOperator(address _operator);
 /**
 * @notice caller is not the operator
 */
-error Access__CallerNotOperator(address _caller, address _operator);
+error Access__CallerNeitherOperatorNorOwner(address _caller, address _operator, address _owner);
 
 /**
  * @dev Ownable with an additional role of operator
@@ -44,10 +44,16 @@ abstract contract OwnableWithOperator is Ownable {
     );
 
     /**
-     * @dev Throws if called by any account other than the operator.
+     * @dev Throws if called by any account other than the operator or the owner.
      */
-    modifier onlyOperator() {
-        _checkOperator();
+    modifier onlyOperatorOrOwner() {
+        address currentOwner = owner();
+        address currentOperator = s_operator;
+
+        if (currentOperator != _msgSender() && currentOwner != _msgSender()) {
+            revert Access__CallerNeitherOperatorNorOwner(_msgSender(), currentOperator, currentOwner);
+        }
+
         _;
     }
 
@@ -56,15 +62,6 @@ abstract contract OwnableWithOperator is Ownable {
      */
     function operator() external view virtual returns (address) {
         return s_operator;
-    }
-
-    /**
-     * @dev Throws if the sender is not the operator.
-     */
-    function _checkOperator() internal view virtual {
-        if (s_operator != _msgSender()) {
-            revert Access__CallerNotOperator(_msgSender(), s_operator);
-        }
     }
 
     /**

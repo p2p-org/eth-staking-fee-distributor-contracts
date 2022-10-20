@@ -12,7 +12,7 @@ yarn test
 ```
 
 ## Basic use case
-The basic use case is reflected in ./test/test-fee-distributor.ts
+The basic use case is reflected in `./test/integration-test.ts`
 
 1. Anyone (deployer, does not matter who) deploys `FeeDistributorFactory`.
 
@@ -20,8 +20,8 @@ The basic use case is reflected in ./test/test-fee-distributor.ts
 2. Anyone (deployer, does not matter who) deploys a reference implementation of `FeeDistributor` providing the constant arguments:
    - address of `FeeDistributorFactory`
    - address of the service (P2P) fee recipient
-   - % of EL rewards that should go to the service (P2P)
-   - % of EL rewards that should go to the client
+   - basis points (percent * 100) of EL rewards that should go to the service (P2P)
+   - basis points (percent * 100) of EL rewards that should go to the client
 
 
 3. The deployer calls `initialize` on `FeeDistributorFactory` with the address of the reference implementation of `FeeDistributor` from Step 2.

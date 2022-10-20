@@ -1,5 +1,5 @@
 import { ethers, getNamedAccounts } from "hardhat"
-import { FeeDistributor, FeeDistributor__factory, FeeDistributorFactory__factory } from "../typechain-types"
+import { FeeDistributor__factory, FeeDistributorFactory__factory } from "../typechain-types"
 
 async function main() {
     try {
@@ -21,7 +21,6 @@ async function main() {
         const feeDistributor = await factory.deploy(
             feeDistributorFactory.address,
             serviceAddress,
-            serviceBasisPoints,
             {gasLimit: 3000000, nonce}
         )
         nonce++;
@@ -34,7 +33,11 @@ async function main() {
         const clientAddress = "0x27E9727FD9b8CdDdd0854F56712AD9DF647FaB74"
 
         // create client instance
-        const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(clientAddress, {gasLimit: 1000000, nonce})
+        const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(
+            clientAddress,
+            serviceBasisPoints,
+            {gasLimit: 1000000, nonce}
+        )
         const createFeeDistributorTxReceipt = await createFeeDistributorTx.wait();
         const event = createFeeDistributorTxReceipt?.events?.find(event => event.event === 'FeeDistributorCreated');
         if (!event) {

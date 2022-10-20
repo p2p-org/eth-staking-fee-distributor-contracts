@@ -73,12 +73,15 @@ describe("Integration", function () {
         // set reference instance
         await feeDistributorFactory.setReferenceInstance(feeDistributorReferenceInstance.address)
 
-        // become an operator to create a client instance
-        await feeDistributorFactory.changeOperator(deployerSigner.address)
+        // set an operator to create a client instance
+        await feeDistributorFactory.changeOperator(operator)
+
+        const operatorSignerFactory = new FeeDistributorFactory__factory(operatorSigner)
+        const operatorFeeDistributorFactory = operatorSignerFactory.attach(feeDistributorFactory.address)
 
         const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
         // create client instance
-        const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(clientAddress)
+        const createFeeDistributorTx = await operatorFeeDistributorFactory.createFeeDistributor(clientAddress)
         const createFeeDistributorTxReceipt = await createFeeDistributorTx.wait();
         const event = createFeeDistributorTxReceipt?.events?.find(event => event.event === 'FeeDistributorCreated');
         if (!event) {

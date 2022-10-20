@@ -30,41 +30,21 @@ async function main() {
         await feeDistributorFactory.setReferenceInstance(feeDistributor.address, {gasLimit: 1000000, nonce})
         nonce++;
 
-        // event to listen to
-        const filter = feeDistributorFactory.filters["FeeDistributorCreated(address,address)"]()
-
         // an example client address. There can be many more of such.
         const clientAddress = "0x27E9727FD9b8CdDdd0854F56712AD9DF647FaB74"
 
-        // start listening to the FeeDistributorCreated events
-        ethers.provider.on(filter, async (log) => {
-            try {
-                console.log('FeeDistributorCreated event start')
+        // create client instance
+        const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(clientAddress, {gasLimit: 1000000, nonce})
+        const createFeeDistributorTxReceipt = await createFeeDistributorTx.wait();
+        const event = createFeeDistributorTxReceipt?.events?.find(event => event.event === 'FeeDistributorCreated');
+        if (!event) {
+            throw Error('No FeeDistributorCreated found')
+        }
 
-                // retrieve the address of the newly created FeeDistributor contract from the event
-                const parsedLog = feeDistributorFactory.interface.parseLog(log);
-                const newlyCreatedFeeDistributorAddress = parsedLog.args._newFeeDistributorAddrress
-
-                // set the newly created FeeDistributor contract as coinbase (block rewards recipient)
-                // In the real world this will be done in a validator's settings
-                console.log('SET THIS IN VALIDATOR:')
-                console.log(newlyCreatedFeeDistributorAddress)
-
-                console.log('FeeDistributorCreated event end')
-            } catch (err) {
-                console.log(err)
-            }
-        })
-
-        // become an operator to create a client instance
-        await feeDistributorFactory.changeOperator(signer.address)
-
-        // create an instance of FeeDistributor for the client
-        const createFeeDistributorTxReceipt = await feeDistributorFactory.createFeeDistributor(clientAddress, {gasLimit: 1000000, nonce})
-        nonce++;
-
-        // wait for 2 blocks to avoid a prematute exit from the test
-        await createFeeDistributorTxReceipt.wait(2)
+        // retrieve client instance address from event
+        const newlyCreatedFeeDistributorAddress = event.args?._newFeeDistributorAddrress
+        console.log('SET THIS IN VALIDATOR:')
+        console.log(newlyCreatedFeeDistributorAddress)
     } catch (err) {
         console.log(err)
     }

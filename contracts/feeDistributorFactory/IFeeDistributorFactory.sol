@@ -39,7 +39,7 @@ interface IFeeDistributorFactory is IOwnable, IERC165 {
     * @param _client the address of the client
     * @param _serviceBasisPoints basis points (percent * 100) of EL rewards that should go to the service (P2P)
     */
-    function createFeeDistributor(address _client, uint256 _serviceBasisPoints) external;
+    function createFeeDistributor(address _client, uint96 _serviceBasisPoints) external;
 
     /**
      * @dev Returns the reference FeeDistributor contract address

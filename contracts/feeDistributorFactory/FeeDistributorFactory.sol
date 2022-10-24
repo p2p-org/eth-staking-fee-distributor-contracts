@@ -1,14 +1,16 @@
+// SPDX-FileCopyrightText: 2022 P2P Validator <info@p2p.org>
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.17;
+pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/proxy/Clones.sol";
-import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-import "../assetRecovering/PublicAssetRecoverer.sol";
+import "../@openzeppelin/contracts/proxy/Clones.sol";
+import "../@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import "../@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import "../assetRecovering/OwnableAssetRecoverer.sol";
 import "./IFeeDistributorFactory.sol";
 import "../feeDistributor/IFeeDistributor.sol";
-import "../access/Access.sol";
+import "../access/Ownable.sol";
+import "../access/OwnableWithOperator.sol";
 
 /**
 * @notice Should be a FeeDistributor contract
@@ -24,7 +26,7 @@ error FeeDistributorFactory__ReferenceFeeDistributorNotSet();
 /**
 * @title Factory for cloning (EIP-1167) FeeDistributor instances pre client
 */
-contract FeeDistributorFactory is PublicAssetRecoverer, Access, ERC165, IFeeDistributorFactory {
+contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ERC165, IFeeDistributorFactory {
     // Type Declarations
 
     using Clones for address;
@@ -56,23 +58,24 @@ contract FeeDistributorFactory is PublicAssetRecoverer, Access, ERC165, IFeeDist
     * @notice Creates a FeeDistributor instance for a client
     * @dev Emits `FeeDistributorCreated` event with the address of the newly created instance
     * @param _client the address of the client
+    * @param _serviceBasisPoints basis points (percent * 100) of EL rewards that should go to the service (P2P)
     */
-    function createFeeDistributor(address _client) external onlyOperator {
+    function createFeeDistributor(address _client, uint256 _serviceBasisPoints) external onlyOperatorOrOwner {
         if (s_referenceFeeDistributor == address(0)) {
             revert FeeDistributorFactory__ReferenceFeeDistributorNotSet();
         }
 
         // clone the reference implementation of FeeDistributor
-        address newFeeDistributorAddrress = s_referenceFeeDistributor.clone();
+        address newFeeDistributorAddress = s_referenceFeeDistributor.clone();
 
         // cast address to FeeDistributor
-        IFeeDistributor newFeeDistributor = IFeeDistributor(newFeeDistributorAddrress);
+        IFeeDistributor newFeeDistributor = IFeeDistributor(newFeeDistributorAddress);
 
         // set the client address to the cloned FeeDistributor instance
-        newFeeDistributor.initialize(_client);
+        newFeeDistributor.initialize(_client, _serviceBasisPoints);
 
         // emit event with the address of the newly created instance for the external listener
-        emit FeeDistributorCreated(newFeeDistributorAddrress, _client);
+        emit FeeDistributorCreated(newFeeDistributorAddress, _client);
     }
 
     /**
@@ -92,15 +95,7 @@ contract FeeDistributorFactory is PublicAssetRecoverer, Access, ERC165, IFeeDist
     /**
      * @dev Returns the address of the current owner.
      */
-    function owner() public view override(IFeeDistributorFactory, Ownable) returns (address) {
+    function owner() public view override(Ownable, OwnableBase, IOwnable) returns (address) {
         return super.owner();
-    }
-
-    /**
-     * @dev it should not be possible to renounceOwnership
-     * to prevent losing control over the contract.
-     */
-    function renounceOwnership() public pure override {
-        revert Access__CannotRenounceOwnership();
     }
 }

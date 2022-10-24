@@ -1,8 +1,9 @@
+// SPDX-FileCopyrightText: 2022 P2P Validator <info@p2p.org>
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "../@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
  * @dev External interface of FeeDistributor declared to support ERC165 detection.
@@ -20,8 +21,9 @@ interface IFeeDistributor is IERC165 {
     /**
     * @notice Emits once the client address has been set.
     * @param _client address of the client.
+    * @param _serviceBasisPoints basis points (percent * 100) of EL rewards that should go to the service (P2P)
     */
-    event Initialized(address indexed _client);
+    event Initialized(address indexed _client, uint256 _serviceBasisPoints);
 
     // Functions
 
@@ -29,8 +31,9 @@ interface IFeeDistributor is IERC165 {
     * @notice Set client address.
     * @dev Could not be in the constructor since it is different for different clients.
     * @param _client the address of the client
+    * @param _serviceBasisPoints basis points (percent * 100) of EL rewards that should go to the service (P2P)
     */
-    function initialize(address _client) external;
+    function initialize(address _client, uint256 _serviceBasisPoints) external;
 
     /**
     * @notice Withdraw the whole balance of the contract according to the pre-defined percentages.
@@ -53,7 +56,7 @@ interface IFeeDistributor is IERC165 {
     function getClient() external view returns (address);
 
     /**
-     * @dev Returns the service percent
+     * @dev Returns the service basis points
      */
-    function getServicePercent() external view returns (uint256);
+    function getServiceBasisPoints() external view returns (uint256);
 }

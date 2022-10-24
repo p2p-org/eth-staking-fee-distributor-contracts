@@ -1,21 +1,23 @@
+// SPDX-FileCopyrightText: 2022 P2P Validator <info@p2p.org>
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "../@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "../access/IOwnable.sol";
 
 /**
  * @dev External interface of FeeDistributorFactory declared to support ERC165 detection.
  */
-interface IFeeDistributorFactory is IERC165 {
+interface IFeeDistributorFactory is IOwnable, IERC165 {
     // Events
 
     /**
     * @notice Emits when a new FeeDistributor instance has been created for a client
-    * @param _newFeeDistributorAddrress address of the newly created FeeDistributor contract instance
+    * @param _newFeeDistributorAddress address of the newly created FeeDistributor contract instance
     * @param _clientAddress address of the client for whom the new instance was created
     */
-    event FeeDistributorCreated(address indexed _newFeeDistributorAddrress, address indexed _clientAddress);
+    event FeeDistributorCreated(address indexed _newFeeDistributorAddress, address indexed _clientAddress);
 
     /**
     * @notice Emits when a new FeeDistributor contract address has been set as a reference instance.
@@ -35,16 +37,12 @@ interface IFeeDistributorFactory is IERC165 {
     * @notice Creates a FeeDistributor instance for a client
     * @dev Emits `FeeDistributorCreated` event with the address of the newly created instance
     * @param _client the address of the client
+    * @param _serviceBasisPoints basis points (percent * 100) of EL rewards that should go to the service (P2P)
     */
-    function createFeeDistributor(address _client) external;
+    function createFeeDistributor(address _client, uint256 _serviceBasisPoints) external;
 
     /**
      * @dev Returns the reference FeeDistributor contract address
      */
     function getReferenceFeeDistributor() external view returns (address);
-
-    /**
-     * @dev Returns the address of the current owner.
-     */
-    function owner() external view returns (address);
 }

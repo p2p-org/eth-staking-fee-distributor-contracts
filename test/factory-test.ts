@@ -3,13 +3,12 @@ import {ethers, getNamedAccounts} from "hardhat"
 import {
     FeeDistributor__factory,
     FeeDistributorFactory__factory,
-    FeeDistributor,
-    FeeDistributorFactory, MockERC20__factory, MockERC721__factory, MockERC1155__factory
+    FeeDistributorFactory, IERC20__factory, IERC721__factory, IERC1155__factory
 } from "../typechain-types"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 describe("FeeDistributorFactory", function () {
-    const servicePercent = 30
+    const serviceBasisPoints = 3000
 
     let deployer: string
     let owner: string
@@ -53,7 +52,7 @@ describe("FeeDistributorFactory", function () {
         const factorySignedByOwner = ownerFactoryFactory.attach(deployerFactory.address)
 
         await expect(factorySignedByOwner.setReferenceInstance(nobody)).to.be.revertedWith(
-            `Ownable: caller is not the owner`
+            `OwnableBase__CallerNotOwner`
         )
 
         await deployerFactory.transferOwnership(owner)
@@ -66,7 +65,6 @@ describe("FeeDistributorFactory", function () {
         const feeDistributor = await factory.deploy(
             deployerFactory.address,
             serviceAddress,
-            servicePercent,
             {gasLimit: 3000000}
         )
 
@@ -76,13 +74,13 @@ describe("FeeDistributorFactory", function () {
         )
     })
 
-    it("createFeeDistributor can only be called by operator and after setReferenceInstance", async function () {
+    it("createFeeDistributor can only be called by operator or owner and after setReferenceInstance", async function () {
         const deployerFactory = await deployerFactoryFactory.deploy({gasLimit: 3000000})
 
         const factorySignedByOwner = ownerFactoryFactory.attach(deployerFactory.address)
 
         await expect(factorySignedByOwner.setReferenceInstance(nobody)).to.be.revertedWith(
-            `Ownable: caller is not the owner`
+            `OwnableBase__CallerNotOwner`
         )
 
         await deployerFactory.transferOwnership(owner)
@@ -95,7 +93,6 @@ describe("FeeDistributorFactory", function () {
         const feeDistributor = await factory.deploy(
             deployerFactory.address,
             serviceAddress,
-            servicePercent,
             {gasLimit: 3000000}
         )
 
@@ -106,17 +103,34 @@ describe("FeeDistributorFactory", function () {
 
         const factorySignedByOperator = operatorFactoryFactory.attach(deployerFactory.address)
 
-        await expect(factorySignedByOperator.createFeeDistributor(ethers.constants.AddressZero)).to.be.revertedWith(
-            `Access__CallerNotOperator`
+        await expect(factorySignedByOperator.createFeeDistributor(ethers.constants.AddressZero, serviceBasisPoints)).to.be.revertedWith(
+            `Access__CallerNeitherOperatorNorOwner`
         )
 
-        await factorySignedByOwner.transferOperator(operator)
+        await expect(factorySignedByOwner.changeOperator(ethers.constants.AddressZero)).to.be.revertedWith(
+            `Access__ZeroNewOperator`
+        )
 
-        await expect(factorySignedByOperator.createFeeDistributor(ethers.constants.AddressZero)).to.be.revertedWith(
+        await factorySignedByOwner.changeOperator(operator)
+
+        await expect(factorySignedByOwner.changeOperator(operator)).to.be.revertedWith(
+            `Access__SameOperator`
+        )
+
+        await expect(factorySignedByOperator.createFeeDistributor(ethers.constants.AddressZero, serviceBasisPoints)).to.be.revertedWith(
             `FeeDistributor__ZeroAddressClient`
         )
 
-        await expect(factorySignedByOperator.createFeeDistributor(nobody)).to.emit(
+        await expect(factorySignedByOperator.createFeeDistributor(serviceAddress, serviceBasisPoints)).to.be.revertedWith(
+            `FeeDistributor__ClientAddressEqualsService`
+        )
+
+        await expect(factorySignedByOperator.createFeeDistributor(nobody, serviceBasisPoints)).to.emit(
+            factorySignedByOperator,
+            "FeeDistributorCreated"
+        )
+
+        await expect(factorySignedByOwner.createFeeDistributor(nobody, serviceBasisPoints)).to.emit(
             factorySignedByOperator,
             "FeeDistributorCreated"
         )
@@ -136,12 +150,24 @@ describe("FeeDistributorFactory", function () {
         expect(feeDistributorFactoryOperator).to.be.equal(ethers.constants.AddressZero)
     })
 
-    it("cannot renounce ownership", async function () {
-        const feeDistributorFactory = await deployerFactoryFactory.deploy({gasLimit: 3000000})
+    it("owner can dismiss operator", async function () {
+        const deployerFactory = await deployerFactoryFactory.deploy({gasLimit: 3000000})
 
-        await expect(feeDistributorFactory.renounceOwnership()).to.be.revertedWith(
-            `Access__CannotRenounceOwnership`
+        await deployerFactory.changeOperator(operator)
+        const operatorAfterSetting = await deployerFactory.operator()
+        expect(operatorAfterSetting).to.be.equal(operator)
+
+        const factorySignedByOwner = ownerFactoryFactory.attach(deployerFactory.address)
+
+        await expect(factorySignedByOwner.dismissOperator()).to.be.revertedWith(
+            `OwnableBase__CallerNotOwner`
         )
+
+        await deployerFactory.transferOwnership(owner)
+
+        await factorySignedByOwner.dismissOperator()
+        const operatorAfterDismissing = await deployerFactory.operator()
+        expect(operatorAfterDismissing).to.be.equal(ethers.constants.AddressZero)
     })
 
     it("only owner can recover tokens and ether", async function () {
@@ -149,30 +175,42 @@ describe("FeeDistributorFactory", function () {
         const feeDistributorFactory = await deployerFactoryFactory.deploy({gasLimit: 3000000})
 
         // ERC20
-        const mockERC20Factory = new MockERC20__factory(deployerSigner)
-        const erc20Supply = ethers.utils.parseEther('100')
-        // deploy mock ERC20
-        const erc20 = await mockERC20Factory.deploy(erc20Supply)
-        // transfer mock ERC20 tokens to factory
-        await erc20.transfer(feeDistributorFactory.address, erc20Supply)
+        // connect to WETH (ERC20)
+        const erc20Amount = ethers.utils.parseEther('2')
+        const WETHAddress = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+        const erc20 = IERC20__factory.connect(WETHAddress, deployerSigner)
+        // wrap ETH
+        await deployerSigner.sendTransaction({to: WETHAddress, value: erc20Amount})
+        // transfer WETH tokens to factory
+        await erc20.transfer(feeDistributorFactory.address, erc20Amount)
 
         // ERC721
-        const mockERC721Factory = new MockERC721__factory(deployerSigner)
-        // deploy mock ERC721
-        const erc721 = await mockERC721Factory.deploy()
+        const erc721Owner = '0xf896527c49b44aAb3Cf22aE356Fa3AF8E331F280'
+        await ethers.provider.send("hardhat_impersonateAccount", [
+            erc721Owner,
+        ])
+        const erc721OwnerSigner = await ethers.getSigner(erc721Owner)
+        const erc721Address = '0xb7f7f6c52f2e2fdb1963eab30438024864c313f6'
+        // connect to ERC721
+        const erc721 = IERC721__factory.connect(erc721Address, erc721OwnerSigner)
         // transfer mock ERC721 tokens to factory
-        const erc721TokenId = 0
-        await erc721.transferFrom(deployerSigner.address, feeDistributorFactory.address, erc721TokenId)
+        const erc721TokenId = 7943
+        await erc721.transferFrom(erc721OwnerSigner.address, feeDistributorFactory.address, erc721TokenId)
 
         // ERC1155
-        const mockERC1155Factory = new MockERC1155__factory(deployerSigner)
-        const erc1155TokenId = 0
+        const erc1155Owner = '0x208833804d09cf965023f2bdb03d78e3056b4767'
+        await ethers.provider.send("hardhat_impersonateAccount", [
+            erc1155Owner,
+        ])
+        const erc1155OwnerSigner = await ethers.getSigner(erc1155Owner)
+        const erc1155Address = '0xa2cd18be17bed47b4f5275a4f08f249b7d44edd5'
+        // connect to ERC1155
+        const erc1155 = IERC1155__factory.connect(erc1155Address, erc1155OwnerSigner)
+        const erc1155TokenId = '1'
         const erc1155Amount = 1
-        // deploy mock ERC1155
-        const erc1155 = await mockERC1155Factory.deploy(erc1155TokenId, erc1155Amount)
-        // transfer mock ERC1155 tokens to factory
+        // transfer ERC1155 tokens to factory
         // there is no unsafe transfer in ERC1155
-        await expect(erc1155.safeTransferFrom(deployerSigner.address, feeDistributorFactory.address, erc1155TokenId, erc1155Amount, "0x"))
+        await expect(erc1155.safeTransferFrom(erc1155OwnerSigner.address, feeDistributorFactory.address, erc1155TokenId, erc1155Amount, "0x"))
             .to.be.revertedWith(
                 `ERC1155: transfer to non ERC1155Receiver implementer`
             )
@@ -194,26 +232,26 @@ describe("FeeDistributorFactory", function () {
 
         const factorySignedByOwner = ownerFactoryFactory.attach(feeDistributorFactory.address)
 
-        await expect(factorySignedByOwner.transferERC20(erc20.address, nobody, erc20Supply))
+        await expect(factorySignedByOwner.transferERC20(erc20.address, nobody, erc20Amount))
             .to.be.revertedWith(
-                `Ownable: caller is not the owner`
+                `OwnableBase__CallerNotOwner`
             )
 
         await expect(factorySignedByOwner.transferERC721(erc721.address, nobody, erc721TokenId, "0x"))
             .to.be.revertedWith(
-                `Ownable: caller is not the owner`
+                `OwnableBase__CallerNotOwner`
             )
 
         await expect(factorySignedByOwner.transferEther(nobody, etherAmount))
             .to.be.revertedWith(
-                `Ownable: caller is not the owner`
+                `OwnableBase__CallerNotOwner`
             )
 
         await feeDistributorFactory.transferOwnership(owner)
 
-        await factorySignedByOwner.transferERC20(erc20.address, nobody, erc20Supply)
+        await factorySignedByOwner.transferERC20(erc20.address, nobody, erc20Amount)
         const recipientErc20Balance = await erc20.balanceOf(nobody)
-        expect(recipientErc20Balance).to.be.equal(erc20Supply)
+        expect(recipientErc20Balance).to.be.equal(erc20Amount)
 
         await factorySignedByOwner.transferERC721(erc721.address, nobody, erc721TokenId, "0x")
         const recipientErc721Balance = await erc721.balanceOf(nobody)

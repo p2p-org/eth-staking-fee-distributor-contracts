@@ -4,17 +4,16 @@ import {
     FeeDistributor__factory,
     FeeDistributorFactory__factory,
     FeeDistributor,
-    FeeDistributorFactory, MockERC20__factory, MockERC721__factory, MockERC1155__factory
+    FeeDistributorFactory, IERC20__factory, IERC721__factory, IERC1155__factory
 } from "../typechain-types"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 describe("FeeDistributor", function () {
 
     // P2P should get 30% (subject to chioce at deploy time)
-    const servicePercent =  30;
+    const serviceBasisPoints =  3000;
 
-    // client should get 70% (subject to chioce at deploy time)
-    const clientPercent = 100 - servicePercent;
+    const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
 
     let deployerSigner: SignerWithAddress
     let ownerSigner: SignerWithAddress
@@ -64,7 +63,6 @@ describe("FeeDistributor", function () {
         await expect(factory.deploy(
             nobody,
             serviceAddress,
-            servicePercent,
             {gasLimit: 3000000}
         )).to.be.revertedWith(
             `FeeDistributor__NotFactory("${nobody}")`
@@ -77,29 +75,34 @@ describe("FeeDistributor", function () {
         await expect(factory.deploy(
             feeDistributorFactory.address,
             ethers.constants.AddressZero,
-            servicePercent,
             {gasLimit: 1000000}
         )).to.be.revertedWith(
             `FeeDistributor__ZeroAddressService`
         )
     })
 
-    it("should not be created with servicePercent outside [0, 100]", async function () {
+    it("should not be created with serviceBasisPoints outside [0, 10000]", async function () {
         const factory = new FeeDistributor__factory(deployerSigner)
 
-        await expect(factory.deploy(
+        const feeDistributor = await factory.deploy(
             feeDistributorFactory.address,
             serviceAddress,
-            101,
+            {gasLimit: 3000000}
+        );
+
+        await feeDistributorFactory.setReferenceInstance(feeDistributor.address)
+
+        await expect(feeDistributorFactory.createFeeDistributor(
+            clientAddress,
+            10001,
             {gasLimit: 3000000}
         )).to.be.revertedWith(
-            `FeeDistributor__InvalidServicePercent`
+            `FeeDistributor__InvalidServiceBasisPoints`
         )
 
-        await expect(factory.deploy(
-            feeDistributorFactory.address,
-            serviceAddress,
-            -1,
+        await expect(feeDistributorFactory.createFeeDistributor(
+            clientAddress,
+            10001,
             {gasLimit: 3000000}
         )).to.throw
     })
@@ -110,12 +113,13 @@ describe("FeeDistributor", function () {
         const feeDistributor = await factory.deploy(
             feeDistributorFactory.address,
             serviceAddress,
-            servicePercent,
             {gasLimit: 3000000}
         )
 
         await expect(feeDistributor.initialize(
-            nobody,{gasLimit: 1000000}
+            nobody,
+            serviceBasisPoints,
+            {gasLimit: 1000000}
         )).to.be.revertedWith(
             `FeeDistributor__NotFactoryCalled`
         )
@@ -127,25 +131,8 @@ describe("FeeDistributor", function () {
         const feeDistributor = await factory.deploy(
             feeDistributorFactory.address,
             serviceAddress,
-            servicePercent,
             {gasLimit: 3000000}
         )
-
-        const feeDistributorOwner = await feeDistributor.owner()
-        expect(feeDistributorOwner).to.be.equal(deployerSigner.address)
-    })
-
-    it("cannot renounce ownership", async function () {
-        const factory = new FeeDistributor__factory(deployerSigner)
-
-        const feeDistributor = await factory.deploy(
-            feeDistributorFactory.address,
-            serviceAddress,
-            servicePercent,
-            {gasLimit: 3000000}
-        )
-
-        await feeDistributor.renounceOwnership()
 
         const feeDistributorOwner = await feeDistributor.owner()
         expect(feeDistributorOwner).to.be.equal(deployerSigner.address)
@@ -159,28 +146,24 @@ describe("FeeDistributor", function () {
         const feeDistributorReferenceInstance = await deployerSignerFactory.deploy(
             feeDistributorFactory.address,
             serviceAddress,
-            servicePercent,
             { gasLimit: 3000000 }
         )
 
         // set reference instance
         await feeDistributorFactory.setReferenceInstance(feeDistributorReferenceInstance.address)
 
-        // become an operator to create a client instance
-        await feeDistributorFactory.transferOperator(deployerSigner.address)
 
-        const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
         // create client instance
-        const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(clientAddress)
+        const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(clientAddress, serviceBasisPoints)
         const createFeeDistributorTxReceipt = await createFeeDistributorTx.wait();
         const event = createFeeDistributorTxReceipt?.events?.find(event => event.event === 'FeeDistributorCreated');
         if (!event) {
             throw Error('No FeeDistributorCreated found')
         }
         // retrieve client instance address from event
-        const newFeeDistributorAddrress = event.args?._newFeeDistributorAddrress
+        const newFeeDistributorAddress = event.args?._newFeeDistributorAddress
 
-        const feeDistributorSignedByDeployer = deployerSignerFactory.attach(newFeeDistributorAddrress)
+        const feeDistributorSignedByDeployer = deployerSignerFactory.attach(newFeeDistributorAddress)
 
         const clientInstanceOwner = await feeDistributorSignedByDeployer.owner()
         expect(clientInstanceOwner).to.be.equal(deployerSigner.address)
@@ -194,77 +177,83 @@ describe("FeeDistributor", function () {
         const feeDistributorReferenceInstance = await deployerSignerFactory.deploy(
             feeDistributorFactory.address,
             serviceAddress,
-            servicePercent,
             { gasLimit: 3000000 }
         )
 
         // set reference instance
         await feeDistributorFactory.setReferenceInstance(feeDistributorReferenceInstance.address)
 
-        // become an operator to create a client instance
-        await feeDistributorFactory.transferOperator(deployerSigner.address)
-
-        const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
         // create client instance
-        const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(clientAddress)
+        const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(clientAddress, serviceBasisPoints)
         const createFeeDistributorTxReceipt = await createFeeDistributorTx.wait();
         const event = createFeeDistributorTxReceipt?.events?.find(event => event.event === 'FeeDistributorCreated');
         if (!event) {
             throw Error('No FeeDistributorCreated found')
         }
         // retrieve client instance address from event
-        const newFeeDistributorAddrress = event.args?._newFeeDistributorAddrress;
+        const newFeeDistributorAddress = event.args?._newFeeDistributorAddress;
 
         // ERC20
-        const mockERC20Factory = new MockERC20__factory(deployerSigner)
-        const erc20Supply = ethers.utils.parseEther('100')
-        // deploy mock ERC20
-        const erc20 = await mockERC20Factory.deploy(erc20Supply)
-        // transfer mock ERC20 tokens to client instance
-        await erc20.transfer(newFeeDistributorAddrress, erc20Supply)
+        // connect to WETH (ERC20)
+        const erc20Amount = ethers.utils.parseEther('2')
+        const WETHAddress = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+        const erc20 = IERC20__factory.connect(WETHAddress, deployerSigner)
+        // wrap ETH
+        await deployerSigner.sendTransaction({to: WETHAddress, value: erc20Amount})
+        // transfer WETH tokens to factory
+        await erc20.transfer(newFeeDistributorAddress, erc20Amount)
 
         // ERC721
-        const mockERC721Factory = new MockERC721__factory(deployerSigner)
-        // deploy mock ERC721
-        const erc721 = await mockERC721Factory.deploy()
-        // transfer mock ERC721 tokens to client instance
-        const erc721TokenId = 0
-        await erc721.transferFrom(deployerSigner.address, newFeeDistributorAddrress, erc721TokenId)
+        const erc721Owner = '0xEBbfaE088c8643ee4Dd4186d703bE6aC8b1AE7D6'
+        await ethers.provider.send("hardhat_impersonateAccount", [
+            erc721Owner,
+        ])
+        const erc721OwnerSigner = await ethers.getSigner(erc721Owner)
+        const erc721Address = '0xb7f7f6c52f2e2fdb1963eab30438024864c313f6'
+        // connect to ERC721
+        const erc721 = IERC721__factory.connect(erc721Address, erc721OwnerSigner)
+        // transfer mock ERC721 tokens to factory
+        const erc721TokenId = 1117
+        await erc721.transferFrom(erc721OwnerSigner.address, newFeeDistributorAddress, erc721TokenId)
 
         // ERC1155
-        const mockERC1155Factory = new MockERC1155__factory(deployerSigner)
-        const erc1155TokenId = 0
+        const erc1155Owner = '0x208833804d09cf965023f2bdb03d78e3056b4767'
+        await ethers.provider.send("hardhat_impersonateAccount", [
+            erc1155Owner,
+        ])
+        const erc1155OwnerSigner = await ethers.getSigner(erc1155Owner)
+        const erc1155Address = '0xa2cd18be17bed47b4f5275a4f08f249b7d44edd5'
+        // connect to ERC1155
+        const erc1155 = IERC1155__factory.connect(erc1155Address, erc1155OwnerSigner)
+        const erc1155TokenId = '1'
         const erc1155Amount = 1
-        // deploy mock ERC1155
-        const erc1155 = await mockERC1155Factory.deploy(erc1155TokenId, erc1155Amount)
-        // transfer mock ERC1155 tokens to client instance
+        // transfer ERC1155 tokens to factory
         // there is no unsafe transfer in ERC1155
-        await expect(erc1155.safeTransferFrom(deployerSigner.address, newFeeDistributorAddrress, erc1155TokenId, erc1155Amount, "0x"))
+        await expect(erc1155.safeTransferFrom(erc1155OwnerSigner.address, newFeeDistributorAddress, erc1155TokenId, erc1155Amount, "0x"))
             .to.be.revertedWith(
                 `ERC1155: transfer to non ERC1155Receiver implementer`
             )
 
-        const feeDistributorSignedByAssetOwner = ownerFactory.attach(newFeeDistributorAddrress)
+        const feeDistributorSignedByOwner = ownerFactory.attach(newFeeDistributorAddress)
 
-        await expect(feeDistributorSignedByAssetOwner.transferERC20(erc20.address, nobody, erc20Supply))
+        await expect(feeDistributorSignedByOwner.transferERC20(erc20.address, serviceAddress, erc20Amount))
             .to.be.revertedWith(
-            `Ownable: caller is not the owner`
+                `OwnableBase__CallerNotOwner`
             )
 
-        await expect(feeDistributorSignedByAssetOwner.transferERC721(erc721.address, nobody, erc721TokenId, "0x"))
+        await expect(feeDistributorSignedByOwner.transferERC721(erc721.address, serviceAddress, erc721TokenId, "0x"))
             .to.be.revertedWith(
-                `Ownable: caller is not the owner`
+                `OwnableBase__CallerNotOwner`
             )
 
         await feeDistributorFactory.transferOwnership(owner)
 
-        await feeDistributorSignedByAssetOwner.transferERC20(erc20.address, nobody, erc20Supply)
-        const recipientErc20Balance = await erc20.balanceOf(nobody)
+        await feeDistributorSignedByOwner.transferERC20(erc20.address, serviceAddress, erc20Amount)
+        const recipientErc20Balance = await erc20.balanceOf(serviceAddress)
+        expect(recipientErc20Balance).to.be.equal(erc20Amount)
 
-        await feeDistributorSignedByAssetOwner.transferERC721(erc721.address, nobody, erc721TokenId, "0x")
-        const recipientErc721Balance = await erc721.balanceOf(nobody)
-
-        expect(recipientErc20Balance).to.be.equal(erc20Supply)
+        await feeDistributorSignedByOwner.transferERC721(erc721.address, serviceAddress, erc721TokenId, "0x")
+        const recipientErc721Balance = await erc721.balanceOf(serviceAddress)
         expect(recipientErc721Balance).to.be.equal(1)
     })
 })

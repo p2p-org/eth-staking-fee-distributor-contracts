@@ -1,15 +1,15 @@
-// SPDX-FileCopyrightText: 2022 Lido <info@lido.fi>
+// SPDX-FileCopyrightText: 2022 P2P Validator <info@p2p.org>, Lido <info@lido.fi>
 // SPDX-License-Identifier: MIT
 
 // https://github.com/lidofinance/lido-otc-seller/blob/master/contracts/lib/AssetRecoverer.sol
-pragma solidity 0.8.17;
+pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./TokenRecoverer.sol";
+import "../access/OwnableBase.sol";
 
 /// @title Token Recoverer with public functions callable by assetAccessingAddress
 /// @notice Recover ERC20, ERC721 and ERC1155 from a derived contract
-abstract contract PublicTokenRecoverer is TokenRecoverer, Ownable {
+abstract contract OwnableTokenRecoverer is TokenRecoverer, OwnableBase {
     // Functions
 
     /**
@@ -24,7 +24,7 @@ abstract contract PublicTokenRecoverer is TokenRecoverer, Ownable {
         address _token,
         address _recipient,
         uint256 _amount
-    ) public onlyOwner {
+    ) external onlyOwner {
         _transferERC20(_token, _recipient, _amount);
     }
 
@@ -42,7 +42,7 @@ abstract contract PublicTokenRecoverer is TokenRecoverer, Ownable {
         address _recipient,
         uint256 _tokenId,
         bytes calldata _data
-    ) public onlyOwner {
+    ) external onlyOwner {
         _transferERC721(_token, _recipient, _tokenId, _data);
     }
 
@@ -61,7 +61,7 @@ abstract contract PublicTokenRecoverer is TokenRecoverer, Ownable {
         uint256 _tokenId,
         uint256 _amount,
         bytes calldata _data
-    ) public onlyOwner {
+    ) external onlyOwner {
         _transferERC1155(_token, _recipient, _tokenId, _amount, _data);
     }
 }

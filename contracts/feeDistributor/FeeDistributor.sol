@@ -1,13 +1,14 @@
+// SPDX-FileCopyrightText: 2022 P2P Validator <info@p2p.org>
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.17;
+pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import "../@openzeppelin/contracts/utils/Address.sol";
+import "../@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "../@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import "../@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "../feeDistributorFactory/IFeeDistributorFactory.sol";
-import "../assetRecovering/PublicTokenRecoverer.sol";
+import "../assetRecovering/OwnableTokenRecoverer.sol";
 import "./IFeeDistributor.sol";
 
 /**
@@ -22,15 +23,21 @@ error FeeDistributor__NotFactory(address _passedAddress);
 error FeeDistributor__ZeroAddressService();
 
 /**
+* @notice Client address should be different from service address.
+* @param _passedAddress passed client address that equals to the service address
+*/
+error FeeDistributor__ClientAddressEqualsService(address _passedAddress);
+
+/**
 * @notice Client address should be an actual client address, not zero.
 */
 error FeeDistributor__ZeroAddressClient();
 
 /**
-* @notice Service percent should be >= 0 and <= 100
-* @param _servicePercent passed incorrect service percent
+* @notice Service basis points should be >= 0 and <= 10000
+* @param _serviceBasisPoints passed incorrect service basis points
 */
-error FeeDistributor__InvalidServicePercent(uint256 _servicePercent);
+error FeeDistributor__InvalidServiceBasisPoints(uint256 _serviceBasisPoints);
 
 /**
 * @notice Only factory can call `initialize`.
@@ -53,9 +60,9 @@ error FeeDistributor__ClientNotSet();
 
 /**
 * @title Contract receiving MEV and priority fees
-* and distibuting them to the service and the client.
+* and distributing them to the service and the client.
 */
-contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
+contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
     // Type Declarations
 
     using Address for address payable;
@@ -73,9 +80,9 @@ contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, ERC165, IFeeDi
     address payable private immutable i_service;
 
     /**
-    * @notice % of EL rewards that should go to the service (P2P)
+    * @notice basis points (percent * 100) of EL rewards that should go to the service (P2P)
     */
-    uint256 private immutable i_servicePercent;
+    uint256 private s_serviceBasisPoints;
 
     /**
     * @notice address of the client
@@ -86,12 +93,10 @@ contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, ERC165, IFeeDi
     * @dev Set values that are constant, common for all the clients, known at the initial deploy time.
     * @param _factory address of FeeDistributorFactory
     * @param _service address of the service (P2P) fee recipient
-    * @param _servicePercent % of EL rewards that should go to the service (P2P)
     */
     constructor(
         address _factory,
-        address _service,
-        uint256 _servicePercent
+        address _service
     ) {
         if (!ERC165Checker.supportsInterface(_factory, type(IFeeDistributorFactory).interfaceId)) {
             revert FeeDistributor__NotFactory(_factory);
@@ -99,13 +104,9 @@ contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, ERC165, IFeeDi
         if (_service == address(0)) {
             revert FeeDistributor__ZeroAddressService();
         }
-        if (_servicePercent > 100) {
-            revert FeeDistributor__InvalidServicePercent(_servicePercent);
-        }
 
         i_factory = IFeeDistributorFactory(_factory);
         i_service = payable(_service);
-        i_servicePercent = _servicePercent;
     }
 
     // Functions
@@ -114,24 +115,32 @@ contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, ERC165, IFeeDi
     * @notice Set client address.
     * @dev Could not be in the constructor since it is different for different clients.
     * @param _client the address of the client
+    * @param _serviceBasisPoints basis points (percent * 100) of EL rewards that should go to the service (P2P)
     */
-    function initialize(address _client) external {
+    function initialize(address _client, uint256 _serviceBasisPoints) external {
         if (msg.sender != address(i_factory)) {
             revert FeeDistributor__NotFactoryCalled(msg.sender, i_factory);
         }
         if (_client == address(0)) {
             revert FeeDistributor__ZeroAddressClient();
         }
+        if (_client == i_service) {
+            revert FeeDistributor__ClientAddressEqualsService(_client);
+        }
         if (s_client != address(0)) {
             revert FeeDistributor__ClientAlreadySet(s_client);
         }
+        if (_serviceBasisPoints > 10000) {
+            revert FeeDistributor__InvalidServiceBasisPoints(_serviceBasisPoints);
+        }
 
         s_client = payable(_client);
-        emit Initialized(_client);
+        s_serviceBasisPoints = _serviceBasisPoints;
+        emit Initialized(_client, _serviceBasisPoints);
     }
 
     /**
-    * @notice Withdraw the whole balance of the contract according to the pre-defined percentages.
+    * @notice Withdraw the whole balance of the contract according to the pre-defined basis points.
     */
     function withdraw() external nonReentrant {
         if (s_client == address(0)) {
@@ -142,7 +151,7 @@ contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, ERC165, IFeeDi
         uint256 balance = address(this).balance;
 
         // how much should service get
-        uint256 serviceAmount = (balance * i_servicePercent) / 100;
+        uint256 serviceAmount = (balance * s_serviceBasisPoints) / 10000;
 
         // how much should client get
         uint256 clientAmount = balance - serviceAmount;
@@ -178,10 +187,10 @@ contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, ERC165, IFeeDi
     }
 
     /**
-     * @dev Returns the service percent
+     * @dev Returns the service basis points
      */
-    function getServicePercent() external view returns (uint256) {
-        return i_servicePercent;
+    function getServiceBasisPoints() external view returns (uint256) {
+        return s_serviceBasisPoints;
     }
 
     /**
@@ -189,13 +198,6 @@ contract FeeDistributor is PublicTokenRecoverer, ReentrancyGuard, ERC165, IFeeDi
     */
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
         return interfaceId == type(IFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
-    }
-
-    /**
-     * @dev Ownership of this contract is managed by the factory.
-     */
-    function _transferOwnership(address newOwner) internal override {
-        // Do nothing. Cannot revert because otherwise the constructor would revert too.
     }
 
     /**

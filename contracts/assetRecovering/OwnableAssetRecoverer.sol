@@ -1,15 +1,15 @@
-// SPDX-FileCopyrightText: 2022 Lido <info@lido.fi>
+// SPDX-FileCopyrightText: 2022 P2P Validator <info@p2p.org>, Lido <info@lido.fi>
 // SPDX-License-Identifier: MIT
 
 // https://github.com/lidofinance/lido-otc-seller/blob/master/contracts/lib/AssetRecoverer.sol
-pragma solidity 0.8.17;
+pragma solidity 0.8.10;
 
-import "./PublicTokenRecoverer.sol";
+import "./OwnableTokenRecoverer.sol";
 import "./AssetRecoverer.sol";
 
 /// @title Public Asset Recoverer with public functions callable by assetAccessingAddress
 /// @notice Recover ether, ERC20, ERC721 and ERC1155 from a derived contract
-abstract contract PublicAssetRecoverer is PublicTokenRecoverer, AssetRecoverer {
+abstract contract OwnableAssetRecoverer is OwnableTokenRecoverer, AssetRecoverer {
 
     // Functions
 
@@ -19,7 +19,7 @@ abstract contract PublicAssetRecoverer is PublicTokenRecoverer, AssetRecoverer {
      * @param _recipient address to transfer ether to
      * @param _amount amount of ether to transfer
      */
-    function transferEther(address _recipient, uint256 _amount) public onlyOwner {
+    function transferEther(address _recipient, uint256 _amount) external onlyOwner {
         _transferEther(_recipient, _amount);
     }
 }

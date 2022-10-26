@@ -363,3 +363,5 @@ xedf
 xee
 xef
 yml
+cheatcodes
+STDCHEATS

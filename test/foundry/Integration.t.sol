@@ -24,15 +24,14 @@ contract IntegrationTest is Test {
     function setUp() public {
         // new deployed contracts will have Test as deployer
         deployer = address(this); 
-       
         owner = cheats.addr(1);
         operator = cheats.addr(2);
         nobody = cheats.addr(3);
+
+        factory = new FeeDistributorFactory();
     }
 
     function testFuzzing(address service, address client,  uint96 serviceBasisPoints) public {
-        factory = new FeeDistributorFactory();
-
         assertEq(factory.owner(), deployer);
 
         factory.transferOwnership(owner);
@@ -52,16 +51,15 @@ contract IntegrationTest is Test {
         factory.setReferenceInstance(address(referenceInstance));
         factory.changeOperator(operator);
         
-        //cheats.stopPrank();
-        //hoax(operator);
-        //cheats.startPrank(operator);
+        cheats.stopPrank();
+        cheats.startPrank(operator);
 
         if (client == address(0)) {
             vm.expectRevert(FeeDistributor__ZeroAddressClient.selector);
         } else if (client == service) {
-            vm.expectRevert(FeeDistributor__ClientAddressEqualsService.selector);
+            vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ClientAddressEqualsService.selector, client));
         } else if (serviceBasisPoints > 10000) {
-            vm.expectRevert(FeeDistributor__InvalidServiceBasisPoints.selector);
+            vm.expectRevert(abi.encodeWithSelector(FeeDistributor__InvalidServiceBasisPoints.selector, serviceBasisPoints));
         }
         factory.createFeeDistributor(client, serviceBasisPoints);
         if (client == address(0) || serviceBasisPoints > 10000) {

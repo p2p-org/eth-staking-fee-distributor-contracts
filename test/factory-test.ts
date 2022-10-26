@@ -125,6 +125,10 @@ describe("FeeDistributorFactory", function () {
             `FeeDistributor__ClientAddressEqualsService`
         )
 
+        await expect(factorySignedByOperator.createFeeDistributor(deployerFactory.address, serviceBasisPoints)).to.be.revertedWith(
+            `FeeDistributor__ClientCannotReceiveEther`
+        )
+
         await expect(factorySignedByOperator.createFeeDistributor(nobody, serviceBasisPoints)).to.emit(
             factorySignedByOperator,
             "FeeDistributorCreated"

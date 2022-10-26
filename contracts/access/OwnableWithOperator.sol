@@ -86,7 +86,7 @@ abstract contract OwnableWithOperator is Ownable {
      * @dev Dismisses the old operator without setting a new one.
      * Can only be called by the current owner.
      */
-    function dismissOperator() public virtual onlyOwner {
+    function dismissOperator() external virtual onlyOwner {
         _changeOperator(address(0));
     }
 }

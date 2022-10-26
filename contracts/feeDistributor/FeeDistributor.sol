@@ -59,6 +59,18 @@ error FeeDistributor__ClientAlreadySet(address _existingClient);
 error FeeDistributor__ClientNotSet();
 
 /**
+* @notice service should be able to receive ether.
+* @param _service address of the service.
+*/
+error FeeDistributor__ServiceCannotReceiveEther(address _service);
+
+/**
+* @notice client should be able to receive ether.
+* @param _client address of the client.
+*/
+error FeeDistributor__ClientCannotReceiveEther(address _client);
+
+/**
 * @title Contract receiving MEV and priority fees
 * and distributing them to the service and the client.
 */
@@ -112,6 +124,11 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
             revert FeeDistributor__ZeroAddressService();
         }
 
+        (bool serviceCanReceiveEther, ) = payable(_service).call{value: 0}("");
+        if (!serviceCanReceiveEther) {
+            revert FeeDistributor__ServiceCannotReceiveEther(_service);
+        }
+
         i_factory = IFeeDistributorFactory(_factory);
         i_service = payable(_service);
     }
@@ -139,6 +156,11 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         }
         if (_serviceBasisPoints > 10000) {
             revert FeeDistributor__InvalidServiceBasisPoints(_serviceBasisPoints);
+        }
+
+        (bool clientCanReceiveEther, ) = payable(_client).call{value: 0}("");
+        if (!clientCanReceiveEther) {
+            revert FeeDistributor__ClientCannotReceiveEther(_client);
         }
 
         s_clientConfig = ClientConfig({

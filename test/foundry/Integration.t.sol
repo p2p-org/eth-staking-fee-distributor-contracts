@@ -40,11 +40,17 @@ contract IntegrationTest is Test {
 
         cheats.startPrank(owner);
 
+        bool serviceCanReceiveEther;
         if (service == address(0)) {
             vm.expectRevert(FeeDistributor__ZeroAddressService.selector);
+        } else {
+            (serviceCanReceiveEther, ) = payable(service).call{value: 0}("");
+            if (!serviceCanReceiveEther) {
+                vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ServiceCannotReceiveEther.selector, service));
+            }
         }
         FeeDistributor referenceInstance = new FeeDistributor(address(factory), service);
-        if (service == address(0)) {
+        if (service == address(0) || !serviceCanReceiveEther) {
             return;
         }
 

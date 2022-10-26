@@ -124,13 +124,13 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
             revert FeeDistributor__ZeroAddressService();
         }
 
+        i_factory = IFeeDistributorFactory(_factory);
+        i_service = payable(_service);
+
         (bool serviceCanReceiveEther, ) = payable(_service).call{value: 0}("");
         if (!serviceCanReceiveEther) {
             revert FeeDistributor__ServiceCannotReceiveEther(_service);
         }
-
-        i_factory = IFeeDistributorFactory(_factory);
-        i_service = payable(_service);
     }
 
     // Functions
@@ -158,17 +158,17 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
             revert FeeDistributor__InvalidServiceBasisPoints(_serviceBasisPoints);
         }
 
-        (bool clientCanReceiveEther, ) = payable(_client).call{value: 0}("");
-        if (!clientCanReceiveEther) {
-            revert FeeDistributor__ClientCannotReceiveEther(_client);
-        }
-
         s_clientConfig = ClientConfig({
             client: payable(_client),
             serviceBasisPoints: _serviceBasisPoints
         });
 
         emit Initialized(_client, _serviceBasisPoints);
+
+        (bool clientCanReceiveEther, ) = payable(_client).call{value: 0}("");
+        if (!clientCanReceiveEther) {
+            revert FeeDistributor__ClientCannotReceiveEther(_client);
+        }
     }
 
     /**

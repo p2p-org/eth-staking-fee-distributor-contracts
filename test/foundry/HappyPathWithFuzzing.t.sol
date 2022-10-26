@@ -93,7 +93,7 @@ contract HappyPathWithFuzzingTest is Test {
 
         uint256 reward = 1 ether;
 
-        // simulate generation of rewards for the client insstance
+        // simulate generation of rewards for the client instance
         vm.deal(address(clientInstanceOfFeeDistributor), reward);
 
         uint256 serviceBalanceBefore = service.balance;

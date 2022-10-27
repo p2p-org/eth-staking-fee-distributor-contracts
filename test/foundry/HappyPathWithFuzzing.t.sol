@@ -30,31 +30,13 @@ contract HappyPathWithFuzzingTest is Test {
         operator = cheats.addr(2);
         nobody = cheats.addr(3);
 
-        // deploy factory
-        factory = new FeeDistributorFactory();
+        deployFactory();
     }
 
     function testFuzzing(address service, address client, uint96 serviceBasisPoints) public {
-        assertEq(factory.owner(), deployer);
-
-        factory.transferOwnership(owner);
-
-        assertEq(factory.owner(), owner);
-
-        cheats.startPrank(owner);
-
-        bool serviceCanReceiveEther;
-        if (service == address(0)) {
-            vm.expectRevert(FeeDistributor__ZeroAddressService.selector);
-        } else {
-            (serviceCanReceiveEther, ) = payable(service).call{value: 0}("");
-            if (!serviceCanReceiveEther) {
-                vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ServiceCannotReceiveEther.selector, service));
-            }
-        }
-        // deploy reference instance of FeeDistributor
-        FeeDistributor referenceInstance = new FeeDistributor(address(factory), service);
-        if (service == address(0) || !serviceCanReceiveEther) {
+        transferOwnership();
+        (bool shouldQuit, FeeDistributor referenceInstance) = deployReferenceInstance(service);
+        if (shouldQuit) {
             return;
         }
 
@@ -123,5 +105,95 @@ contract HappyPathWithFuzzingTest is Test {
 
         assertEq(serviceExpectedReward, serviceRewardFromLogs);
         assertEq(clientExpectedReward, clientRewardFromLogs);
+    }
+
+    function deployFactory() internal {
+        bytes32[] memory reads;
+        bytes32[] memory writes;
+        vm.record();
+
+        // deploy factory
+        factory = new FeeDistributorFactory();
+
+        (reads, writes) = vm.accesses(
+            address(factory)
+        );
+
+        assertEq(reads.length, 2);
+        assertEq(uint256(reads[0]), 0);
+        assertEq(uint256(reads[1]), 0);
+
+        assertEq(writes.length, 1);
+        assertEq(uint256(writes[0]), 0);
+
+        bytes32 slot0 = cheats.load(address(factory), bytes32(uint256(0)));
+        assertEq(address(uint160(uint256(slot0))), deployer);
+
+        bytes32 slot1 = cheats.load(address(factory), bytes32(uint256(1)));
+        assertEq(uint256(slot1), 0);
+    }
+
+    function transferOwnership() internal {
+        assertEq(factory.owner(), deployer);
+
+        bytes32[] memory reads;
+        bytes32[] memory writes;
+        vm.record();
+
+        factory.transferOwnership(owner);
+
+        (reads, writes) = vm.accesses(
+            address(factory)
+        );
+
+        assertEq(reads.length, 3);
+        assertEq(uint256(reads[0]), 0);
+        assertEq(uint256(reads[1]), 0);
+        assertEq(uint256(reads[2]), 0);
+
+        assertEq(writes.length, 1);
+        assertEq(uint256(writes[0]), 0);
+
+        bytes32 slot0 = cheats.load(address(factory), bytes32(uint256(0)));
+        assertEq(address(uint160(uint256(slot0))), owner);
+
+        bytes32 slot1 = cheats.load(address(factory), bytes32(uint256(1)));
+        assertEq(uint256(slot1), 0);
+
+        assertEq(factory.owner(), owner);
+
+        cheats.startPrank(owner);
+    }
+
+    function deployReferenceInstance(address service) internal returns (bool shouldQuit, FeeDistributor referenceInstance) {
+        bytes32[] memory reads;
+        bytes32[] memory writes;
+        vm.record();
+
+        bool serviceCanReceiveEther;
+        if (service == address(0)) {
+            vm.expectRevert(FeeDistributor__ZeroAddressService.selector);
+        } else {
+            (serviceCanReceiveEther, ) = payable(service).call{value: 0}("");
+            if (!serviceCanReceiveEther) {
+                vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ServiceCannotReceiveEther.selector, service));
+            }
+        }
+
+        // deploy reference instance of FeeDistributor
+        referenceInstance = new FeeDistributor(address(factory), service);
+
+        if (service == address(0) || !serviceCanReceiveEther) {
+            shouldQuit = true;
+        }
+
+        (reads, writes) = vm.accesses(
+            address(factory)
+        );
+
+        assertEq(reads.length, 0);
+        assertEq(writes.length, 0);
+
+        return (shouldQuit, referenceInstance);
     }
 }

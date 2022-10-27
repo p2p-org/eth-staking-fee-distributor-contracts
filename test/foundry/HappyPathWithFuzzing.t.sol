@@ -40,7 +40,8 @@ contract HappyPathWithFuzzingTest is Test {
             return;
         }
 
-        factory.setReferenceInstance(address(referenceInstance));
+        setReferenceInstance(referenceInstance);
+
         factory.changeOperator(operator);
         
         cheats.stopPrank();
@@ -195,5 +196,34 @@ contract HappyPathWithFuzzingTest is Test {
         assertEq(writes.length, 0);
 
         return (shouldQuit, referenceInstance);
+    }
+
+    function setReferenceInstance(FeeDistributor referenceInstance) internal {
+        bytes32[] memory reads;
+        bytes32[] memory writes;
+        vm.record();
+
+        factory.setReferenceInstance(address(referenceInstance));
+
+        (reads, writes) = vm.accesses(
+            address(factory)
+        );
+
+        assertEq(reads.length, 3);
+        assertEq(uint256(reads[0]), 0);
+        assertEq(uint256(reads[1]), 2);
+        assertEq(uint256(reads[2]), 2);
+
+        assertEq(writes.length, 1);
+        assertEq(uint256(writes[0]), 2);
+
+        bytes32 slot0 = cheats.load(address(factory), bytes32(uint256(0)));
+        assertEq(address(uint160(uint256(slot0))), owner);
+
+        bytes32 slot1 = cheats.load(address(factory), bytes32(uint256(1)));
+        assertEq(uint256(slot1), 0);
+
+        bytes32 slot2 = cheats.load(address(factory), bytes32(uint256(2)));
+        assertEq(address(uint160(uint256(slot2))), address(referenceInstance));
     }
 }

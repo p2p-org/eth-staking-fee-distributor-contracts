@@ -44,7 +44,7 @@ abstract contract Ownable is OwnableBase {
      * Can only be called by the current owner.
      * @param _newOwner address of the new owner
      */
-    function transferOwnership(address _newOwner) public virtual onlyOwner {
+    function transferOwnership(address _newOwner) external virtual onlyOwner {
         if (_newOwner == address(0)) {
             revert Ownable__NewOwnerIsZeroAddress();
         }

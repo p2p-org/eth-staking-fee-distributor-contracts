@@ -81,6 +81,18 @@ describe("FeeDistributor", function () {
         )
     })
 
+    it("should not be created with non-payable serviceAddress", async function () {
+        const factory = new FeeDistributor__factory(deployerSigner)
+
+        await expect(factory.deploy(
+            feeDistributorFactory.address,
+            feeDistributorFactory.address,
+            {gasLimit: 1000000}
+        )).to.be.revertedWith(
+            `FeeDistributor__ServiceCannotReceiveEther`
+        )
+    })
+
     it("should not be created with serviceBasisPoints outside [0, 10000]", async function () {
         const factory = new FeeDistributor__factory(deployerSigner)
 

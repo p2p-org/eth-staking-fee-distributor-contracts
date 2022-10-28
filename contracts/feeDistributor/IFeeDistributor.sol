@@ -33,7 +33,7 @@ interface IFeeDistributor is IERC165 {
     * @param _client the address of the client
     * @param _serviceBasisPoints basis points (percent * 100) of EL rewards that should go to the service (P2P)
     */
-    function initialize(address _client, uint256 _serviceBasisPoints) external;
+    function initialize(address _client, uint96 _serviceBasisPoints) external;
 
     /**
     * @notice Withdraw the whole balance of the contract according to the pre-defined percentages.

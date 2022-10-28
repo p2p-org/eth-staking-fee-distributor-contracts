@@ -5,13 +5,6 @@ pragma solidity 0.8.10;
 
 import "./Ownable.sol";
 
-
-/**
-* @notice it should not be possible to renounceOwnership
-* to prevent losing control over the contract.
-*/
-error Access__CannotRenounceOwnership();
-
 /**
 * @notice newOperator is the zero address
 */
@@ -38,7 +31,7 @@ abstract contract OwnableWithOperator is Ownable {
      * @param _previousOperator address of the previous operator
      * @param _newOperator address of the new operator
      */
-    event OperatorChanges(
+    event OperatorChanged(
         address indexed _previousOperator,
         address indexed _newOperator
     );
@@ -86,14 +79,14 @@ abstract contract OwnableWithOperator is Ownable {
     function _changeOperator(address _newOperator) internal virtual {
         address oldOperator = s_operator;
         s_operator = _newOperator;
-        emit OperatorChanges(oldOperator, _newOperator);
+        emit OperatorChanged(oldOperator, _newOperator);
     }
 
     /**
      * @dev Dismisses the old operator without setting a new one.
      * Can only be called by the current owner.
      */
-    function dismissOperator() public virtual onlyOwner {
+    function dismissOperator() external virtual onlyOwner {
         _changeOperator(address(0));
     }
 }

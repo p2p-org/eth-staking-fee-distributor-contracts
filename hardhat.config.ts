@@ -40,6 +40,11 @@ const config: HardhatUserConfig = {
         accounts: [PRIVATE_KEY],
         chainId: 5,
     },
+    mainnet: {
+      url: MAINNET_RPC_URL,
+      accounts: [PRIVATE_KEY],
+      chainId: 1,
+    },
   },
   solidity: {
     compilers: [

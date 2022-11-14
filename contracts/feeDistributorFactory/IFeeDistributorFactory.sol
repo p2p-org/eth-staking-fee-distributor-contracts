@@ -5,6 +5,7 @@ pragma solidity 0.8.10;
 
 import "../@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "../access/IOwnable.sol";
+import "../feeDistributor/IFeeDistributor.sol";
 
 /**
  * @dev External interface of FeeDistributorFactory declared to support ERC165 detection.
@@ -36,10 +37,14 @@ interface IFeeDistributorFactory is IOwnable, IERC165 {
     /**
     * @notice Creates a FeeDistributor instance for a client
     * @dev Emits `FeeDistributorCreated` event with the address of the newly created instance
-    * @param _client the address of the client
-    * @param _serviceBasisPoints basis points (percent * 100) of EL rewards that should go to the service (P2P)
+    * @dev _referrerConfig can be zero if there is no referrer.
+    * @param _clientConfig address and basis points (percent * 100) of the client
+    * @param _referrerConfig address and basis points (percent * 100) of the referrer.
     */
-    function createFeeDistributor(address _client, uint96 _serviceBasisPoints) external;
+    function createFeeDistributor(
+        IFeeDistributor.FeeRecipient calldata _clientConfig,
+        IFeeDistributor.FeeRecipient calldata _referrerConfig
+    ) external;
 
     /**
      * @dev Returns the reference FeeDistributor contract address

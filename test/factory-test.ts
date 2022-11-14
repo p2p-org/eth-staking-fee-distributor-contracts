@@ -8,7 +8,8 @@ import {
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 describe("FeeDistributorFactory", function () {
-    const serviceBasisPoints = 3000
+    const clientBasisPoints = 7000
+    const referrerBasisPoints = 1000
 
     let deployer: string
     let owner: string
@@ -103,7 +104,10 @@ describe("FeeDistributorFactory", function () {
 
         const factorySignedByOperator = operatorFactoryFactory.attach(deployerFactory.address)
 
-        await expect(factorySignedByOperator.createFeeDistributor(ethers.constants.AddressZero, serviceBasisPoints)).to.be.revertedWith(
+        await expect(factorySignedByOperator.createFeeDistributor(
+            {recipient: ethers.constants.AddressZero, basisPoints: clientBasisPoints},
+            {recipient: ethers.constants.AddressZero, basisPoints: 0}
+        )).to.be.revertedWith(
             `Access__CallerNeitherOperatorNorOwner`
         )
 
@@ -117,24 +121,39 @@ describe("FeeDistributorFactory", function () {
             `Access__SameOperator`
         )
 
-        await expect(factorySignedByOperator.createFeeDistributor(ethers.constants.AddressZero, serviceBasisPoints)).to.be.revertedWith(
+        await expect(factorySignedByOperator.createFeeDistributor(
+            {recipient: ethers.constants.AddressZero, basisPoints: clientBasisPoints},
+            {recipient: ethers.constants.AddressZero, basisPoints: 0}
+        )).to.be.revertedWith(
             `FeeDistributor__ZeroAddressClient`
         )
 
-        await expect(factorySignedByOperator.createFeeDistributor(serviceAddress, serviceBasisPoints)).to.be.revertedWith(
+        await expect(factorySignedByOperator.createFeeDistributor(
+            {recipient: serviceAddress, basisPoints: clientBasisPoints},
+            {recipient: ethers.constants.AddressZero, basisPoints: 0}
+        )).to.be.revertedWith(
             `FeeDistributor__ClientAddressEqualsService`
         )
 
-        await expect(factorySignedByOperator.createFeeDistributor(deployerFactory.address, serviceBasisPoints)).to.be.revertedWith(
+        await expect(factorySignedByOperator.createFeeDistributor(
+            {recipient: deployerFactory.address, basisPoints: clientBasisPoints},
+            {recipient: ethers.constants.AddressZero, basisPoints: 0}
+        )).to.be.revertedWith(
             `FeeDistributor__ClientCannotReceiveEther`
         )
 
-        await expect(factorySignedByOperator.createFeeDistributor(nobody, serviceBasisPoints)).to.emit(
+        await expect(factorySignedByOperator.createFeeDistributor(
+            {recipient: nobody, basisPoints: clientBasisPoints},
+            {recipient: ethers.constants.AddressZero, basisPoints: 0}
+        )).to.emit(
             factorySignedByOperator,
             "FeeDistributorCreated"
         )
 
-        await expect(factorySignedByOwner.createFeeDistributor(nobody, serviceBasisPoints)).to.emit(
+        await expect(factorySignedByOwner.createFeeDistributor(
+            {recipient: nobody, basisPoints: clientBasisPoints},
+            {recipient: ethers.constants.AddressZero, basisPoints: 0}
+        )).to.emit(
             factorySignedByOperator,
             "FeeDistributorCreated"
         )

@@ -187,11 +187,11 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
             if (_referrerConfig.recipient == i_service) {
                 revert FeeDistributor__ReferrerAddressEqualsService(_referrerConfig.recipient);
             }
-            if (_referrerConfig.recipient == s_clientConfig.recipient) {
-                revert FeeDistributor__ReferrerAddressEqualsService(_referrerConfig.recipient);
+            if (_referrerConfig.recipient == _clientConfig.recipient) {
+                revert FeeDistributor__ReferrerAddressEqualsClient(_referrerConfig.recipient);
             }
             if (_clientConfig.basisPoints + _referrerConfig.basisPoints > 10000) {
-                revert FeeDistributor__InvalidClientBasisPoints(_clientConfig.basisPoints);
+                revert FeeDistributor__ClientPlusReferralBasisPointsExceed10000(_clientConfig.basisPoints, _referrerConfig.basisPoints);
             }
 
             // set referrer config

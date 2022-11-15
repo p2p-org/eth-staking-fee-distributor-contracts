@@ -3,8 +3,6 @@ import { FeeDistributor__factory, FeeDistributorFactory__factory } from "../type
 
 async function main() {
     try {
-        // P2P should get 30% (subject to chioce at deploy time)
-        const serviceBasisPoints = 3000;
         const serviceAddress = '0x6Bb8b45a1C6eA816B70d76f83f7dC4f0f87365Ff'
 
         const { deployer } = await getNamedAccounts()

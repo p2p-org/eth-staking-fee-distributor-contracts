@@ -9,11 +9,14 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 describe("Integration", function () {
 
-    // P2P should get 30% (subject to chioce at deploy time)
-    const serviceBasisPoints =  3000;
-
     // client should get 70% (subject to chioce at deploy time)
-    const clientBasisPoints = 10000 - serviceBasisPoints;
+    const clientBasisPoints = 7000;
+
+    // referrer should get 10% (subject to chioce at deploy time)
+    const referrerBasisPoints =  1000;
+
+    // P2P should get 20% (subject to chioce at deploy time)
+    const serviceBasisPoints =  10000 - clientBasisPoints - referrerBasisPoints;
 
     let deployerSigner: SignerWithAddress
     let ownerSigner: SignerWithAddress
@@ -79,7 +82,10 @@ describe("Integration", function () {
 
         const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
         // create client instance
-        const createFeeDistributorTx = await operatorFeeDistributorFactory.createFeeDistributor(clientAddress, serviceBasisPoints)
+        const createFeeDistributorTx = await operatorFeeDistributorFactory.createFeeDistributor(
+            {recipient: clientAddress, basisPoints: clientBasisPoints},
+            {recipient: nobody, basisPoints: referrerBasisPoints},
+        )
         const createFeeDistributorTxReceipt = await createFeeDistributorTx.wait();
         const event = createFeeDistributorTxReceipt?.events?.find(event => event.event === 'FeeDistributorCreated');
         if (!event) {

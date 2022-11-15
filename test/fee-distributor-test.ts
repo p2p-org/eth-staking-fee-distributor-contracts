@@ -10,8 +10,8 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 describe("FeeDistributor", function () {
 
-    // P2P should get 30% (subject to chioce at deploy time)
-    const serviceBasisPoints =  3000;
+    const clientBasisPoints =  7000;
+    const referrerBasisPoints =  1000;
 
     const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
 
@@ -93,7 +93,7 @@ describe("FeeDistributor", function () {
         )
     })
 
-    it("should not be created with serviceBasisPoints outside [0, 10000]", async function () {
+    it("should not be created with clientBasisPoints outside [0, 10000]", async function () {
         const factory = new FeeDistributor__factory(deployerSigner)
 
         const feeDistributor = await factory.deploy(
@@ -105,16 +105,16 @@ describe("FeeDistributor", function () {
         await feeDistributorFactory.setReferenceInstance(feeDistributor.address)
 
         await expect(feeDistributorFactory.createFeeDistributor(
-            clientAddress,
-            10001,
+            {recipient: clientAddress, basisPoints: 10001},
+            {recipient: ethers.constants.AddressZero, basisPoints: 0},
             {gasLimit: 3000000}
         )).to.be.revertedWith(
-            `FeeDistributor__InvalidServiceBasisPoints`
+            `FeeDistributor__InvalidClientBasisPoints`
         )
 
         await expect(feeDistributorFactory.createFeeDistributor(
-            clientAddress,
-            10001,
+            {recipient: clientAddress, basisPoints: 10001},
+            {recipient: ethers.constants.AddressZero, basisPoints: 0},
             {gasLimit: 3000000}
         )).to.throw
     })
@@ -129,8 +129,8 @@ describe("FeeDistributor", function () {
         )
 
         await expect(feeDistributor.initialize(
-            nobody,
-            serviceBasisPoints,
+            {recipient: nobody, basisPoints: clientBasisPoints},
+            {recipient: ethers.constants.AddressZero, basisPoints: 0},
             {gasLimit: 1000000}
         )).to.be.revertedWith(
             `FeeDistributor__NotFactoryCalled`
@@ -166,7 +166,10 @@ describe("FeeDistributor", function () {
 
 
         // create client instance
-        const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(clientAddress, serviceBasisPoints)
+        const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(
+            {recipient: clientAddress, basisPoints: clientBasisPoints},
+            {recipient: ethers.constants.AddressZero, basisPoints: 0},
+        )
         const createFeeDistributorTxReceipt = await createFeeDistributorTx.wait();
         const event = createFeeDistributorTxReceipt?.events?.find(event => event.event === 'FeeDistributorCreated');
         if (!event) {
@@ -196,7 +199,10 @@ describe("FeeDistributor", function () {
         await feeDistributorFactory.setReferenceInstance(feeDistributorReferenceInstance.address)
 
         // create client instance
-        const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(clientAddress, serviceBasisPoints)
+        const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(
+            {recipient: clientAddress, basisPoints: clientBasisPoints},
+            {recipient: ethers.constants.AddressZero, basisPoints: 0},
+        )
         const createFeeDistributorTxReceipt = await createFeeDistributorTx.wait();
         const event = createFeeDistributorTxReceipt?.events?.find(event => event.event === 'FeeDistributorCreated');
         if (!event) {

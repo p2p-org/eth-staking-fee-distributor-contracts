@@ -33,74 +33,43 @@ contract HappyPathWithFuzzingTest is Test {
         deployFactory();
     }
 
-    function testFuzzing(address service, address client, uint96 serviceBasisPoints) public {
+    function testFuzzing(
+        address service,
+        address client,
+        uint96 clientBasisPoints,
+        address referrer,
+        uint96 referrerBasisPoints
+    ) public {
+        clientBasisPoints = uint96(bound(clientBasisPoints, 0, 10000));
+        referrerBasisPoints = uint96(bound(referrerBasisPoints, 0, 10000));
+
         transferOwnership();
-        (bool shouldQuit, FeeDistributor referenceInstance) = deployReferenceInstance(service);
-        if (shouldQuit) {
+        (bool shouldQuit1, FeeDistributor referenceInstance) = deployReferenceInstance(service);
+        if (shouldQuit1) {
             return;
         }
         setReferenceInstance(referenceInstance);
         changeOperator(referenceInstance);
-
-        vm.recordLogs();
-        bool clientCanReceiveEther;
-        if (client == address(0)) {
-            vm.expectRevert(FeeDistributor__ZeroAddressClient.selector);
-        } else if (client == service) {
-            vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ClientAddressEqualsService.selector, client));
-        } else if (serviceBasisPoints > 10000) {
-            vm.expectRevert(abi.encodeWithSelector(FeeDistributor__InvalidServiceBasisPoints.selector, serviceBasisPoints));
-        } else {
-            (clientCanReceiveEther, ) = payable(client).call{value: 0}("");
-            if (!clientCanReceiveEther) {
-                vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ClientCannotReceiveEther.selector, client));
-            }
-        }
-        // create a client instance of FeeDistributor
-        factory.createFeeDistributor(client, serviceBasisPoints);
-        if (client == address(0) || serviceBasisPoints > 10000 || !clientCanReceiveEther) {
+        (bool shouldQuit2, FeeDistributor clientInstanceOfFeeDistributor) = createFeeDistributor(
+            service,
+            client,
+            clientBasisPoints,
+            referrer,
+            referrerBasisPoints
+        );
+        if (shouldQuit2) {
+            emit log_string("shouldQuit2");
             return;
         }
-        Vm.Log[] memory createFeeDistributorLogs = vm.getRecordedLogs();
-        assertEq(createFeeDistributorLogs.length, 2);
-        assertEq(createFeeDistributorLogs[0].topics[0], keccak256("Initialized(address,uint256)"));
-        assertEq(createFeeDistributorLogs[1].topics[0], keccak256("FeeDistributorCreated(address,address)"));
 
-        // get the client instance of FeeDistributor from event logs
-        FeeDistributor clientInstanceOfFeeDistributor = FeeDistributor(address(uint160(uint256(createFeeDistributorLogs[1].topics[1]))));
-
-        uint256 reward = 1 ether;
-
-        // simulate generation of rewards for the client instance
-        vm.deal(address(clientInstanceOfFeeDistributor), reward);
-
-        uint256 serviceBalanceBefore = service.balance;
-        uint256 clientBalanceBefore = client.balance;
-
-        cheats.stopPrank();
-        cheats.startPrank(nobody);
-        vm.recordLogs();
-
-        // call withdraw to distribute rewards
-        clientInstanceOfFeeDistributor.withdraw();
-
-        Vm.Log[] memory withdrawLogs = vm.getRecordedLogs();
-        assertEq(withdrawLogs.length, 1);
-        assertEq(withdrawLogs[0].topics[0], keccak256("Withdrawn(uint256,uint256)"));
-
-        uint256 serviceExpectedReward = reward * serviceBasisPoints / 10000;
-        uint256 serviceActualReward = service.balance - serviceBalanceBefore;
-
-        uint256 clientExpectedReward = reward - reward * serviceBasisPoints / 10000;
-        uint256 clientActualReward = client.balance - clientBalanceBefore;
-
-        assertEq(serviceExpectedReward, serviceActualReward);
-        assertEq(clientExpectedReward, clientActualReward);
-
-        (uint256 serviceRewardFromLogs, uint256 clientRewardFromLogs) = abi.decode(withdrawLogs[0].data, (uint256, uint256));
-
-        assertEq(serviceExpectedReward, serviceRewardFromLogs);
-        assertEq(clientExpectedReward, clientRewardFromLogs);
+        withdraw(
+            service,
+            client,
+            clientBasisPoints,
+            referrer,
+            referrerBasisPoints,
+            clientInstanceOfFeeDistributor
+        );
     }
 
     function deployFactory() internal {
@@ -189,6 +158,7 @@ contract HappyPathWithFuzzingTest is Test {
 
         if (service == address(0) || !serviceCanReceiveEther) {
             shouldQuit = true;
+            return (shouldQuit, referenceInstance);
         }
 
         (readsFactory, writesFactory) = vm.accesses(
@@ -278,5 +248,138 @@ contract HappyPathWithFuzzingTest is Test {
 
         cheats.stopPrank();
         cheats.startPrank(operator);
+    }
+
+    function createFeeDistributor(
+        address service,
+        address client,
+        uint96 clientBasisPoints,
+        address referrer,
+        uint96 referrerBasisPoints
+    ) internal returns (bool shouldQuit, FeeDistributor clientInstanceOfFeeDistributor) {
+        vm.recordLogs();
+        bool clientCanReceiveEther;
+        bool referrerCanReceiveEther;
+        bool failedBefore;
+
+        if (client == address(0)) {
+            vm.expectRevert(FeeDistributor__ZeroAddressClient.selector);
+            failedBefore = true;
+        } else if (client == service) {
+            vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ClientAddressEqualsService.selector, client));
+            failedBefore = true;
+        } else if (clientBasisPoints > 10000) {
+            vm.expectRevert(abi.encodeWithSelector(FeeDistributor__InvalidClientBasisPoints.selector, clientBasisPoints));
+            failedBefore = true;
+        } else if (referrer != address(0)) {// if there is a referrer
+            if (referrer == service) {
+                vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ReferrerAddressEqualsService.selector, referrer));
+                failedBefore = true;
+            } else if (referrer == client) {
+                vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ReferrerAddressEqualsClient.selector, referrer));
+                failedBefore = true;
+            } else if (referrerBasisPoints > type(uint96).max - 10000) {
+                vm.expectRevert();
+                failedBefore = true;
+            } else if (clientBasisPoints + referrerBasisPoints > 10000) {
+                vm.expectRevert(abi.encodeWithSelector(
+                    FeeDistributor__ClientPlusReferralBasisPointsExceed10000.selector,
+                    clientBasisPoints,
+                    referrerBasisPoints
+                ));
+                failedBefore = true;
+            }
+        } else if (referrerBasisPoints != 0) {
+            vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ReferrerBasisPointsMustBeZeroIfAddressIsZero.selector, referrerBasisPoints));
+            failedBefore = true;
+        }
+
+        if (!failedBefore) {
+            (clientCanReceiveEther, ) = payable(client).call{value: 0}("");
+            if (!clientCanReceiveEther) {
+                vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ClientCannotReceiveEther.selector, client));
+                failedBefore = true;
+            }
+        }
+
+        if (!failedBefore) {
+            (referrerCanReceiveEther,) = payable(referrer).call{value : 0}("");
+            if (!referrerCanReceiveEther) {
+                vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ReferrerCannotReceiveEther.selector, referrer));
+            }
+        }
+
+        // create a client instance of FeeDistributor
+        factory.createFeeDistributor(
+            IFeeDistributor.FeeRecipient({recipient: payable(client), basisPoints: clientBasisPoints}),
+            IFeeDistributor.FeeRecipient({recipient: payable(referrer), basisPoints: referrerBasisPoints})
+        );
+        if (client == address(0)
+            || clientBasisPoints > 10000
+            || referrerBasisPoints > 10000
+            || !clientCanReceiveEther
+            || !referrerCanReceiveEther) {
+
+            shouldQuit = true;
+            return (shouldQuit, clientInstanceOfFeeDistributor);
+        }
+        Vm.Log[] memory createFeeDistributorLogs = vm.getRecordedLogs();
+        assertEq(createFeeDistributorLogs.length, 2);
+        assertEq(createFeeDistributorLogs[0].topics[0], keccak256("Initialized(address,uint96,address,uint96)"));
+        assertEq(createFeeDistributorLogs[1].topics[0], keccak256("FeeDistributorCreated(address,address)"));
+
+        // get the client instance of FeeDistributor from event logs
+        clientInstanceOfFeeDistributor = FeeDistributor(address(uint160(uint256(createFeeDistributorLogs[1].topics[1]))));
+        return (shouldQuit, clientInstanceOfFeeDistributor);
+    }
+
+    function withdraw(
+        address service,
+        address client,
+        uint96 clientBasisPoints,
+        address referrer,
+        uint96 referrerBasisPoints,
+        FeeDistributor clientInstanceOfFeeDistributor
+    ) internal {
+        // simulate generation of rewards for the client instance
+        vm.deal(address(clientInstanceOfFeeDistributor), 1 ether);
+
+        uint256 serviceBalanceBefore = service.balance;
+        uint256 clientBalanceBefore = client.balance;
+        uint256 referrerBalanceBefore = referrer.balance;
+
+        cheats.stopPrank();
+        cheats.startPrank(nobody);
+        vm.recordLogs();
+
+        // call withdraw to distribute rewards
+        clientInstanceOfFeeDistributor.withdraw();
+
+        Vm.Log[] memory withdrawLogs = vm.getRecordedLogs();
+        assertEq(withdrawLogs.length, 1);
+        assertEq(withdrawLogs[0].topics[0], keccak256("Withdrawn(uint256,uint256,uint256)"));
+
+        //uint256 clientExpectedReward = 1 ether * clientBasisPoints / 10000;
+        //uint256 clientActualReward = client.balance - clientBalanceBefore;
+
+        //uint256 referrerExpectedReward = 1 ether * referrerBasisPoints / 10000;
+        //uint256 referrerActualReward = referrer.balance - referrerBalanceBefore;
+
+        //uint256 serviceExpectedReward = 1 ether - 1 ether * clientBasisPoints / 10000 - 1 ether * referrerBasisPoints / 10000;
+        //uint256 serviceActualReward = service.balance - serviceBalanceBefore;
+
+        assertEq(1 ether - 1 ether * clientBasisPoints / 10000 - 1 ether * referrerBasisPoints / 10000, service.balance - serviceBalanceBefore);
+        assertEq(1 ether * clientBasisPoints / 10000, client.balance - clientBalanceBefore);
+        assertEq(1 ether * referrerBasisPoints / 10000, referrer.balance - referrerBalanceBefore);
+
+        (
+            uint256 serviceRewardFromLogs,
+            uint256 clientRewardFromLogs,
+            uint256 referrerRewardFromLogs
+        ) = abi.decode(withdrawLogs[0].data, (uint256, uint256, uint256));
+
+        assertEq(1 ether - 1 ether * clientBasisPoints / 10000 - 1 ether * referrerBasisPoints / 10000, serviceRewardFromLogs);
+        assertEq(1 ether * clientBasisPoints / 10000, clientRewardFromLogs);
+        assertEq(1 ether * referrerBasisPoints / 10000, referrerRewardFromLogs);
     }
 }

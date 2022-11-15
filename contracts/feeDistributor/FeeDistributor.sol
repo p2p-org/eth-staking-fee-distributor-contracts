@@ -34,10 +34,29 @@ error FeeDistributor__ClientAddressEqualsService(address _passedAddress);
 error FeeDistributor__ZeroAddressClient();
 
 /**
-* @notice Service basis points should be >= 0 and <= 10000
-* @param _serviceBasisPoints passed incorrect service basis points
+* @notice Client basis points should be >= 0 and <= 10000
+* @param _clientBasisPoints passed incorrect client basis points
 */
-error FeeDistributor__InvalidServiceBasisPoints(uint256 _serviceBasisPoints);
+error FeeDistributor__InvalidClientBasisPoints(uint96 _clientBasisPoints);
+
+/**
+* @notice The sum of (Client basis points + Referral basis points) should be >= 0 and <= 10000
+* @param _clientBasisPoints passed client basis points
+* @param _referralBasisPoints passed referral basis points
+*/
+error FeeDistributor__ClientPlusReferralBasisPointsExceed10000(uint96 _clientBasisPoints, uint96 _referralBasisPoints);
+
+/**
+* @notice Referrer address should be different from service address.
+* @param _passedAddress passed referrer address that equals to the service address
+*/
+error FeeDistributor__ReferrerAddressEqualsService(address _passedAddress);
+
+/**
+* @notice Referrer address should be different from client address.
+* @param _passedAddress passed referrer address that equals to the client address
+*/
+error FeeDistributor__ReferrerAddressEqualsClient(address _passedAddress);
 
 /**
 * @notice Only factory can call `initialize`.
@@ -59,6 +78,12 @@ error FeeDistributor__ClientAlreadySet(address _existingClient);
 error FeeDistributor__ClientNotSet();
 
 /**
+* @notice basisPoints of the referrer must be zero if referrer address is empty.
+* @param _referrerBasisPoints basisPoints of the referrer.
+*/
+error FeeDistributor__ReferrerBasisPointsMustBeZeroIfAddressIsZero(uint96 _referrerBasisPoints);
+
+/**
 * @notice service should be able to receive ether.
 * @param _service address of the service.
 */
@@ -71,6 +96,12 @@ error FeeDistributor__ServiceCannotReceiveEther(address _service);
 error FeeDistributor__ClientCannotReceiveEther(address _client);
 
 /**
+* @notice referrer should be able to receive ether.
+* @param _referrer address of the referrer.
+*/
+error FeeDistributor__ReferrerCannotReceiveEther(address _referrer);
+
+/**
 * @title Contract receiving MEV and priority fees
 * and distributing them to the service and the client.
 */
@@ -78,18 +109,6 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     // Type Declarations
 
     using Address for address payable;
-
-    struct ClientConfig {
-        /**
-        * @notice basis points (percent * 100) of EL rewards that should go to the service (P2P)
-        */
-        uint96 serviceBasisPoints;
-
-        /**
-        * @notice address of the client
-        */
-        address payable client;
-    } // 256bits-wide structure
 
     // State variables
 
@@ -104,9 +123,14 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     address payable private immutable i_service;
 
     /**
-    * @notice client config (address of the client, service basis points)
+    * @notice client config (address of the client, client basis points)
     */
-    ClientConfig private s_clientConfig;
+    FeeRecipient private s_clientConfig;
+
+    /**
+    * @notice referrer config (address of the referrer, referrer basis points)
+    */
+    FeeRecipient private s_referrerConfig;
 
     /**
     * @dev Set values that are constant, common for all the clients, known at the initial deploy time.
@@ -127,7 +151,7 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         i_factory = IFeeDistributorFactory(_factory);
         i_service = payable(_service);
 
-        (bool serviceCanReceiveEther, ) = payable(_service).call{value: 0}("");
+        (bool serviceCanReceiveEther,) = payable(_service).call{value : 0}("");
         if (!serviceCanReceiveEther) {
             revert FeeDistributor__ServiceCannotReceiveEther(_service);
         }
@@ -138,36 +162,66 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     /**
     * @notice Set client address.
     * @dev Could not be in the constructor since it is different for different clients.
-    * @param _client the address of the client
-    * @param _serviceBasisPoints basis points (percent * 100) of EL rewards that should go to the service (P2P)
+    * @dev _referrerConfig can be zero if there is no referrer.
+    * @param _clientConfig address and basis points (percent * 100) of the client
+    * @param _referrerConfig address and basis points (percent * 100) of the referrer.
     */
-    function initialize(address _client, uint96 _serviceBasisPoints) external {
+    function initialize(FeeRecipient calldata _clientConfig, FeeRecipient calldata _referrerConfig) external {
         if (msg.sender != address(i_factory)) {
             revert FeeDistributor__NotFactoryCalled(msg.sender, i_factory);
         }
-        if (_client == address(0)) {
+        if (_clientConfig.recipient == address(0)) {
             revert FeeDistributor__ZeroAddressClient();
         }
-        if (_client == i_service) {
-            revert FeeDistributor__ClientAddressEqualsService(_client);
+        if (_clientConfig.recipient == i_service) {
+            revert FeeDistributor__ClientAddressEqualsService(_clientConfig.recipient);
         }
-        if (s_clientConfig.client != address(0)) {
-            revert FeeDistributor__ClientAlreadySet(s_clientConfig.client);
+        if (s_clientConfig.recipient != address(0)) {
+            revert FeeDistributor__ClientAlreadySet(s_clientConfig.recipient);
         }
-        if (_serviceBasisPoints > 10000) {
-            revert FeeDistributor__InvalidServiceBasisPoints(_serviceBasisPoints);
+        if (_clientConfig.basisPoints > 10000) {
+            revert FeeDistributor__InvalidClientBasisPoints(_clientConfig.basisPoints);
         }
 
-        s_clientConfig = ClientConfig({
-            client: payable(_client),
-            serviceBasisPoints: _serviceBasisPoints
-        });
+        if (_referrerConfig.recipient != address(0)) {// if there is a referrer
+            if (_referrerConfig.recipient == i_service) {
+                revert FeeDistributor__ReferrerAddressEqualsService(_referrerConfig.recipient);
+            }
+            if (_referrerConfig.recipient == _clientConfig.recipient) {
+                revert FeeDistributor__ReferrerAddressEqualsClient(_referrerConfig.recipient);
+            }
+            if (_clientConfig.basisPoints + _referrerConfig.basisPoints > 10000) {
+                revert FeeDistributor__ClientPlusReferralBasisPointsExceed10000(_clientConfig.basisPoints, _referrerConfig.basisPoints);
+            }
 
-        emit Initialized(_client, _serviceBasisPoints);
+            // set referrer config
+            s_referrerConfig = _referrerConfig;
 
-        (bool clientCanReceiveEther, ) = payable(_client).call{value: 0}("");
+        } else {// if there is no referrer
+            if (_referrerConfig.basisPoints != 0) {
+                revert FeeDistributor__ReferrerBasisPointsMustBeZeroIfAddressIsZero(_referrerConfig.basisPoints);
+            }
+        }
+
+        // set client config
+        s_clientConfig = _clientConfig;
+
+        emit Initialized(
+            _clientConfig.recipient,
+            _clientConfig.basisPoints,
+            _referrerConfig.recipient,
+            _referrerConfig.basisPoints
+        );
+
+        (bool clientCanReceiveEther,) = payable(_clientConfig.recipient).call{value : 0}("");
         if (!clientCanReceiveEther) {
-            revert FeeDistributor__ClientCannotReceiveEther(_client);
+            revert FeeDistributor__ClientCannotReceiveEther(_clientConfig.recipient);
+        }
+        if (_referrerConfig.recipient != address(0)) {// if there is a referrer
+            (bool referrerCanReceiveEther,) = payable(_referrerConfig.recipient).call{value : 0}("");
+            if (!referrerCanReceiveEther) {
+                revert FeeDistributor__ReferrerCannotReceiveEther(_referrerConfig.recipient);
+            }
         }
     }
 
@@ -175,28 +229,33 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     * @notice Withdraw the whole balance of the contract according to the pre-defined basis points.
     */
     function withdraw() external nonReentrant {
-        ClientConfig memory clientConfig = s_clientConfig;
-
-        if (clientConfig.client == address(0)) {
+        if (s_clientConfig.recipient == address(0)) {
             revert FeeDistributor__ClientNotSet();
         }
 
         // get the contract's balance
         uint256 balance = address(this).balance;
 
-        // how much should service get
-        uint256 serviceAmount = (balance * clientConfig.serviceBasisPoints) / 10000;
-
         // how much should client get
-        uint256 clientAmount = balance - serviceAmount;
+        uint256 clientAmount = (balance * s_clientConfig.basisPoints) / 10000;
+
+        // how much should referrer get
+        // if s_referrerConfig is not set, s_referrerConfig.basisPoints and referrerAmount will be 0
+        uint256 referrerAmount = (balance * s_referrerConfig.basisPoints) / 10000;
+
+        // how much should service get
+        uint256 serviceAmount = balance - clientAmount - referrerAmount;
 
         // send ETH to service
         i_service.sendValue(serviceAmount);
 
         // send ETH to client
-        clientConfig.client.sendValue(clientAmount);
+        s_clientConfig.recipient.sendValue(clientAmount);
 
-        emit Withdrawn(serviceAmount, clientAmount);
+        // send ETH to referrer
+        s_referrerConfig.recipient.sendValue(referrerAmount);
+
+        emit Withdrawn(serviceAmount, clientAmount, referrerAmount);
     }
 
     /**
@@ -217,14 +276,14 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
      * @dev Returns the client address
      */
     function getClient() external view returns (address) {
-        return s_clientConfig.client;
+        return s_clientConfig.recipient;
     }
 
     /**
      * @dev Returns the service basis points
      */
     function getServiceBasisPoints() external view returns (uint256) {
-        return s_clientConfig.serviceBasisPoints;
+        return s_clientConfig.basisPoints;
     }
 
     /**

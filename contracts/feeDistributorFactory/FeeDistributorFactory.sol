@@ -57,10 +57,14 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     /**
     * @notice Creates a FeeDistributor instance for a client
     * @dev Emits `FeeDistributorCreated` event with the address of the newly created instance
-    * @param _client the address of the client
-    * @param _serviceBasisPoints basis points (percent * 100) of EL rewards that should go to the service (P2P)
+    * @dev _referrerConfig can be zero if there is no referrer.
+    * @param _clientConfig address and basis points (percent * 100) of the client
+    * @param _referrerConfig address and basis points (percent * 100) of the referrer.
     */
-    function createFeeDistributor(address _client, uint96 _serviceBasisPoints) external onlyOperatorOrOwner {
+    function createFeeDistributor(
+        IFeeDistributor.FeeRecipient calldata _clientConfig,
+        IFeeDistributor.FeeRecipient calldata _referrerConfig
+    ) external onlyOperatorOrOwner {
         if (s_referenceFeeDistributor == address(0)) {
             revert FeeDistributorFactory__ReferenceFeeDistributorNotSet();
         }
@@ -72,10 +76,10 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
         IFeeDistributor newFeeDistributor = IFeeDistributor(newFeeDistributorAddress);
 
         // set the client address to the cloned FeeDistributor instance
-        newFeeDistributor.initialize(_client, _serviceBasisPoints);
+        newFeeDistributor.initialize(_clientConfig, _referrerConfig);
 
         // emit event with the address of the newly created instance for the external listener
-        emit FeeDistributorCreated(newFeeDistributorAddress, _client);
+        emit FeeDistributorCreated(newFeeDistributorAddress, _clientConfig.recipient);
     }
 
     /**

@@ -22,7 +22,7 @@ The basic use case is reflected in `./test/integration-test.ts`
    - address of the service (P2P) fee recipient
 
 
-3. The deployer calls `initialize` on `FeeDistributorFactory` with the address of the reference implementation of `FeeDistributor` from Step 2 and basis points (percent * 100) of EL rewards that should go to the service (P2P).
+3. The deployer calls `setReferenceInstance` on `FeeDistributorFactory` with the address of the reference implementation of `FeeDistributor` from Step 2.
 
 
 4. The deployer calls `transferOwnership` with the secure P2P address as an argument.
@@ -34,7 +34,11 @@ The operator is an Ethereum account whose only responsibility is to call `create
 The operator can be a hot wallet, less secure than the owner.
 
 
-6. When a new client comes, the operator calls `createFeeDistributor` on `FeeDistributorFactory` with the client address as an argument.
+6. When a new client comes, the operator calls `createFeeDistributor` on `FeeDistributorFactory`.
+The arguments should be:
+   - `_clientConfig` - address and basis points (percent * 100) of the client
+   - `_referrerConfig` - address and basis points (percent * 100) of the referrer (optional).
+
 In the transaction log, there will be a `FeeDistributorCreated` event containing the address of the newly created instance of `FeeDistributor`.
 
 
@@ -45,10 +49,12 @@ Now the user's own copy of `FeeDistributor` contract will be receiving EL reward
 8. Anyone at any time can call `withdraw` on the user's own copy of `FeeDistributor`. The result will be sending the whole current contract's balance to 
     - address of the service (P2P)
     - address of the client
+    - address of the referrer (optional)
     
    proportionally to the pre-defined
     - % of EL rewards that should go to the service (P2P)
     - % of EL rewards that should go to the client
+    - % of EL rewards that should go to the referrer (optional)
       
    (See Step 2).
 
@@ -66,9 +72,8 @@ For each client, a new instance of `FeeDistributor` is created via `FeeDistribut
 **FeeDistributor** stores
 - address of `FeeDistributorFactory`
 - address of the service (P2P) fee recipient
-- basis points of EL rewards that should go to the service (P2P)
-- basis points of EL rewards that should go to the client
-- address of the client
+- address and basis points of EL rewards that should go to the client
+- address and basis points of EL rewards that should go to the referrer (optional)
 
 Each client gets their own copy of `FeeDistributor` contract with their own address.
 

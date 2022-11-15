@@ -44,9 +44,9 @@ interface IFeeDistributor is IERC165 {
     */
     event Initialized(
         address indexed _client,
-        uint256 _clientBasisPoints,
+        uint96 _clientBasisPoints,
         address indexed _referrer,
-        uint256 _referrerBasisPoints
+        uint96 _referrerBasisPoints
     );
 
     // Functions

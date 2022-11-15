@@ -40,6 +40,9 @@ contract HappyPathWithFuzzingTest is Test {
         address referrer,
         uint96 referrerBasisPoints
     ) public {
+        clientBasisPoints = uint96(bound(clientBasisPoints, 0, 10000));
+        referrerBasisPoints = uint96(bound(referrerBasisPoints, 0, 10000));
+
         transferOwnership();
         (bool shouldQuit1, FeeDistributor referenceInstance) = deployReferenceInstance(service);
         if (shouldQuit1) {
@@ -55,6 +58,7 @@ contract HappyPathWithFuzzingTest is Test {
             referrerBasisPoints
         );
         if (shouldQuit2) {
+            emit log_string("shouldQuit2");
             return;
         }
 
@@ -253,40 +257,55 @@ contract HappyPathWithFuzzingTest is Test {
         address referrer,
         uint96 referrerBasisPoints
     ) internal returns (bool shouldQuit, FeeDistributor clientInstanceOfFeeDistributor) {
-
         vm.recordLogs();
         bool clientCanReceiveEther;
+        bool referrerCanReceiveEther;
+        bool failedBefore;
+
         if (client == address(0)) {
             vm.expectRevert(FeeDistributor__ZeroAddressClient.selector);
+            failedBefore = true;
         } else if (client == service) {
             vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ClientAddressEqualsService.selector, client));
+            failedBefore = true;
         } else if (clientBasisPoints > 10000) {
             vm.expectRevert(abi.encodeWithSelector(FeeDistributor__InvalidClientBasisPoints.selector, clientBasisPoints));
+            failedBefore = true;
         } else if (referrer != address(0)) {// if there is a referrer
             if (referrer == service) {
                 vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ReferrerAddressEqualsService.selector, referrer));
+                failedBefore = true;
             } else if (referrer == client) {
                 vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ReferrerAddressEqualsClient.selector, referrer));
+                failedBefore = true;
             } else if (referrerBasisPoints > type(uint96).max - 10000) {
                 vm.expectRevert();
+                failedBefore = true;
             } else if (clientBasisPoints + referrerBasisPoints > 10000) {
                 vm.expectRevert(abi.encodeWithSelector(
                     FeeDistributor__ClientPlusReferralBasisPointsExceed10000.selector,
                     clientBasisPoints,
                     referrerBasisPoints
                 ));
-            } else {
-                (bool referrerCanReceiveEther,) = payable(referrer).call{value : 0}("");
-                if (!referrerCanReceiveEther) {
-                    vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ReferrerCannotReceiveEther.selector, referrer));
-                }
+                failedBefore = true;
             }
         } else if (referrerBasisPoints != 0) {
             vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ReferrerBasisPointsMustBeZeroIfAddressIsZero.selector, referrerBasisPoints));
-        } else {
+            failedBefore = true;
+        }
+
+        if (!failedBefore) {
             (clientCanReceiveEther, ) = payable(client).call{value: 0}("");
             if (!clientCanReceiveEther) {
                 vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ClientCannotReceiveEther.selector, client));
+                failedBefore = true;
+            }
+        }
+
+        if (!failedBefore) {
+            (referrerCanReceiveEther,) = payable(referrer).call{value : 0}("");
+            if (!referrerCanReceiveEther) {
+                vm.expectRevert(abi.encodeWithSelector(FeeDistributor__ReferrerCannotReceiveEther.selector, referrer));
             }
         }
 
@@ -295,13 +314,18 @@ contract HappyPathWithFuzzingTest is Test {
             IFeeDistributor.FeeRecipient({recipient: payable(client), basisPoints: clientBasisPoints}),
             IFeeDistributor.FeeRecipient({recipient: payable(referrer), basisPoints: referrerBasisPoints})
         );
-        if (client == address(0) || clientBasisPoints > 10000 || !clientCanReceiveEther) {
+        if (client == address(0)
+            || clientBasisPoints > 10000
+            || referrerBasisPoints > 10000
+            || !clientCanReceiveEther
+            || !referrerCanReceiveEther) {
+
             shouldQuit = true;
             return (shouldQuit, clientInstanceOfFeeDistributor);
         }
         Vm.Log[] memory createFeeDistributorLogs = vm.getRecordedLogs();
         assertEq(createFeeDistributorLogs.length, 2);
-        assertEq(createFeeDistributorLogs[0].topics[0], keccak256("Initialized(address,uint256)"));
+        assertEq(createFeeDistributorLogs[0].topics[0], keccak256("Initialized(address,uint96,address,uint96)"));
         assertEq(createFeeDistributorLogs[1].topics[0], keccak256("FeeDistributorCreated(address,address)"));
 
         // get the client instance of FeeDistributor from event logs

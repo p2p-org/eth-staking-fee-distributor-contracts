@@ -57,6 +57,7 @@ describe("FeeDistributorFactory", function () {
         )
 
         await deployerFactory.transferOwnership(owner)
+        await factorySignedByOwner.acceptOwnership()
 
         await expect(factorySignedByOwner.setReferenceInstance(nobody)).to.be.revertedWith(
             `FeeDistributorFactory__NotFeeDistributor`
@@ -85,6 +86,7 @@ describe("FeeDistributorFactory", function () {
         )
 
         await deployerFactory.transferOwnership(owner)
+        await factorySignedByOwner.acceptOwnership()
 
         await expect(factorySignedByOwner.setReferenceInstance(nobody)).to.be.revertedWith(
             `FeeDistributorFactory__NotFeeDistributor`
@@ -187,6 +189,7 @@ describe("FeeDistributorFactory", function () {
         )
 
         await deployerFactory.transferOwnership(owner)
+        await factorySignedByOwner.acceptOwnership()
 
         await factorySignedByOwner.dismissOperator()
         const operatorAfterDismissing = await deployerFactory.operator()
@@ -271,6 +274,7 @@ describe("FeeDistributorFactory", function () {
             )
 
         await feeDistributorFactory.transferOwnership(owner)
+        await factorySignedByOwner.acceptOwnership()
 
         await factorySignedByOwner.transferERC20(erc20.address, nobody, erc20Amount)
         const recipientErc20Balance = await erc20.balanceOf(nobody)

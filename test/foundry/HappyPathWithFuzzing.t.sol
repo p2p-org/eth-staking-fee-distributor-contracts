@@ -44,6 +44,8 @@ contract HappyPathWithFuzzingTest is Test {
         referrerBasisPoints = uint96(bound(referrerBasisPoints, 0, 10000));
 
         transferOwnership();
+        acceptOwnership();
+
         (bool shouldQuit1, FeeDistributor referenceInstance) = deployReferenceInstance(service);
         if (shouldQuit1) {
             return;
@@ -84,12 +86,15 @@ contract HappyPathWithFuzzingTest is Test {
             address(factory)
         );
 
-        assertEq(reads.length, 2);
-        assertEq(uint256(reads[0]), 0);
-        assertEq(uint256(reads[1]), 0);
+        assertEq(reads.length, 4);
+        assertEq(uint256(reads[0]), 1);
+        assertEq(uint256(reads[1]), 1);
+        assertEq(uint256(reads[2]), 0);
+        assertEq(uint256(reads[3]), 0);
 
-        assertEq(writes.length, 1);
-        assertEq(uint256(writes[0]), 0);
+        assertEq(writes.length, 2);
+        assertEq(uint256(writes[0]), 1);
+        assertEq(uint256(writes[1]), 0);
 
         bytes32 slot0 = cheats.load(address(factory), bytes32(uint256(0)));
         assertEq(address(uint160(uint256(slot0))), deployer);
@@ -99,6 +104,9 @@ contract HappyPathWithFuzzingTest is Test {
 
         bytes32 slot2 = cheats.load(address(factory), bytes32(uint256(1)));
         assertEq(uint256(slot2), 0);
+
+        bytes32 slot3 = cheats.load(address(factory), bytes32(uint256(1)));
+        assertEq(uint256(slot3), 0);
     }
 
     function transferOwnership() internal {
@@ -114,13 +122,53 @@ contract HappyPathWithFuzzingTest is Test {
             address(factory)
         );
 
-        assertEq(reads.length, 3);
+        assertEq(reads.length, 4);
         assertEq(uint256(reads[0]), 0);
-        assertEq(uint256(reads[1]), 0);
-        assertEq(uint256(reads[2]), 0);
+        assertEq(uint256(reads[1]), 1);
+        assertEq(uint256(reads[2]), 1);
+        assertEq(uint256(reads[3]), 0);
 
         assertEq(writes.length, 1);
-        assertEq(uint256(writes[0]), 0);
+        assertEq(uint256(writes[0]), 1);
+
+        bytes32 slot0 = cheats.load(address(factory), bytes32(uint256(0)));
+        assertEq(address(uint160(uint256(slot0))), deployer);
+
+        bytes32 slot1 = cheats.load(address(factory), bytes32(uint256(1)));
+        assertEq(address(uint160(uint256(slot1))), owner);
+
+        bytes32 slot2 = cheats.load(address(factory), bytes32(uint256(2)));
+        assertEq(uint256(slot2), 0);
+
+        assertEq(factory.owner(), deployer);
+        assertEq(factory.pendingOwner(), owner);
+    }
+
+    function acceptOwnership() internal {
+        assertEq(factory.owner(), deployer);
+
+        bytes32[] memory reads;
+        bytes32[] memory writes;
+        vm.record();
+
+        cheats.startPrank(owner);
+
+        factory.acceptOwnership();
+
+        (reads, writes) = vm.accesses(
+            address(factory)
+        );
+
+        assertEq(reads.length, 5);
+        assertEq(uint256(reads[0]), 1);
+        assertEq(uint256(reads[1]), 1);
+        assertEq(uint256(reads[2]), 1);
+        assertEq(uint256(reads[3]), 0);
+        assertEq(uint256(reads[4]), 0);
+
+        assertEq(writes.length, 2);
+        assertEq(uint256(writes[0]), 1);
+        assertEq(uint256(writes[1]), 0);
 
         bytes32 slot0 = cheats.load(address(factory), bytes32(uint256(0)));
         assertEq(address(uint160(uint256(slot0))), owner);
@@ -128,12 +176,11 @@ contract HappyPathWithFuzzingTest is Test {
         bytes32 slot1 = cheats.load(address(factory), bytes32(uint256(1)));
         assertEq(uint256(slot1), 0);
 
-        bytes32 slot2 = cheats.load(address(factory), bytes32(uint256(1)));
+        bytes32 slot2 = cheats.load(address(factory), bytes32(uint256(2)));
         assertEq(uint256(slot2), 0);
 
         assertEq(factory.owner(), owner);
-
-        cheats.startPrank(owner);
+        assertEq(factory.pendingOwner(), address(0));
     }
 
     function deployReferenceInstance(address service) internal returns (bool shouldQuit, FeeDistributor referenceInstance) {
@@ -198,11 +245,11 @@ contract HappyPathWithFuzzingTest is Test {
 
         assertEq(reads.length, 3);
         assertEq(uint256(reads[0]), 0);
-        assertEq(uint256(reads[1]), 2);
-        assertEq(uint256(reads[2]), 2);
+        assertEq(uint256(reads[1]), 3);
+        assertEq(uint256(reads[2]), 3);
 
         assertEq(writes.length, 1);
-        assertEq(uint256(writes[0]), 2);
+        assertEq(uint256(writes[0]), 3);
 
         bytes32 slot0 = cheats.load(address(factory), bytes32(uint256(0)));
         assertEq(address(uint160(uint256(slot0))), owner);
@@ -211,7 +258,10 @@ contract HappyPathWithFuzzingTest is Test {
         assertEq(uint256(slot1), 0);
 
         bytes32 slot2 = cheats.load(address(factory), bytes32(uint256(2)));
-        assertEq(address(uint160(uint256(slot2))), address(referenceInstance));
+        assertEq(uint256(slot2), 0);
+
+        bytes32 slot3 = cheats.load(address(factory), bytes32(uint256(3)));
+        assertEq(address(uint160(uint256(slot3))), address(referenceInstance));
     }
 
     function changeOperator(FeeDistributor referenceInstance) internal {
@@ -227,24 +277,27 @@ contract HappyPathWithFuzzingTest is Test {
 
         assertEq(reads.length, 4);
         assertEq(uint256(reads[0]), 0);
-        assertEq(uint256(reads[1]), 1);
-        assertEq(uint256(reads[2]), 1);
-        assertEq(uint256(reads[3]), 1);
+        assertEq(uint256(reads[1]), 2);
+        assertEq(uint256(reads[2]), 2);
+        assertEq(uint256(reads[3]), 2);
 
         assertEq(writes.length, 1);
-        assertEq(uint256(writes[0]), 1);
+        assertEq(uint256(writes[0]), 2);
 
         bytes32 slot0 = cheats.load(address(factory), bytes32(uint256(0)));
         assertEq(address(uint160(uint256(slot0))), owner);
 
         bytes32 slot1 = cheats.load(address(factory), bytes32(uint256(1)));
-        assertEq(address(uint160(uint256(slot1))), operator);
+        assertEq(uint256(slot1), 0);
 
         bytes32 slot2 = cheats.load(address(factory), bytes32(uint256(2)));
-        assertEq(address(uint160(uint256(slot2))), address(referenceInstance));
+        assertEq(address(uint160(uint256(slot2))), operator);
 
         bytes32 slot3 = cheats.load(address(factory), bytes32(uint256(3)));
-        assertEq(uint256(slot3), 0);
+        assertEq(address(uint160(uint256(slot3))), address(referenceInstance));
+
+        bytes32 slot4 = cheats.load(address(factory), bytes32(uint256(4)));
+        assertEq(uint256(slot4), 0);
 
         cheats.stopPrank();
         cheats.startPrank(operator);

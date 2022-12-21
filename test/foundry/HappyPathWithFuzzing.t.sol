@@ -201,7 +201,7 @@ contract HappyPathWithFuzzingTest is Test {
         }
 
         // deploy reference instance of FeeDistributor
-        referenceInstance = new FeeDistributor(address(factory), service);
+        referenceInstance = new FeeDistributor(address(factory), payable(service));
 
         if (service == address(0) || !serviceCanReceiveEther) {
             shouldQuit = true;

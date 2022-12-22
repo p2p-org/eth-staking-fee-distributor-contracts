@@ -235,7 +235,7 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     * We strongly recommend against intentional reverts in the receive function
     * because the remaining parties might call `withdraw` again multiple times without waiting
     * for the owner to recover ether for the reverting party.
-    * In fact, as a punishment for the reverting party, before the recoving,
+    * In fact, as a punishment for the reverting party, before the recovering,
     * 1 more regular `withdraw` will happen, rewarding the non-reverting parties again.
     * `recoverEther` function is just an emergency backup plan and does not replace `withdraw`.
     */

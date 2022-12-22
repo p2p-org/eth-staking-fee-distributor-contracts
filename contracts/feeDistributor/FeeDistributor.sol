@@ -290,7 +290,7 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         // get the contract's balance
         uint256 balance = address(this).balance;
 
-        if (balance > 0) {
+        if (balance > 0) { // only happens if at least 1 party reverted in their receive
             bool success = _sendValue(_to, balance);
 
             if (success) {

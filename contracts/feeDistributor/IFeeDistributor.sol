@@ -49,6 +49,20 @@ interface IFeeDistributor is IERC165 {
         uint96 _referrerBasisPoints
     );
 
+    /**
+    * @notice Emits if case there was some ether left after `withdraw` and it has been sent successfully.
+    * @param _to destination address for ether.
+    * @param _amount how much wei the destination address received.
+    */
+    event EtherRecovered(address indexed _to, uint256 _amount);
+
+    /**
+    * @notice Emits if case there was some ether left after `withdraw` and it has failed to recover.
+    * @param _to destination address for ether.
+    * @param _amount how much wei the destination address should have received, but didn't.
+    */
+    event EtherRecoveryFailed(address indexed _to, uint256 _amount);
+
     // Functions
 
     /**

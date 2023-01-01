@@ -26,6 +26,7 @@ describe("FeeDistributor", function () {
     let nobodyFactory: FeeDistributor__factory
 
     let feeDistributorFactory: FeeDistributorFactory
+    let ownerFactoryFactory: FeeDistributorFactory__factory
 
     let deployer: string
     let owner: string
@@ -55,6 +56,8 @@ describe("FeeDistributor", function () {
         // deploy factory contract
         const factoryFactory = new FeeDistributorFactory__factory(deployerSigner)
         feeDistributorFactory = await factoryFactory.deploy({gasLimit: 3000000})
+
+        ownerFactoryFactory = new FeeDistributorFactory__factory(ownerSigner)
     })
 
     it("should not be created with incorrect factory", async function () {
@@ -265,6 +268,8 @@ describe("FeeDistributor", function () {
             )
 
         await feeDistributorFactory.transferOwnership(owner)
+        const factorySignedByOwner = ownerFactoryFactory.attach(feeDistributorFactory.address)
+        await factorySignedByOwner.acceptOwnership()
 
         await feeDistributorSignedByOwner.transferERC20(erc20.address, serviceAddress, erc20Amount)
         const recipientErc20Balance = await erc20.balanceOf(serviceAddress)

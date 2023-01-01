@@ -3,7 +3,6 @@
 
 pragma solidity 0.8.10;
 
-import "../@openzeppelin/contracts/utils/Address.sol";
 import "../@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "../@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
@@ -102,14 +101,15 @@ error FeeDistributor__ClientCannotReceiveEther(address _client);
 error FeeDistributor__ReferrerCannotReceiveEther(address _referrer);
 
 /**
+* @notice zero ether balance
+*/
+error FeeDistributor__NothingToWithdraw();
+
+/**
 * @title Contract receiving MEV and priority fees
 * and distributing them to the service and the client.
 */
 contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
-    // Type Declarations
-
-    using Address for address payable;
-
     // State variables
 
     /**
@@ -139,7 +139,7 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     */
     constructor(
         address _factory,
-        address _service
+        address payable _service
     ) {
         if (!ERC165Checker.supportsInterface(_factory, type(IFeeDistributorFactory).interfaceId)) {
             revert FeeDistributor__NotFactory(_factory);
@@ -149,9 +149,9 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         }
 
         i_factory = IFeeDistributorFactory(_factory);
-        i_service = payable(_service);
+        i_service = _service;
 
-        (bool serviceCanReceiveEther,) = payable(_service).call{value : 0}("");
+        bool serviceCanReceiveEther = _sendValue(_service, 0);
         if (!serviceCanReceiveEther) {
             revert FeeDistributor__ServiceCannotReceiveEther(_service);
         }
@@ -213,12 +213,12 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
             _referrerConfig.basisPoints
         );
 
-        (bool clientCanReceiveEther,) = payable(_clientConfig.recipient).call{value : 0}("");
+        bool clientCanReceiveEther = _sendValue(_clientConfig.recipient, 0);
         if (!clientCanReceiveEther) {
             revert FeeDistributor__ClientCannotReceiveEther(_clientConfig.recipient);
         }
         if (_referrerConfig.recipient != address(0)) {// if there is a referrer
-            (bool referrerCanReceiveEther,) = payable(_referrerConfig.recipient).call{value : 0}("");
+            bool referrerCanReceiveEther = _sendValue(_referrerConfig.recipient, 0);
             if (!referrerCanReceiveEther) {
                 revert FeeDistributor__ReferrerCannotReceiveEther(_referrerConfig.recipient);
             }
@@ -227,6 +227,17 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
 
     /**
     * @notice Withdraw the whole balance of the contract according to the pre-defined basis points.
+    * @dev In case someone (either service, or client, or referrer) fails to accept ether,
+    * the owner will be able to recover some of their share.
+    * This scenario is very unlikely. It can only happen if that someone is a contract
+    * whose receive function changed its behavior since FeeDistributor's initialization.
+    * It can never happen unless the receiving party themselves wants it to happen.
+    * We strongly recommend against intentional reverts in the receive function
+    * because the remaining parties might call `withdraw` again multiple times without waiting
+    * for the owner to recover ether for the reverting party.
+    * In fact, as a punishment for the reverting party, before the recovering,
+    * 1 more regular `withdraw` will happen, rewarding the non-reverting parties again.
+    * `recoverEther` function is just an emergency backup plan and does not replace `withdraw`.
     */
     function withdraw() external nonReentrant {
         if (s_clientConfig.recipient == address(0)) {
@@ -236,26 +247,58 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         // get the contract's balance
         uint256 balance = address(this).balance;
 
+        if (balance == 0) {
+            // revert if there is no ether to withdraw
+            revert FeeDistributor__NothingToWithdraw();
+        }
+
         // how much should client get
         uint256 clientAmount = (balance * s_clientConfig.basisPoints) / 10000;
 
-        // how much should referrer get
-        // if s_referrerConfig is not set, s_referrerConfig.basisPoints and referrerAmount will be 0
-        uint256 referrerAmount = (balance * s_referrerConfig.basisPoints) / 10000;
-
         // how much should service get
-        uint256 serviceAmount = balance - clientAmount - referrerAmount;
+        uint256 serviceAmount = balance - clientAmount;
 
-        // send ETH to service
-        i_service.sendValue(serviceAmount);
+        // how much should referrer get
+        uint256 referrerAmount;
 
-        // send ETH to client
-        s_clientConfig.recipient.sendValue(clientAmount);
+        if (s_referrerConfig.recipient != address(0)) {
+            // if there is a referrer
 
-        // send ETH to referrer
-        s_referrerConfig.recipient.sendValue(referrerAmount);
+            referrerAmount = (balance * s_referrerConfig.basisPoints) / 10000;
+            serviceAmount -= referrerAmount;
+
+            // Send ETH to referrer. Ignore the possible yet unlikely revert in the receive function.
+            _sendValue(s_referrerConfig.recipient, referrerAmount);
+        }
+
+        // Send ETH to service. Ignore the possible yet unlikely revert in the receive function.
+        _sendValue(i_service, serviceAmount);
+
+        // Send ETH to client. Ignore the possible yet unlikely revert in the receive function.
+        _sendValue(s_clientConfig.recipient, clientAmount);
 
         emit Withdrawn(serviceAmount, clientAmount, referrerAmount);
+    }
+
+    /**
+    * @notice Recover ether in a rare case when either service, or client, or referrer
+    * refuse to accept ether.
+    */
+    function recoverEther(address payable _to) external onlyOwner {
+        this.withdraw();
+
+        // get the contract's balance
+        uint256 balance = address(this).balance;
+
+        if (balance > 0) { // only happens if at least 1 party reverted in their receive
+            bool success = _sendValue(_to, balance);
+
+            if (success) {
+                emit EtherRecovered(_to, balance);
+            } else {
+                emit EtherRecoveryFailed(_to, balance);
+            }
+        }
     }
 
     /**
@@ -298,5 +341,14 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
      */
     function owner() public view override returns (address) {
         return i_factory.owner();
+    }
+
+    function _sendValue(address payable _recipient, uint256 _amount) internal returns (bool) {
+        (bool success, ) = _recipient.call{
+            value: _amount,
+            gas: gasleft() / 4 // to prevent DOS, should be enough in normal cases
+        }("");
+
+        return success;
     }
 }

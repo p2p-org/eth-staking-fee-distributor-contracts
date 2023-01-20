@@ -160,6 +160,16 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     // Functions
 
     /**
+    * @notice Accept ether from transactions
+    */
+    receive() external payable {
+        // only accept ether in an instance, not in a template
+        if (s_clientConfig.recipient == address(0)) {
+            revert FeeDistributor__ClientNotSet();
+        }
+    }
+
+    /**
     * @notice Set client address.
     * @dev Could not be in the constructor since it is different for different clients.
     * @dev _referrerConfig can be zero if there is no referrer.
@@ -323,9 +333,9 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     }
 
     /**
-     * @dev Returns the service basis points
+     * @dev Returns the client basis points
      */
-    function getServiceBasisPoints() external view returns (uint256) {
+    function getClientBasisPoints() external view returns (uint256) {
         return s_clientConfig.basisPoints;
     }
 

@@ -382,7 +382,9 @@ contract HappyPathWithFuzzingTest is Test {
         assertEq(createFeeDistributorLogs[1].topics[0], keccak256("FeeDistributorCreated(address,address)"));
 
         // get the client instance of FeeDistributor from event logs
-        clientInstanceOfFeeDistributor = FeeDistributor(address(uint160(uint256(createFeeDistributorLogs[1].topics[1]))));
+        clientInstanceOfFeeDistributor = FeeDistributor(payable(address(uint160(uint256(
+            createFeeDistributorLogs[1].topics[1]
+        )))));
         return (shouldQuit, clientInstanceOfFeeDistributor);
     }
 
@@ -394,45 +396,70 @@ contract HappyPathWithFuzzingTest is Test {
         uint96 referrerBasisPoints,
         FeeDistributor clientInstanceOfFeeDistributor
     ) internal {
-        // simulate generation of rewards for the client instance
-        vm.deal(address(clientInstanceOfFeeDistributor), 1 ether);
+        cheats.stopPrank();
+
+        uint256 totalRewards;
+        {
+            uint256 directRewards = 1 ether;
+
+            // simulate generation of rewards for the client instance
+            vm.deal(address(clientInstanceOfFeeDistributor), directRewards);
+
+            uint256 fromBuilders = 2 ether;
+
+            // send ether in a regular transaction
+            vm.deal(address(this), fromBuilders);
+            payable(address(clientInstanceOfFeeDistributor)).call{value: fromBuilders}("");
+
+            totalRewards = directRewards + fromBuilders;
+        }
 
         uint256 serviceBalanceBefore = service.balance;
         uint256 clientBalanceBefore = client.balance;
         uint256 referrerBalanceBefore = referrer.balance;
 
-        cheats.stopPrank();
         cheats.startPrank(nobody);
         vm.recordLogs();
 
         // call withdraw to distribute rewards
         clientInstanceOfFeeDistributor.withdraw();
 
-        Vm.Log[] memory withdrawLogs = vm.getRecordedLogs();
-        assertEq(withdrawLogs.length, 1);
-        assertEq(withdrawLogs[0].topics[0], keccak256("Withdrawn(uint256,uint256,uint256)"));
+        assertEq(
+            totalRewards - totalRewards * clientBasisPoints / 10000 - totalRewards * referrerBasisPoints / 10000,
+            service.balance - serviceBalanceBefore
+        );
+        assertEq(
+            totalRewards * clientBasisPoints / 10000,
+            client.balance - clientBalanceBefore
+        );
+        assertEq(
+            totalRewards * referrerBasisPoints / 10000,
+            referrer.balance - referrerBalanceBefore
+        );
 
-        //uint256 clientExpectedReward = 1 ether * clientBasisPoints / 10000;
-        //uint256 clientActualReward = client.balance - clientBalanceBefore;
+        {
+            Vm.Log[] memory withdrawLogs = vm.getRecordedLogs();
+            assertEq(withdrawLogs.length, 1);
+            assertEq(withdrawLogs[0].topics[0], keccak256("Withdrawn(uint256,uint256,uint256)"));
 
-        //uint256 referrerExpectedReward = 1 ether * referrerBasisPoints / 10000;
-        //uint256 referrerActualReward = referrer.balance - referrerBalanceBefore;
+            (
+                uint256 serviceRewardFromLogs,
+                uint256 clientRewardFromLogs,
+                uint256 referrerRewardFromLogs
+            ) = abi.decode(withdrawLogs[0].data, (uint256, uint256, uint256));
 
-        //uint256 serviceExpectedReward = 1 ether - 1 ether * clientBasisPoints / 10000 - 1 ether * referrerBasisPoints / 10000;
-        //uint256 serviceActualReward = service.balance - serviceBalanceBefore;
-
-        assertEq(1 ether - 1 ether * clientBasisPoints / 10000 - 1 ether * referrerBasisPoints / 10000, service.balance - serviceBalanceBefore);
-        assertEq(1 ether * clientBasisPoints / 10000, client.balance - clientBalanceBefore);
-        assertEq(1 ether * referrerBasisPoints / 10000, referrer.balance - referrerBalanceBefore);
-
-        (
-            uint256 serviceRewardFromLogs,
-            uint256 clientRewardFromLogs,
-            uint256 referrerRewardFromLogs
-        ) = abi.decode(withdrawLogs[0].data, (uint256, uint256, uint256));
-
-        assertEq(1 ether - 1 ether * clientBasisPoints / 10000 - 1 ether * referrerBasisPoints / 10000, serviceRewardFromLogs);
-        assertEq(1 ether * clientBasisPoints / 10000, clientRewardFromLogs);
-        assertEq(1 ether * referrerBasisPoints / 10000, referrerRewardFromLogs);
+            assertEq(
+                totalRewards - totalRewards * clientBasisPoints / 10000 - totalRewards * referrerBasisPoints / 10000,
+                serviceRewardFromLogs
+            );
+            assertEq(
+                totalRewards * clientBasisPoints / 10000,
+                clientRewardFromLogs
+            );
+            assertEq(
+                totalRewards * referrerBasisPoints / 10000,
+                referrerRewardFromLogs
+            );
+        }
     }
 }

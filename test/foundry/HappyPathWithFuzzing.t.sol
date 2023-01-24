@@ -72,6 +72,8 @@ contract HappyPathWithFuzzingTest is Test {
             referrerBasisPoints,
             clientInstanceOfFeeDistributor
         );
+
+        checkReferenceInstanceRevertOnReceive(referenceInstance);
     }
 
     function deployFactory() internal {
@@ -461,5 +463,14 @@ contract HappyPathWithFuzzingTest is Test {
                 referrerRewardFromLogs
             );
         }
+    }
+
+    function checkReferenceInstanceRevertOnReceive(
+        FeeDistributor referenceInstance
+    ) internal {
+        cheats.stopPrank();
+        vm.deal(address(this), 1 ether);
+        vm.expectRevert(FeeDistributor__ClientNotSet.selector);
+        payable(address(referenceInstance)).call{value: 1 ether}("");
     }
 }

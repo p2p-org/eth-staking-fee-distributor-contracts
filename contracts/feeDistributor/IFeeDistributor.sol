@@ -95,7 +95,7 @@ interface IFeeDistributor is IERC165 {
     function getClient() external view returns (address);
 
     /**
-     * @dev Returns the service basis points
+     * @dev Returns the client basis points
      */
-    function getServiceBasisPoints() external view returns (uint256);
+    function getClientBasisPoints() external view returns (uint256);
 }

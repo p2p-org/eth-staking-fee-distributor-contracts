@@ -7,7 +7,7 @@ const tree = StandardMerkleTree.load(JSON.parse(fs.readFileSync("tree.json")));
 
 // (2)
 for (const [i, v] of tree.entries()) {
-    if (v[0] === '0x8d82b56734553df587aeeacf0dc883025014842bf47a6c3f2b31c26f6d8db5783fded3b58a0d29f86bfd727bb122d3be') {
+    if (v[0] === '0x7a3ca3eb219c12175b02f0b8131c927ee67e43eb81adab3e2d77d727be4ff5533cdf0ee1300e49f34b63a96786b86a9b') {
         // (3)
         const proof = tree.getProof(i);
         console.log('Value:', v);

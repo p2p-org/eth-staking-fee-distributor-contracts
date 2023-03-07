@@ -10,12 +10,12 @@ describe("Merkle Tree Tests", function () {
     let verifierContract: Verifier
 
     let deployer: string
-    const root = '0xd4dee0beab2d53f2cc83e567171bd2820e49898130a22622b10ead383e90bd77'
+    const root = '0xd145de65acb4c97e1d13420a401b11d1b1b0bf6d296ae959ce9fca34e5b5604d'
     const proof = [
-        '0xb92c48e9d7abe27fd8dfd6b5dfdbfb1c9a463f80c712b66f3a5180a090cccafc'
+        '0xbea9a58976fb4391ee167680312cbc6547f03a41b4cae2d149dd9b3af48fc9d0'
     ]
-    const address = '0x1111111111111111111111111111111111111111'
-    const amount = '5000000000000000000'
+    const pubKey = '0x8d82b56734553df587aeeacf0dc883025014842bf47a6c3f2b31c26f6d8db5783fded3b58a0d29f86bfd727bb122d3be'
+    const amount = '2500000000000000000'
 
     beforeEach(async () => {
         const namedAccounts = await getNamedAccounts()
@@ -26,7 +26,7 @@ describe("Merkle Tree Tests", function () {
 
     it("verify proof", async function () {
         // create client instance
-        const createFeeDistributorTx = await verifierContract.verify(proof, address, amount)
+        const createFeeDistributorTx = await verifierContract.verify(proof, pubKey, amount)
 
         const createFeeDistributorTxReceipt = await createFeeDistributorTx.wait();
     })

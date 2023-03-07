@@ -14,11 +14,11 @@ contract Verifier {
 
     function verify(
         bytes32[] memory proof,
-        address addr,
+        bytes calldata pubKey,
         uint256 amount
     ) public {
         // (2)
-        bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(addr, amount))));
+        bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(pubKey, amount))));
         // (3)
         require(MerkleProof.verify(proof, root, leaf), "Invalid proof");
         // (4)

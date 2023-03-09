@@ -39,6 +39,21 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     */
     address private s_referenceFeeDistributor;
 
+    /**
+    * @notice Default Client Basis Points
+    * @dev Used when no client config provided.
+    * @dev Default Referrer Basis Points is zero.
+    */
+    uint96 s_defaultClientBasisPoints;
+
+    /**
+    * @dev Set values known at the initial deploy time.
+    * @param _defaultClientBasisPoints Default Client Basis Points
+    */
+    constructor(uint96 _defaultClientBasisPoints) {
+        s_defaultClientBasisPoints = _defaultClientBasisPoints;
+    }
+
     // Functions
 
     /**
@@ -52,6 +67,14 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
 
         s_referenceFeeDistributor = _referenceFeeDistributor;
         emit ReferenceInstanceSet(_referenceFeeDistributor);
+    }
+
+    /**
+    * @notice Set a new Default Client Basis Points
+    * @param _defaultClientBasisPoints Default Client Basis Points
+    */
+    function setDefaultClientBasisPoints(uint96 _defaultClientBasisPoints) external onlyOwner {
+        s_defaultClientBasisPoints = _defaultClientBasisPoints;
     }
 
     /**
@@ -77,6 +100,31 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
 
         // set the client address to the cloned FeeDistributor instance
         newFeeDistributor.initialize(_clientConfig, _referrerConfig);
+
+        // emit event with the address of the newly created instance for the external listener
+        emit FeeDistributorCreated(newFeeDistributorAddress, _clientConfig.recipient);
+    }
+
+    /**
+    * @notice Creates a FeeDistributor instance for a client
+    * @dev Emits `FeeDistributorCreated` event with the address of the newly created instance
+    */
+    function createFeeDistributor(address _client) external onlyOperatorOrOwner {
+        if (s_referenceFeeDistributor == address(0)) {
+            revert FeeDistributorFactory__ReferenceFeeDistributorNotSet();
+        }
+
+        // clone the reference implementation of FeeDistributor
+        address newFeeDistributorAddress = s_referenceFeeDistributor.clone();
+
+        // cast address to FeeDistributor
+        IFeeDistributor newFeeDistributor = IFeeDistributor(newFeeDistributorAddress);
+
+        // set the client address to the cloned FeeDistributor instance
+        newFeeDistributor.initialize(
+            IFeeDistributor.FeeRecipient({recipient: payable(_client), basisPoints: clientBasisPoints}),
+            IFeeDistributor.FeeRecipient({recipient: payable(referrer), basisPoints: referrerBasisPoints})
+        );
 
         // emit event with the address of the newly created instance for the external listener
         emit FeeDistributorCreated(newFeeDistributorAddress, _clientConfig.recipient);

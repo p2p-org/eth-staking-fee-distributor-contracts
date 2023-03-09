@@ -3,6 +3,7 @@
 pragma solidity 0.8.10;
 
 import "./interfaces/IDepositContract.sol";
+import "../feeDistributorFactory/FeeDistributorFactory.sol";
 
 contract P2pEth2Depositor {
 
@@ -32,6 +33,11 @@ contract P2pEth2Depositor {
     IDepositContract public immutable depositContract;
 
     /**
+    * @title Factory for cloning (EIP-1167) FeeDistributor instances pre client
+    */
+    FeeDistributorFactory public immutable feeDistributorFactory;
+
+    /**
      * @dev Minimal and maximum amount of nodes per transaction.
      */
     uint256 public constant nodesMinAmount = 1;
@@ -50,12 +56,14 @@ contract P2pEth2Depositor {
     /**
      * @dev Setting Eth2 Smart Contract address during construction.
      */
-    constructor(bool mainnet, address depositContract_) {
+    constructor(bool mainnet, address depositContract_, FeeDistributorFactory feeDistributorFactory_) {
         depositContract = mainnet
         ? IDepositContract(0x00000000219ab540356cBB839Cbe05303d7705Fa)
         : (depositContract_ == 0x0000000000000000000000000000000000000000)
             ? IDepositContract(0x8c5fecdC472E27Bc447696F431E425D02dd46a8c)
             : IDepositContract(depositContract_);
+
+        feeDistributorFactory = feeDistributorFactory_;
     }
 
     /**
@@ -75,9 +83,11 @@ contract P2pEth2Depositor {
      */
     function deposit(
         bytes[] calldata pubkeys,
-        bytes[] calldata withdrawal_credentials,
+        byte calldata withdrawal_credentials, // 1, same for all
         bytes[] calldata signatures,
-        bytes32[] calldata deposit_data_roots
+        bytes32[] calldata deposit_data_roots,
+        IFeeDistributor.FeeRecipient calldata _clientConfig,
+        IFeeDistributor.FeeRecipient calldata _referrerConfig
     ) external payable {
 
         uint256 nodesAmount = pubkeys.length;
@@ -91,7 +101,6 @@ contract P2pEth2Depositor {
         }
 
         if (!(
-            withdrawal_credentials.length == nodesAmount &&
             signatures.length == nodesAmount &&
             deposit_data_roots.length == nodesAmount
         )) {
@@ -103,7 +112,7 @@ contract P2pEth2Depositor {
 
             depositContract.deposit{value: collateral}(
                 pubkeys[i],
-                withdrawal_credentials[i],
+                withdrawal_credentials,
                 signatures[i],
                 deposit_data_roots[i]
             );
@@ -114,6 +123,12 @@ contract P2pEth2Depositor {
                 ++i;
             }
         }
+
+        // First, make sure all the deposits are successful, then deploy FeeDistributor
+        feeDistributorFactory.createFeeDistributor(
+            _clientConfig,
+            _referrerConfig
+        );
 
         emit DepositEvent(msg.sender, nodesAmount);
     }

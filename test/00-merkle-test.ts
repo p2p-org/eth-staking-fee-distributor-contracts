@@ -48,5 +48,7 @@ describe("Merkle Tree Tests", function () {
         const createFeeDistributorTx = await verifierContract.verify(proof, pubKey, amount)
 
         const createFeeDistributorTxReceipt = await createFeeDistributorTx.wait();
+
+        console.log(createFeeDistributorTxReceipt.cumulativeGasUsed.toString())
     })
 })

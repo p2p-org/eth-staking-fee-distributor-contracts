@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 P2P Validator <info@p2p.org>, OpenZeppelin Contracts (last updated v4.7.0) (access/Ownable.sol)
+// SPDX-FileCopyrightText: 2023 P2P Validator <info@p2p.org>, OpenZeppelin Contracts (last updated v4.7.0) (access/Ownable.sol)
 // SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.10;

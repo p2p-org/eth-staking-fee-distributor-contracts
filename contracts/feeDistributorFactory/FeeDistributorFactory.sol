@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 P2P Validator <info@p2p.org>
+// SPDX-FileCopyrightText: 2023 P2P Validator <info@p2p.org>
 // SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.10;
@@ -100,31 +100,6 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
 
         // set the client address to the cloned FeeDistributor instance
         newFeeDistributor.initialize(_clientConfig, _referrerConfig);
-
-        // emit event with the address of the newly created instance for the external listener
-        emit FeeDistributorCreated(newFeeDistributorAddress, _clientConfig.recipient);
-    }
-
-    /**
-    * @notice Creates a FeeDistributor instance for a client
-    * @dev Emits `FeeDistributorCreated` event with the address of the newly created instance
-    */
-    function createFeeDistributor(address _client) external onlyOperatorOrOwner {
-        if (s_referenceFeeDistributor == address(0)) {
-            revert FeeDistributorFactory__ReferenceFeeDistributorNotSet();
-        }
-
-        // clone the reference implementation of FeeDistributor
-        address newFeeDistributorAddress = s_referenceFeeDistributor.clone();
-
-        // cast address to FeeDistributor
-        IFeeDistributor newFeeDistributor = IFeeDistributor(newFeeDistributorAddress);
-
-        // set the client address to the cloned FeeDistributor instance
-        newFeeDistributor.initialize(
-            IFeeDistributor.FeeRecipient({recipient: payable(_client), basisPoints: clientBasisPoints}),
-            IFeeDistributor.FeeRecipient({recipient: payable(referrer), basisPoints: referrerBasisPoints})
-        );
 
         // emit event with the address of the newly created instance for the external listener
         emit FeeDistributorCreated(newFeeDistributorAddress, _clientConfig.recipient);

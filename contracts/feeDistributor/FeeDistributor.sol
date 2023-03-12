@@ -9,6 +9,13 @@ import "../@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "../feeDistributorFactory/IFeeDistributorFactory.sol";
 import "../assetRecovering/OwnableTokenRecoverer.sol";
 import "./IFeeDistributor.sol";
+import "../oracle/IOracle.sol";
+
+/**
+* @notice Should be a Oracle contract
+* @param _passedAddress passed address that does not support IOracle interface
+*/
+error FeeDistributor__NotOracle(address _passedAddress);
 
 /**
 * @notice Should be a FeeDistributorFactory contract
@@ -118,6 +125,11 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     IFeeDistributorFactory private immutable i_factory;
 
     /**
+    * @notice address of Oracle
+    */
+    IOracle private immutable i_oracle;
+
+    /**
     * @notice address of the service (P2P) fee recipient
     */
     address payable private immutable i_service;
@@ -133,14 +145,24 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     FeeRecipient private s_referrerConfig;
 
     /**
+    * @notice amount of CL rewards (in Wei) that should belong to the client only
+    * and should not be considered for splitting between the service and the referrer
+    */
+    uint256 private s_clientOnlyClRewards;
+
+    /**
     * @dev Set values that are constant, common for all the clients, known at the initial deploy time.
     * @param _factory address of FeeDistributorFactory
     * @param _service address of the service (P2P) fee recipient
     */
     constructor(
+        address _oracle,
         address _factory,
         address payable _service
     ) {
+        if (!ERC165Checker.supportsInterface(_oracle, type(IOracle).interfaceId)) {
+            revert FeeDistributor__NotOracle(_factory);
+        }
         if (!ERC165Checker.supportsInterface(_factory, type(IFeeDistributorFactory).interfaceId)) {
             revert FeeDistributor__NotFactory(_factory);
         }
@@ -148,6 +170,7 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
             revert FeeDistributor__ZeroAddressService();
         }
 
+        i_oracle = IOracle(_oracle);
         i_factory = IFeeDistributorFactory(_factory);
         i_service = _service;
 
@@ -248,8 +271,18 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     * In fact, as a punishment for the reverting party, before the recovering,
     * 1 more regular `withdraw` will happen, rewarding the non-reverting parties again.
     * `recoverEther` function is just an emergency backup plan and does not replace `withdraw`.
+    *
+    * @param _proof Merkle proof (the leaf's sibling, and each non-leaf hash that could not otherwise be calculated without additional leaf nodes)
+    * @param _firstValidatorId Validator Id (number of all deposits previously made to ETH2 DepositContract plus 1)
+    * @param _validatorCount (number of validators corresponding to a given FeeDistributor instance, eqaul to the number of ETH2 deposits made with 1 P2pEth2Depositor's deposit)
+    * @param _amount total CL rewards earned by all validators (see _validatorCount)
     */
-    function withdraw() external nonReentrant {
+    function withdraw(
+        bytes32[] calldata _proof,
+        uint256 _firstValidatorId,
+        uint256 _validatorCount,
+        uint256 _amount
+    ) external nonReentrant {
         if (s_clientConfig.recipient == address(0)) {
             revert FeeDistributor__ClientNotSet();
         }
@@ -262,8 +295,13 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
             revert FeeDistributor__NothingToWithdraw();
         }
 
+        // verify the data from the caller against the orcale
+        i_oracle.verify(_proof, _firstValidatorId, _validatorCount, _amount);
+
         // how much should client get
         uint256 clientAmount = (balance * s_clientConfig.basisPoints) / 10000;
+
+        if (clientAmount < _amount) // TODO
 
         // how much should service get
         uint256 serviceAmount = balance - clientAmount;

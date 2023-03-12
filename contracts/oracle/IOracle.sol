@@ -25,4 +25,18 @@ interface IOracle is IOwnable, IERC165 {
     * @param _root Merkle root
     */
     function report(bytes32 _root) external;
+
+    /**
+    * @notice Verify Merkle proof (that the leaf belongs to the tree)
+    * @param _proof Merkle proof (the leaf's sibling, and each non-leaf hash that could not otherwise be calculated without additional leaf nodes)
+    * @param _firstValidatorId Validator Id (number of all deposits previously made to ETH2 DepositContract plus 1)
+    * @param _validatorCount (number of validators corresponding to a given FeeDistributor instance, eqaul to the number of ETH2 deposits made with 1 P2pEth2Depositor's deposit)
+    * @param _amount total CL rewards earned by all validators (see _validatorCount)
+    */
+    function verify(
+        bytes32[] calldata _proof,
+        uint256 _firstValidatorId,
+        uint256 _validatorCount,
+        uint256 _amount
+    ) external;
 }

@@ -298,13 +298,41 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         // verify the data from the caller against the orcale
         i_oracle.verify(_proof, _firstValidatorId, _validatorCount, _amount);
 
-        // how much should client get
-        uint256 clientAmount = (balance * s_clientConfig.basisPoints) / 10000;
+        // read from storage once
+        uint256 clientOnlyClRewards = s_clientOnlyClRewards;
 
-        if (clientAmount < _amount) // TODO
+        // total to split = EL + CL - already split part of CL (should be OK unless halfBalance < serviceAmount)
+        uint256 totalAmountToSplit = balance + _amount - clientOnlyClRewards;
+
+        // set client basis points to value from storage config
+        uint256 clientBasisPoints = s_clientConfig.basisPoints;
 
         // how much should service get
-        uint256 serviceAmount = balance - clientAmount;
+        uint256 serviceAmount = totalAmountToSplit - ((totalAmountToSplit * clientBasisPoints) / 10000);
+
+        uint256 halfBalance = balance / 2;
+
+        // how much should client get
+        uint256 clientAmount;
+
+        // if a half of the available balance is not enough to cover service (and referrer) shares
+        // can happen when CL rewards (only accessible by client) are way much than EL rewards
+        if (serviceAmount > halfBalance) {
+            // client gets 50% of EL rewards
+            clientAmount = halfBalance;
+
+            // service (and referrer) get 50% of EL rewards combined (+1 wei in case balance is odd)
+            serviceAmount = balance - halfBalance;
+
+            // update the total amount being split to a smaller value to fit the actual balance of this contract
+            totalAmountToSplit = (serviceAmount * 10000) / (10000 - clientBasisPoints);
+        } else {
+            // send the remaining balance to client
+            clientAmount = balance - serviceAmount;
+        }
+
+        // client gets the rest from CL as not split anymore amount
+        s_clientOnlyClRewards = clientOnlyClRewards + (totalAmountToSplit - clientAmount);
 
         // how much should referrer get
         uint256 referrerAmount;
@@ -312,7 +340,8 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         if (s_referrerConfig.recipient != address(0)) {
             // if there is a referrer
 
-            referrerAmount = (balance * s_referrerConfig.basisPoints) / 10000;
+            referrerAmount = (totalAmountToSplit * s_referrerConfig.basisPoints) / 10000;
+
             serviceAmount -= referrerAmount;
 
             // Send ETH to referrer. Ignore the possible yet unlikely revert in the receive function.

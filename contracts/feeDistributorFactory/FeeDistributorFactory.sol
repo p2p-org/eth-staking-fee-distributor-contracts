@@ -83,10 +83,12 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     * @dev _referrerConfig can be zero if there is no referrer.
     * @param _clientConfig address and basis points (percent * 100) of the client
     * @param _referrerConfig address and basis points (percent * 100) of the referrer.
+    * @param _validatorData clientOnlyClRewards, firstValidatorId, and validatorCount
     */
     function createFeeDistributor(
         IFeeDistributor.FeeRecipient calldata _clientConfig,
-        IFeeDistributor.FeeRecipient calldata _referrerConfig
+        IFeeDistributor.FeeRecipient calldata _referrerConfig,
+        IFeeDistributor.ValidatorData calldata _validatorData
     ) external onlyOperatorOrOwner {
         if (s_referenceFeeDistributor == address(0)) {
             revert FeeDistributorFactory__ReferenceFeeDistributorNotSet();
@@ -99,7 +101,7 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
         IFeeDistributor newFeeDistributor = IFeeDistributor(newFeeDistributorAddress);
 
         // set the client address to the cloned FeeDistributor instance
-        newFeeDistributor.initialize(_clientConfig, _referrerConfig);
+        newFeeDistributor.initialize(_clientConfig, _referrerConfig, _validatorData);
 
         // emit event with the address of the newly created instance for the external listener
         emit FeeDistributorCreated(newFeeDistributorAddress, _clientConfig.recipient);

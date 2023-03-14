@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.10;
 
-import "./@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "../@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "../assetRecovering/OwnableAssetRecoverer.sol";
 import "../access/OwnableWithOperator.sol";
 import "../@openzeppelin/contracts/utils/introspection/ERC165.sol";
@@ -40,14 +40,28 @@ contract Oracle is OwnableAssetRecoverer, OwnableWithOperator, ERC165, IOracle {
     */
     function verify(
         bytes32[] calldata _proof,
-        uint256 _firstValidatorId,
-        uint256 _validatorCount,
+        uint64 _firstValidatorId,
+        uint16 _validatorCount,
         uint256 _amount
     ) external {
         bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(_firstValidatorId, _validatorCount, _amount))));
 
-        if (!MerkleProof.verify(_proof, root, leaf)) {
+        if (!MerkleProof.verify(_proof, s_root, leaf)) {
             revert Oracle__InvalidProof();
         }
+    }
+
+    /**
+    * @dev See {IERC165-supportsInterface}.
+    */
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
+        return interfaceId == type(IOracle).interfaceId || super.supportsInterface(interfaceId);
+    }
+
+    /**
+    * @dev Returns the address of the current owner.
+     */
+    function owner() public view override(Ownable, OwnableBase, IOwnable) returns (address) {
+        return super.owner();
     }
 }

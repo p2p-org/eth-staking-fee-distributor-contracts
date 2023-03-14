@@ -33,7 +33,7 @@ contract P2pEth2Depositor {
     IDepositContract public immutable depositContract;
 
     /**
-    * @title Factory for cloning (EIP-1167) FeeDistributor instances pre client
+    * @dev Factory for cloning (EIP-1167) FeeDistributor instances pre client
     */
     FeeDistributorFactory public immutable feeDistributorFactory;
 
@@ -83,7 +83,7 @@ contract P2pEth2Depositor {
      */
     function deposit(
         bytes[] calldata pubkeys,
-        byte calldata withdrawal_credentials, // 1, same for all
+        bytes calldata withdrawal_credentials, // 1, same for all
         bytes[] calldata signatures,
         bytes32[] calldata deposit_data_roots,
         IFeeDistributor.FeeRecipient calldata _clientConfig,
@@ -127,7 +127,8 @@ contract P2pEth2Depositor {
         // First, make sure all the deposits are successful, then deploy FeeDistributor
         feeDistributorFactory.createFeeDistributor(
             _clientConfig,
-            _referrerConfig
+            _referrerConfig,
+            IFeeDistributor.ValidatorData({clientOnlyClRewards: 0, firstValidatorId: 42, validatorCount: uint16(nodesAmount)})
         );
 
         emit DepositEvent(msg.sender, nodesAmount);

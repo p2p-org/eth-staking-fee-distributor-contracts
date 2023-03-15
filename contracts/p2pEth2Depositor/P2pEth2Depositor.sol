@@ -107,6 +107,8 @@ contract P2pEth2Depositor {
             revert P2pEth2Depositor__AmountOfParametersError();
         }
 
+        uint64 firstValidatorId = uint64(to_big_endian_64(depositContract.get_deposit_count())) + 1;
+
         for (uint256 i = 0; i < nodesAmount;) {
             // pubkey, withdrawal_credentials, signature lengths are already checked inside ETH DepositContract
 
@@ -128,10 +130,28 @@ contract P2pEth2Depositor {
         feeDistributorFactory.createFeeDistributor(
             _clientConfig,
             _referrerConfig,
-            IFeeDistributor.ValidatorData({clientOnlyClRewards: 0, firstValidatorId: 42, validatorCount: uint16(nodesAmount)})
+            IFeeDistributor.ValidatorData({
+                clientOnlyClRewards: 0,
+                firstValidatorId: firstValidatorId,
+                validatorCount: uint16(nodesAmount)
+            })
         );
 
         emit DepositEvent(msg.sender, nodesAmount);
+    }
+
+    function to_big_endian_64(uint64 value) internal pure returns (bytes memory ret) {
+        ret = new bytes(8);
+        bytes8 bytesValue = bytes8(value);
+        // Byteswapping during copying to bytes.
+        ret[0] = bytesValue[7];
+        ret[1] = bytesValue[6];
+        ret[2] = bytesValue[5];
+        ret[3] = bytesValue[4];
+        ret[4] = bytesValue[3];
+        ret[5] = bytesValue[2];
+        ret[6] = bytesValue[1];
+        ret[7] = bytesValue[0];
     }
 
     event DepositEvent(address indexed from, uint256 nodesAmount);

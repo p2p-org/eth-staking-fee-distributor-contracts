@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 P2P Validator <info@p2p.org>
+// SPDX-FileCopyrightText: 2023 P2P Validator <info@p2p.org>
 // SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.10;
@@ -9,6 +9,31 @@ import "../@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "../feeDistributorFactory/IFeeDistributorFactory.sol";
 import "../assetRecovering/OwnableTokenRecoverer.sol";
 import "./IFeeDistributor.sol";
+import "../oracle/IOracle.sol";
+
+/**
+* @notice Should be a Oracle contract
+* @param _passedAddress passed address that does not support IOracle interface
+*/
+error FeeDistributor__NotOracle(address _passedAddress);
+
+/**
+* @notice Initial client-only CL rewards must be zero
+* @param _passedValue passed value for clientOnlyClRewards
+*/
+error FeeDistributor__NonZeroInitialClientOnlyClRewards(uint176 _passedValue);
+
+/**
+* @notice Initial client-only CL rewards must be zero
+* @param _firstValidatorId passed value for firstValidatorId
+*/
+error FeeDistributor__InvalidFirstValidatorId(uint64 _firstValidatorId);
+
+/**
+* @notice Initial client-only CL rewards must be zero
+* @param _validatorCount passed value for validatorCount
+*/
+error FeeDistributor__InvalidValidatorCount(uint16 _validatorCount);
 
 /**
 * @notice Should be a FeeDistributorFactory contract
@@ -118,6 +143,11 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     IFeeDistributorFactory private immutable i_factory;
 
     /**
+    * @notice address of Oracle
+    */
+    IOracle private immutable i_oracle;
+
+    /**
     * @notice address of the service (P2P) fee recipient
     */
     address payable private immutable i_service;
@@ -133,14 +163,24 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     FeeRecipient private s_referrerConfig;
 
     /**
+    * @notice amount of CL rewards (in Wei) that should belong to the client only
+    * and should not be considered for splitting between the service and the referrer
+    */
+    ValidatorData private s_validatorData;
+
+    /**
     * @dev Set values that are constant, common for all the clients, known at the initial deploy time.
     * @param _factory address of FeeDistributorFactory
     * @param _service address of the service (P2P) fee recipient
     */
     constructor(
+        address _oracle,
         address _factory,
         address payable _service
     ) {
+        if (!ERC165Checker.supportsInterface(_oracle, type(IOracle).interfaceId)) {
+            revert FeeDistributor__NotOracle(_factory);
+        }
         if (!ERC165Checker.supportsInterface(_factory, type(IFeeDistributorFactory).interfaceId)) {
             revert FeeDistributor__NotFactory(_factory);
         }
@@ -148,6 +188,7 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
             revert FeeDistributor__ZeroAddressService();
         }
 
+        i_oracle = IOracle(_oracle);
         i_factory = IFeeDistributorFactory(_factory);
         i_service = _service;
 
@@ -175,8 +216,13 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     * @dev _referrerConfig can be zero if there is no referrer.
     * @param _clientConfig address and basis points (percent * 100) of the client
     * @param _referrerConfig address and basis points (percent * 100) of the referrer.
+    * @param _validatorData clientOnlyClRewards, firstValidatorId, and validatorCount
     */
-    function initialize(FeeRecipient calldata _clientConfig, FeeRecipient calldata _referrerConfig) external {
+    function initialize(
+        FeeRecipient calldata _clientConfig,
+        FeeRecipient calldata _referrerConfig,
+        ValidatorData calldata _validatorData
+    ) external {
         if (msg.sender != address(i_factory)) {
             revert FeeDistributor__NotFactoryCalled(msg.sender, i_factory);
         }
@@ -191,6 +237,15 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         }
         if (_clientConfig.basisPoints > 10000) {
             revert FeeDistributor__InvalidClientBasisPoints(_clientConfig.basisPoints);
+        }
+        if (_validatorData.clientOnlyClRewards != 0) {
+            revert FeeDistributor__NonZeroInitialClientOnlyClRewards(_validatorData.clientOnlyClRewards);
+        }
+        if (_validatorData.firstValidatorId == 0) {
+            revert FeeDistributor__InvalidFirstValidatorId(_validatorData.firstValidatorId);
+        }
+        if (_validatorData.validatorCount == 0) {
+            revert FeeDistributor__InvalidValidatorCount(_validatorData.validatorCount);
         }
 
         if (_referrerConfig.recipient != address(0)) {// if there is a referrer
@@ -248,8 +303,14 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     * In fact, as a punishment for the reverting party, before the recovering,
     * 1 more regular `withdraw` will happen, rewarding the non-reverting parties again.
     * `recoverEther` function is just an emergency backup plan and does not replace `withdraw`.
+    *
+    * @param _proof Merkle proof (the leaf's sibling, and each non-leaf hash that could not otherwise be calculated without additional leaf nodes)
+    * @param _amount total CL rewards earned by all validators (see _validatorCount)
     */
-    function withdraw() external nonReentrant {
+    function withdraw(
+        bytes32[] calldata _proof,
+        uint256 _amount
+    ) external nonReentrant {
         if (s_clientConfig.recipient == address(0)) {
             revert FeeDistributor__ClientNotSet();
         }
@@ -262,11 +323,44 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
             revert FeeDistributor__NothingToWithdraw();
         }
 
-        // how much should client get
-        uint256 clientAmount = (balance * s_clientConfig.basisPoints) / 10000;
+        // read from storage once
+        ValidatorData memory vd = s_validatorData;
+
+        // verify the data from the caller against the orcale
+        i_oracle.verify(_proof, vd.firstValidatorId, vd.validatorCount, _amount);
+
+        // total to split = EL + CL - already split part of CL (should be OK unless halfBalance < serviceAmount)
+        uint256 totalAmountToSplit = balance + _amount - vd.clientOnlyClRewards;
+
+        // set client basis points to value from storage config
+        uint256 clientBp = s_clientConfig.basisPoints;
 
         // how much should service get
-        uint256 serviceAmount = balance - clientAmount;
+        uint256 serviceAmount = totalAmountToSplit - ((totalAmountToSplit * clientBp) / 10000);
+
+        uint256 halfBalance = balance / 2;
+
+        // how much should client get
+        uint256 clientAmount;
+
+        // if a half of the available balance is not enough to cover service (and referrer) shares
+        // can happen when CL rewards (only accessible by client) are way much than EL rewards
+        if (serviceAmount > halfBalance) {
+            // client gets 50% of EL rewards
+            clientAmount = halfBalance;
+
+            // service (and referrer) get 50% of EL rewards combined (+1 wei in case balance is odd)
+            serviceAmount = balance - halfBalance;
+
+            // update the total amount being split to a smaller value to fit the actual balance of this contract
+            totalAmountToSplit = (serviceAmount * 10000) / (10000 - clientBp);
+        } else {
+            // send the remaining balance to client
+            clientAmount = balance - serviceAmount;
+        }
+
+        // client gets the rest from CL as not split anymore amount
+        s_validatorData.clientOnlyClRewards = uint176(vd.clientOnlyClRewards + (totalAmountToSplit - clientAmount));
 
         // how much should referrer get
         uint256 referrerAmount;
@@ -274,7 +368,8 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         if (s_referrerConfig.recipient != address(0)) {
             // if there is a referrer
 
-            referrerAmount = (balance * s_referrerConfig.basisPoints) / 10000;
+            referrerAmount = (totalAmountToSplit * s_referrerConfig.basisPoints) / 10000;
+
             serviceAmount -= referrerAmount;
 
             // Send ETH to referrer. Ignore the possible yet unlikely revert in the receive function.
@@ -293,9 +388,16 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     /**
     * @notice Recover ether in a rare case when either service, or client, or referrer
     * refuse to accept ether.
+    * @param _to receiver address
+    * @param _proof Merkle proof (the leaf's sibling, and each non-leaf hash that could not otherwise be calculated without additional leaf nodes)
+    * @param _amount total CL rewards earned by all validators (see _validatorCount)
     */
-    function recoverEther(address payable _to) external onlyOwner {
-        this.withdraw();
+    function recoverEther(
+        address payable _to,
+        bytes32[] calldata _proof,
+        uint256 _amount
+    ) external onlyOwner {
+        this.withdraw(_proof, _amount);
 
         // get the contract's balance
         uint256 balance = address(this).balance;
@@ -314,28 +416,28 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     /**
      * @dev Returns the factory address
      */
-    function getFactory() external view returns (address) {
+    function factory() external view returns (address) {
         return address(i_factory);
     }
 
     /**
      * @dev Returns the service address
      */
-    function getService() external view returns (address) {
+    function service() external view returns (address) {
         return i_service;
     }
 
     /**
      * @dev Returns the client address
      */
-    function getClient() external view returns (address) {
+    function client() external view returns (address) {
         return s_clientConfig.recipient;
     }
 
     /**
      * @dev Returns the client basis points
      */
-    function getClientBasisPoints() external view returns (uint256) {
+    function clientBasisPoints() external view returns (uint256) {
         return s_clientConfig.basisPoints;
     }
 

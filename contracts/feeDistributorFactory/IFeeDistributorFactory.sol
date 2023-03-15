@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 P2P Validator <info@p2p.org>
+// SPDX-FileCopyrightText: 2023 P2P Validator <info@p2p.org>
 // SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.10;
@@ -40,10 +40,12 @@ interface IFeeDistributorFactory is IOwnable, IERC165 {
     * @dev _referrerConfig can be zero if there is no referrer.
     * @param _clientConfig address and basis points (percent * 100) of the client
     * @param _referrerConfig address and basis points (percent * 100) of the referrer.
+    * @param _validatorData clientOnlyClRewards, firstValidatorId, and validatorCount
     */
     function createFeeDistributor(
         IFeeDistributor.FeeRecipient calldata _clientConfig,
-        IFeeDistributor.FeeRecipient calldata _referrerConfig
+        IFeeDistributor.FeeRecipient calldata _referrerConfig,
+        IFeeDistributor.ValidatorData calldata _validatorData
     ) external;
 
     /**

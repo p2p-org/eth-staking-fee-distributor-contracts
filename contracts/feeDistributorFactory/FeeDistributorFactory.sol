@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 P2P Validator <info@p2p.org>
+// SPDX-FileCopyrightText: 2023 P2P Validator <info@p2p.org>
 // SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.10;
@@ -39,6 +39,21 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     */
     address private s_referenceFeeDistributor;
 
+    /**
+    * @notice Default Client Basis Points
+    * @dev Used when no client config provided.
+    * @dev Default Referrer Basis Points is zero.
+    */
+    uint96 s_defaultClientBasisPoints;
+
+    /**
+    * @dev Set values known at the initial deploy time.
+    * @param _defaultClientBasisPoints Default Client Basis Points
+    */
+    constructor(uint96 _defaultClientBasisPoints) {
+        s_defaultClientBasisPoints = _defaultClientBasisPoints;
+    }
+
     // Functions
 
     /**
@@ -55,15 +70,25 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     }
 
     /**
+    * @notice Set a new Default Client Basis Points
+    * @param _defaultClientBasisPoints Default Client Basis Points
+    */
+    function setDefaultClientBasisPoints(uint96 _defaultClientBasisPoints) external onlyOwner {
+        s_defaultClientBasisPoints = _defaultClientBasisPoints;
+    }
+
+    /**
     * @notice Creates a FeeDistributor instance for a client
     * @dev Emits `FeeDistributorCreated` event with the address of the newly created instance
     * @dev _referrerConfig can be zero if there is no referrer.
     * @param _clientConfig address and basis points (percent * 100) of the client
     * @param _referrerConfig address and basis points (percent * 100) of the referrer.
+    * @param _validatorData clientOnlyClRewards, firstValidatorId, and validatorCount
     */
     function createFeeDistributor(
         IFeeDistributor.FeeRecipient calldata _clientConfig,
-        IFeeDistributor.FeeRecipient calldata _referrerConfig
+        IFeeDistributor.FeeRecipient calldata _referrerConfig,
+        IFeeDistributor.ValidatorData calldata _validatorData
     ) external onlyOperatorOrOwner {
         if (s_referenceFeeDistributor == address(0)) {
             revert FeeDistributorFactory__ReferenceFeeDistributorNotSet();
@@ -76,7 +101,7 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
         IFeeDistributor newFeeDistributor = IFeeDistributor(newFeeDistributorAddress);
 
         // set the client address to the cloned FeeDistributor instance
-        newFeeDistributor.initialize(_clientConfig, _referrerConfig);
+        newFeeDistributor.initialize(_clientConfig, _referrerConfig, _validatorData);
 
         // emit event with the address of the newly created instance for the external listener
         emit FeeDistributorCreated(newFeeDistributorAddress, _clientConfig.recipient);

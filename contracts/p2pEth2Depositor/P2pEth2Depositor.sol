@@ -107,7 +107,7 @@ contract P2pEth2Depositor {
             revert P2pEth2Depositor__AmountOfParametersError();
         }
 
-        uint64 firstValidatorId = uint64(to_big_endian_64(depositContract.get_deposit_count())) + 1;
+        uint64 firstValidatorId = toUint64(depositContract.get_deposit_count()) + 1;
 
         for (uint256 i = 0; i < nodesAmount;) {
             // pubkey, withdrawal_credentials, signature lengths are already checked inside ETH DepositContract
@@ -140,18 +140,8 @@ contract P2pEth2Depositor {
         emit DepositEvent(msg.sender, nodesAmount);
     }
 
-    function to_big_endian_64(uint64 value) internal pure returns (bytes memory ret) {
-        ret = new bytes(8);
-        bytes8 bytesValue = bytes8(value);
-        // Byteswapping during copying to bytes.
-        ret[0] = bytesValue[7];
-        ret[1] = bytesValue[6];
-        ret[2] = bytesValue[5];
-        ret[3] = bytesValue[4];
-        ret[4] = bytesValue[3];
-        ret[5] = bytesValue[2];
-        ret[6] = bytesValue[1];
-        ret[7] = bytesValue[0];
+    function toUint64(bytes memory b) internal pure returns (uint64) {
+        return uint8(b[7]) + uint8(b[6]) + uint8(b[5]) + uint8(b[4]) + uint8(b[3]) + uint8(b[2]) + uint8(b[1]) + uint8(b[0]);
     }
 
     event DepositEvent(address indexed from, uint256 nodesAmount);

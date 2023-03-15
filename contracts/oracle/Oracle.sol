@@ -43,7 +43,7 @@ contract Oracle is OwnableAssetRecoverer, OwnableWithOperator, ERC165, IOracle {
         uint64 _firstValidatorId,
         uint16 _validatorCount,
         uint256 _amount
-    ) external {
+    ) external view {
         bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(_firstValidatorId, _validatorCount, _amount))));
 
         if (!MerkleProof.verify(_proof, s_root, leaf)) {

@@ -38,5 +38,5 @@ interface IOracle is IOwnable, IERC165 {
         uint64 _firstValidatorId,
         uint16 _validatorCount,
         uint256 _amount
-    ) external;
+    ) external view;
 }

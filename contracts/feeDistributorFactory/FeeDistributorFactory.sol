@@ -86,12 +86,16 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     * @param _validatorData clientOnlyClRewards, firstValidatorId, and validatorCount
     */
     function createFeeDistributor(
-        IFeeDistributor.FeeRecipient calldata _clientConfig,
+        IFeeDistributor.FeeRecipient memory _clientConfig,
         IFeeDistributor.FeeRecipient calldata _referrerConfig,
         IFeeDistributor.ValidatorData calldata _validatorData
     ) external onlyOperatorOrOwner {
         if (s_referenceFeeDistributor == address(0)) {
             revert FeeDistributorFactory__ReferenceFeeDistributorNotSet();
+        }
+
+        if (_clientConfig.basisPoints == 0) {
+            _clientConfig.basisPoints = s_defaultClientBasisPoints;
         }
 
         // clone the reference implementation of FeeDistributor

@@ -137,12 +137,12 @@ contract P2pEth2Depositor {
             })
         );
 
-        emit DepositEvent(msg.sender, nodesAmount);
+        emit DepositEvent(msg.sender, firstValidatorId, nodesAmount);
     }
 
     function toUint64(bytes memory b) internal pure returns (uint64) {
         return uint8(b[7]) + uint8(b[6]) + uint8(b[5]) + uint8(b[4]) + uint8(b[3]) + uint8(b[2]) + uint8(b[1]) + uint8(b[0]);
     }
 
-    event DepositEvent(address indexed from, uint256 nodesAmount);
+    event DepositEvent(address indexed from, uint64 indexed firstValidatorId, uint256 nodesAmount);
 }

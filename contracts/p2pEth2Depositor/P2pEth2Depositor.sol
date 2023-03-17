@@ -46,7 +46,7 @@ contract P2pEth2Depositor {
     * @dev 314 deposits (10048 ETH) is determined by calldata size limit of 128 kb
     * @dev https://ethereum.stackexchange.com/questions/144120/maximum-calldata-size-per-block
     */
-    uint256 public constant nodesMaxAmount = 314;
+    uint256 public constant nodesMaxAmount = 500;
 
     /**
      * @dev Collateral size of one node.
@@ -60,8 +60,8 @@ contract P2pEth2Depositor {
         depositContract = mainnet
         ? IDepositContract(0x00000000219ab540356cBB839Cbe05303d7705Fa)
         : (depositContract_ == 0x0000000000000000000000000000000000000000)
-            ? IDepositContract(0x8c5fecdC472E27Bc447696F431E425D02dd46a8c)
-            : IDepositContract(depositContract_);
+        ? IDepositContract(0x8c5fecdC472E27Bc447696F431E425D02dd46a8c)
+        : IDepositContract(depositContract_);
 
         feeDistributorFactory = feeDistributorFactory_;
     }
@@ -101,8 +101,8 @@ contract P2pEth2Depositor {
         }
 
         if (!(
-            signatures.length == nodesAmount &&
-            deposit_data_roots.length == nodesAmount
+        signatures.length == nodesAmount &&
+        deposit_data_roots.length == nodesAmount
         )) {
             revert P2pEth2Depositor__AmountOfParametersError();
         }
@@ -112,7 +112,7 @@ contract P2pEth2Depositor {
         for (uint256 i = 0; i < nodesAmount;) {
             // pubkey, withdrawal_credentials, signature lengths are already checked inside ETH DepositContract
 
-            depositContract.deposit{value: collateral}(
+            depositContract.deposit{value : collateral}(
                 pubkeys[i],
                 withdrawal_credentials,
                 signatures[i],
@@ -121,9 +121,9 @@ contract P2pEth2Depositor {
 
             // An array can't have a total length
             // larger than the max uint256 value.
-            unchecked {
-                ++i;
-            }
+        unchecked {
+            ++i;
+        }
         }
 
         // First, make sure all the deposits are successful, then deploy FeeDistributor
@@ -131,18 +131,46 @@ contract P2pEth2Depositor {
             _clientConfig,
             _referrerConfig,
             IFeeDistributor.ValidatorData({
-                clientOnlyClRewards: 0,
-                firstValidatorId: firstValidatorId,
-                validatorCount: uint16(nodesAmount)
-            })
+        clientOnlyClRewards : 0,
+        firstValidatorId : firstValidatorId,
+        validatorCount : uint16(nodesAmount)
+        })
         );
 
-        emit DepositEvent(msg.sender, firstValidatorId, nodesAmount);
+        emit P2pEth2DepositEvent(msg.sender, firstValidatorId, nodesAmount);
     }
 
     function toUint64(bytes memory b) internal pure returns (uint64) {
-        return uint8(b[7]) + uint8(b[6]) + uint8(b[5]) + uint8(b[4]) + uint8(b[3]) + uint8(b[2]) + uint8(b[1]) + uint8(b[0]);
+        uint64 result;
+        assembly {
+            let x := mload(add(b, 8))
+
+            result := or(
+                or (
+                    or(
+                        and(0xff, shr(56, x)),
+                        and(0xff00, shr(40, x))
+                    ),
+                    or(
+                        and(0xff0000, shr(24, x)),
+                        and(0xff000000, shr(8, x))
+                    )
+                ),
+
+                or (
+                    or(
+                        and(0xff00000000, shl(8, x)),
+                        and(0xff0000000000, shl(24, x))
+                    ),
+                    or(
+                        and(0xff000000000000, shl(40, x)),
+                        and(0xff00000000000000, shl(56, x))
+                    )
+                )
+            )
+        }
+        return result;
     }
 
-    event DepositEvent(address indexed from, uint64 indexed firstValidatorId, uint256 nodesAmount);
+    event P2pEth2DepositEvent(address indexed from, uint64 indexed firstValidatorId, uint256 nodesAmount);
 }

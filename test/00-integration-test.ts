@@ -17,6 +17,8 @@ describe("Integration", function () {
 
     const depositCount = 100
 
+    const eth2DepositContractDepositCount = 567254
+
     // client should get 70% (subject to chioce at deploy time)
     const clientBasisPoints = 9000;
 
@@ -97,9 +99,20 @@ describe("Integration", function () {
 
     it("distributes fees", async function () {
         try {
+            // deploy reference instance
+            const feeDistributorReferenceInstance = await deployerFactory.deploy(
+                oracleSignedByDeployer.address,
+                feeDistributorFactorySignedByDeployer.address,
+                serviceAddress
+            )
+
+            // set reference instance
+            await feeDistributorFactorySignedByDeployer.setReferenceInstance(feeDistributorReferenceInstance.address)
+
+
             const batchDepositData = generateMockDepositData(depositCount)
 
-            const txDeposit = await p2pEth2DepositorSignedByClientDepositor.deposit(
+            await expect(p2pEth2DepositorSignedByClientDepositor.deposit(
                 batchDepositData.map(d => d.pubkey),
                 batchDepositData[0].withdrawal_credentials,
                 batchDepositData.map(d => d.signature),
@@ -110,16 +123,9 @@ describe("Integration", function () {
                 {
                     value: ethers.utils.parseUnits((depositCount * 32).toString(), 'ether')
                 }
-            )
+            )).to.emit(p2pEth2DepositorSignedByClientDepositor, 'P2pEth2DepositEvent')
+                .withArgs(clientDepositor, eth2DepositContractDepositCount + 1, depositCount)
 
-            console.log(txDeposit)
-
-            // expect(txDeposit).to.emit(p2pEth2DepositorSignedByClientDepositor, 'Swapped')
-            //     .withArgs()
-
-
-            // // set reference instance
-            // await feeDistributorFactorySignedByDeployer.setReferenceInstance(feeDistributorReferenceInstance.address)
             //
             // // set an operator to create a client instance
             // await feeDistributorFactorySignedByDeployer.changeOperator(operator)

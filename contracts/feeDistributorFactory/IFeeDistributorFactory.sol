@@ -26,6 +26,12 @@ interface IFeeDistributorFactory is IOwnable, IERC165 {
     */
     event ReferenceInstanceSet(address indexed _referenceFeeDistributor);
 
+    /**
+    * @notice Emits when a new P2pEth2Depositor contract address has been set.
+    * @param _p2pEth2Depositor the address of the new P2pEth2Depositor contract
+    */
+    event P2pEth2DepositorSet(address indexed _p2pEth2Depositor);
+
     // Functions
 
     /**

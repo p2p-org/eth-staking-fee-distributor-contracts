@@ -2,10 +2,12 @@
 
 pragma solidity 0.8.10;
 
+import "../@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "./interfaces/IDepositContract.sol";
 import "../feeDistributorFactory/FeeDistributorFactory.sol";
+import "./IP2pEth2Depositor.sol";
 
-contract P2pEth2Depositor {
+contract P2pEth2Depositor is ERC165, IP2pEth2Depositor {
 
     /**
     * @notice do not send ETH directly here
@@ -35,7 +37,7 @@ contract P2pEth2Depositor {
     /**
     * @dev Factory for cloning (EIP-1167) FeeDistributor instances pre client
     */
-    FeeDistributorFactory public immutable feeDistributorFactory;
+    FeeDistributorFactory public immutable i_feeDistributorFactory;
 
     /**
      * @dev Minimal and maximum amount of nodes per transaction.
@@ -60,10 +62,10 @@ contract P2pEth2Depositor {
         depositContract = mainnet
         ? IDepositContract(0x00000000219ab540356cBB839Cbe05303d7705Fa)
         : (depositContract_ == 0x0000000000000000000000000000000000000000)
-        ? IDepositContract(0x8c5fecdC472E27Bc447696F431E425D02dd46a8c)
-        : IDepositContract(depositContract_);
+            ? IDepositContract(0x8c5fecdC472E27Bc447696F431E425D02dd46a8c)
+            : IDepositContract(depositContract_);
 
-        feeDistributorFactory = feeDistributorFactory_;
+        i_feeDistributorFactory = feeDistributorFactory_;
     }
 
     /**
@@ -90,26 +92,26 @@ contract P2pEth2Depositor {
         IFeeDistributor.FeeRecipient calldata _referrerConfig
     ) external payable {
 
-        uint256 nodesAmount = pubkeys.length;
+        uint256 validatorCount = pubkeys.length;
 
-        if (nodesAmount == 0 || nodesAmount > nodesMaxAmount) {
+        if (validatorCount == 0 || validatorCount > nodesMaxAmount) {
             revert P2pEth2Depositor__NodeCountError();
         }
 
-        if (msg.value != collateral * nodesAmount) {
+        if (msg.value != collateral * validatorCount) {
             revert P2pEth2Depositor__EtherValueError();
         }
 
         if (!(
-        signatures.length == nodesAmount &&
-        deposit_data_roots.length == nodesAmount
+            signatures.length == validatorCount &&
+            deposit_data_roots.length == validatorCount
         )) {
             revert P2pEth2Depositor__AmountOfParametersError();
         }
 
         uint64 firstValidatorId = toUint64(depositContract.get_deposit_count()) + 1;
 
-        for (uint256 i = 0; i < nodesAmount;) {
+        for (uint256 i = 0; i < validatorCount;) {
             // pubkey, withdrawal_credentials, signature lengths are already checked inside ETH DepositContract
 
             depositContract.deposit{value : collateral}(
@@ -121,25 +123,36 @@ contract P2pEth2Depositor {
 
             // An array can't have a total length
             // larger than the max uint256 value.
-        unchecked {
-            ++i;
-        }
+            unchecked {
+                ++i;
+            }
         }
 
         // First, make sure all the deposits are successful, then deploy FeeDistributor
-        feeDistributorFactory.createFeeDistributor(
+        i_feeDistributorFactory.createFeeDistributor(
             _clientConfig,
             _referrerConfig,
             IFeeDistributor.ValidatorData({
-        clientOnlyClRewards : 0,
-        firstValidatorId : firstValidatorId,
-        validatorCount : uint16(nodesAmount)
-        })
+                clientOnlyClRewards : 0,
+                firstValidatorId : firstValidatorId,
+                validatorCount : uint16(validatorCount)
+            })
         );
 
-        emit P2pEth2DepositEvent(msg.sender, firstValidatorId, nodesAmount);
+        emit P2pEth2DepositEvent(msg.sender, firstValidatorId, validatorCount);
     }
 
+    /**
+    * @dev See {IERC165-supportsInterface}.
+    */
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
+        return interfaceId == type(IP2pEth2Depositor).interfaceId || super.supportsInterface(interfaceId);
+    }
+
+    /**
+    * @dev Convert deposit_count from ETH2 DepositContract to uint64
+    * ETH2 DepositContract returns inverted bytes. Need to invert them back.
+    */
     function toUint64(bytes memory b) internal pure returns (uint64) {
         uint64 result;
         assembly {
@@ -171,6 +184,4 @@ contract P2pEth2Depositor {
         }
         return result;
     }
-
-    event P2pEth2DepositEvent(address indexed from, uint64 indexed firstValidatorId, uint256 nodesAmount);
 }

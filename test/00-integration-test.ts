@@ -86,6 +86,9 @@ describe("Integration", function () {
             feeDistributorFactorySignedByDeployer.address
         )
 
+        // set P2pEth2Depositor to FeeDistributorFactory
+        await feeDistributorFactorySignedByDeployer.setP2pEth2Depositor(p2pEth2DepositorSignedByDeployer.address)
+
         p2pEth2DepositorSignedByClientDepositor = P2pEth2Depositor__factory.connect(
             p2pEth2DepositorSignedByDeployer.address,
             clientDepositorSigner

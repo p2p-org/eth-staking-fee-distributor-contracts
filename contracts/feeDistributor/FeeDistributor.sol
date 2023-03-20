@@ -305,11 +305,11 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     * `recoverEther` function is just an emergency backup plan and does not replace `withdraw`.
     *
     * @param _proof Merkle proof (the leaf's sibling, and each non-leaf hash that could not otherwise be calculated without additional leaf nodes)
-    * @param _amount total CL rewards earned by all validators (see _validatorCount)
+    * @param _amountInGwei total CL rewards earned by all validators in GWei (see _validatorCount)
     */
     function withdraw(
         bytes32[] calldata _proof,
-        uint256 _amount
+        uint256 _amountInGwei
     ) external nonReentrant {
         if (s_clientConfig.recipient == address(0)) {
             revert FeeDistributor__ClientNotSet();
@@ -327,10 +327,13 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         ValidatorData memory vd = s_validatorData;
 
         // verify the data from the caller against the orcale
-        i_oracle.verify(_proof, vd.firstValidatorId, vd.validatorCount, _amount);
+        i_oracle.verify(_proof, vd.firstValidatorId, vd.validatorCount, _amountInGwei);
+
+        // Gwei to Wei
+        uint256 amount = _amountInGwei * (10 ** 9);
 
         // total to split = EL + CL - already split part of CL (should be OK unless halfBalance < serviceAmount)
-        uint256 totalAmountToSplit = balance + _amount - vd.clientOnlyClRewards;
+        uint256 totalAmountToSplit = balance + amount - vd.clientOnlyClRewards;
 
         // set client basis points to value from storage config
         uint256 clientBp = s_clientConfig.basisPoints;
@@ -390,14 +393,14 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     * refuse to accept ether.
     * @param _to receiver address
     * @param _proof Merkle proof (the leaf's sibling, and each non-leaf hash that could not otherwise be calculated without additional leaf nodes)
-    * @param _amount total CL rewards earned by all validators (see _validatorCount)
+    * @param _amountInGwei total CL rewards earned by all validators in GWei (see _validatorCount)
     */
     function recoverEther(
         address payable _to,
         bytes32[] calldata _proof,
-        uint256 _amount
+        uint256 _amountInGwei
     ) external onlyOwner {
-        this.withdraw(_proof, _amount);
+        this.withdraw(_proof, _amountInGwei);
 
         // get the contract's balance
         uint256 balance = address(this).balance;

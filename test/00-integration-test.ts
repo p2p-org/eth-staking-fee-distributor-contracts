@@ -12,8 +12,16 @@ import {
 } from "../typechain-types"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { generateMockDepositData } from "../scripts/generateMockDepositData"
+import { generateMockBatchRewardData } from "../scripts/generateMockBatchRewardData"
+import { buildMerkleTreeForValidatorBatch } from "../scripts/buildMerkleTreeForValidatorBatch"
+import fs from "fs"
+import { obtainProof } from "../scripts/obtainProof"
 
 describe("Integration", function () {
+
+    const BatchCount = 100000
+
+    const testAmountInGwei = 2340000000
 
     const depositCount = 100
 
@@ -146,32 +154,27 @@ describe("Integration", function () {
             const _newFeeDistributorAddress = event.args?._newFeeDistributorAddress
             console.log(_newFeeDistributorAddress)
 
-            //
-            // const operatorSignerFactory = new FeeDistributorFactory__factory(operatorSigner)
-            // const operatorFeeDistributorFactory = operatorSignerFactory.attach(feeDistributorFactorySignedByDeployer.address)
-            //
-            // // create client instance
-            // const createFeeDistributorTx = await operatorFeeDistributorFactory.createFeeDistributor(
-            //     {recipient: clientAddress, basisPoints: clientBasisPoints},
-            //     {recipient: nobody, basisPoints: referrerBasisPoints},
-            // )
-            // const createFeeDistributorTxReceipt = await createFeeDistributorTx.wait();
-            // const event = createFeeDistributorTxReceipt?.events?.find(event => event.event === 'FeeDistributorCreated');
-            // if (!event) {
-            //     throw Error('No FeeDistributorCreated found')
-            // }
-            // // retrieve client instance address from event
-            // const newlyCreatedFeeDistributorAddress = event.args?._newFeeDistributorAddress
-            //
-            // // set the newly created FeeDistributor contract as coinbase (block rewards recipient)
-            // // In the real world this will be done in a validator's settings
-            // await ethers.provider.send("hardhat_setCoinbase", [
-            //     newlyCreatedFeeDistributorAddress,
-            // ])
-            //
-            // // simulate producing a new block so that our FeeDistributor contract can get its rewards
-            // await ethers.provider.send("evm_mine", [])
-            //
+            const batchRewardData = generateMockBatchRewardData(BatchCount, _firstValidatorId, _validatorCount, testAmountInGwei);
+
+            const tree = buildMerkleTreeForValidatorBatch(batchRewardData)
+
+            // Send it to the Oracle contract
+            console.log('Merkle Root:', tree.root);
+
+            // Send tree.json file to the website and to the withdrawer
+            fs.writeFileSync("tree.json", JSON.stringify(tree.dump()));
+
+            const {proof, value} = obtainProof(_firstValidatorId)
+
+            // set the newly created FeeDistributor contract as coinbase (block rewards recipient)
+            // In the real world this will be done in a validator's settings
+            await ethers.provider.send("hardhat_setCoinbase", [
+                _newFeeDistributorAddress,
+            ])
+
+            // simulate producing a new block so that our FeeDistributor contract can get its rewards
+            await ethers.provider.send("evm_mine", [])
+
             // // attach to the FeeDistributor contract with the owner (signer)
             // const feeDistributorSignedByDeployer = deployerSignerFactory.attach(newlyCreatedFeeDistributorAddress)
             //

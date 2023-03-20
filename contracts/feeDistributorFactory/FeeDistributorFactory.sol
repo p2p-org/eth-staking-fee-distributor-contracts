@@ -115,12 +115,13 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     * @param _clientConfig address and basis points (percent * 100) of the client
     * @param _referrerConfig address and basis points (percent * 100) of the referrer.
     * @param _validatorData clientOnlyClRewards, firstValidatorId, and validatorCount
+    * @return newFeeDistributorAddress user FeeDistributor instance that has just been deployed
     */
     function createFeeDistributor(
         IFeeDistributor.FeeRecipient memory _clientConfig,
         IFeeDistributor.FeeRecipient calldata _referrerConfig,
         IFeeDistributor.ValidatorData calldata _validatorData
-    ) external {
+    ) external returns (address newFeeDistributorAddress) {
         address currentOwner = owner();
         address currentOperator = operator();
         address p2pEth2Depositor = s_p2pEth2Depositor;
@@ -141,7 +142,7 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
         }
 
         // clone the reference implementation of FeeDistributor
-        address newFeeDistributorAddress = s_referenceFeeDistributor.clone();
+        newFeeDistributorAddress = s_referenceFeeDistributor.clone();
 
         // cast address to FeeDistributor
         IFeeDistributor newFeeDistributor = IFeeDistributor(newFeeDistributorAddress);
@@ -151,6 +152,8 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
 
         // emit event with the address of the newly created instance for the external listener
         emit FeeDistributorCreated(newFeeDistributorAddress, _clientConfig.recipient);
+
+        return newFeeDistributorAddress;
     }
 
     /**

@@ -15,11 +15,14 @@ interface IP2pEth2Depositor is IERC165 {
     /**
     * @notice Emits when a new batch deposit has been made successfully
     * @param _from the address of the depositor
+    * @param _newFeeDistributorAddress user FeeDistributor instance that has just been deployed
     * @param _firstValidatorId validator Id (number of all deposits previously made to ETH2 DepositContract plus 1)
     * @param _validatorCount number of ETH2 deposits made with 1 P2pEth2Depositor's deposit
+    * @param _newFeeDistributorAddress number of ETH2 deposits made with 1 P2pEth2Depositor's deposit
     */
     event P2pEth2DepositEvent(
         address indexed _from,
+        address indexed _newFeeDistributorAddress,
         uint64 indexed _firstValidatorId,
         uint256 _validatorCount
     );

@@ -129,7 +129,7 @@ contract P2pEth2Depositor is ERC165, IP2pEth2Depositor {
         }
 
         // First, make sure all the deposits are successful, then deploy FeeDistributor
-        i_feeDistributorFactory.createFeeDistributor(
+        address newFeeDistributorAddress = i_feeDistributorFactory.createFeeDistributor(
             _clientConfig,
             _referrerConfig,
             IFeeDistributor.ValidatorData({
@@ -139,7 +139,7 @@ contract P2pEth2Depositor is ERC165, IP2pEth2Depositor {
             })
         );
 
-        emit P2pEth2DepositEvent(msg.sender, firstValidatorId, validatorCount);
+        emit P2pEth2DepositEvent(msg.sender, newFeeDistributorAddress, firstValidatorId, validatorCount);
     }
 
     /**

@@ -19,13 +19,12 @@ describe("Integration", function () {
 
     const eth2DepositContractDepositCount = 567254
 
-    // client should get 70% (subject to chioce at deploy time)
+    const defaultClientBasisPoints = 9000;
+
     const clientBasisPoints = 9000;
 
-    // referrer should get 10% (subject to chioce at deploy time)
     const referrerBasisPoints =  400;
 
-    // P2P should get 20% (subject to chioce at deploy time)
     const serviceBasisPoints =  10000 - clientBasisPoints - referrerBasisPoints;
 
     let deployerSigner: SignerWithAddress
@@ -75,7 +74,7 @@ describe("Integration", function () {
 
         // deploy factory contract
         feeDistributorFactorySignedByDeployer = await new FeeDistributorFactory__factory(deployerSigner).deploy(
-            9000
+            defaultClientBasisPoints
         )
 
         // deploy oracle contract
@@ -112,7 +111,7 @@ describe("Integration", function () {
 
             const batchDepositData = generateMockDepositData(depositCount)
 
-            await expect(p2pEth2DepositorSignedByClientDepositor.deposit(
+            const depositTx = await p2pEth2DepositorSignedByClientDepositor.deposit(
                 batchDepositData.map(d => d.pubkey),
                 batchDepositData[0].withdrawal_credentials,
                 batchDepositData.map(d => d.signature),
@@ -123,12 +122,30 @@ describe("Integration", function () {
                 {
                     value: ethers.utils.parseUnits((depositCount * 32).toString(), 'ether')
                 }
-            )).to.emit(p2pEth2DepositorSignedByClientDepositor, 'P2pEth2DepositEvent')
-                .withArgs(clientDepositor, eth2DepositContractDepositCount + 1, depositCount)
+            );
 
-            //
-            // // set an operator to create a client instance
-            // await feeDistributorFactorySignedByDeployer.changeOperator(operator)
+            await expect(depositTx).to.emit(p2pEth2DepositorSignedByClientDepositor, 'P2pEth2DepositEvent')
+
+            const depositTxReceipt = await depositTx.wait();
+
+            const event = depositTxReceipt?.events?.find(event => event.event === 'P2pEth2DepositEvent');
+            if (!event) {
+                throw Error('No depositTxReceipt event found')
+            }
+
+            const _from = event.args?._from
+            expect(_from).to.be.equal(clientDepositor)
+
+            const _firstValidatorId = event.args?._firstValidatorId
+            expect(_firstValidatorId).to.be.equal(eth2DepositContractDepositCount + 1)
+
+            const _validatorCount = event.args?._validatorCount
+            expect(_validatorCount).to.be.equal(depositCount)
+
+            // retrieve client instance address from event
+            const _newFeeDistributorAddress = event.args?._newFeeDistributorAddress
+            console.log(_newFeeDistributorAddress)
+
             //
             // const operatorSignerFactory = new FeeDistributorFactory__factory(operatorSigner)
             // const operatorFeeDistributorFactory = operatorSignerFactory.attach(feeDistributorFactorySignedByDeployer.address)

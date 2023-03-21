@@ -19,7 +19,7 @@ import { obtainProof } from "../scripts/obtainProof"
 
 describe("Integration", function () {
 
-    const BatchCount = 100000
+    const BatchCount = 13
 
     const testAmountInGwei = 2340000000
 
@@ -146,25 +146,33 @@ describe("Integration", function () {
 
             const _firstValidatorId = event.args?._firstValidatorId
             expect(_firstValidatorId).to.be.equal(eth2DepositContractDepositCount + 1)
+            const firstValidatorIdNumber = _firstValidatorId.toNumber()
 
             const _validatorCount = event.args?._validatorCount
             expect(_validatorCount).to.be.equal(depositCount)
+            const validatorCountNumber = _validatorCount.toNumber()
 
             // retrieve client instance address from event
             const _newFeeDistributorAddress = event.args?._newFeeDistributorAddress
             console.log(_newFeeDistributorAddress)
 
-            const batchRewardData = generateMockBatchRewardData(BatchCount, _firstValidatorId, _validatorCount, testAmountInGwei);
+            // CL rewards from DB
+            const batchRewardData = generateMockBatchRewardData(BatchCount, firstValidatorIdNumber, validatorCountNumber, testAmountInGwei);
 
+            // build Merkle Tree
             const tree = buildMerkleTreeForValidatorBatch(batchRewardData)
 
             // Send it to the Oracle contract
             console.log('Merkle Root:', tree.root);
 
+            await oracleSignedByDeployer.report(tree.root)
+
             // Send tree.json file to the website and to the withdrawer
             fs.writeFileSync("tree.json", JSON.stringify(tree.dump()));
 
-            const {proof, value} = obtainProof(_firstValidatorId)
+            // obtain Proof and rewards info for the batch of validators
+            const {proof, value} = obtainProof(firstValidatorIdNumber)
+            const amountInGwei = value[2]
 
             // set the newly created FeeDistributor contract as coinbase (block rewards recipient)
             // In the real world this will be done in a validator's settings
@@ -175,13 +183,13 @@ describe("Integration", function () {
             // simulate producing a new block so that our FeeDistributor contract can get its rewards
             await ethers.provider.send("evm_mine", [])
 
-            // // attach to the FeeDistributor contract with the owner (signer)
-            // const feeDistributorSignedByDeployer = deployerSignerFactory.attach(newlyCreatedFeeDistributorAddress)
-            //
-            // const serviceAddressBalanceBefore = await ethers.provider.getBalance(serviceAddress)
-            //
-            // // call withdraw
-            // await feeDistributorSignedByDeployer.withdraw()
+            // attach to the FeeDistributor contract with the owner (signer)
+            const feeDistributorSignedByNobody = nobodyFactory.attach(_newFeeDistributorAddress)
+
+            const serviceAddressBalanceBefore = await ethers.provider.getBalance(serviceAddress)
+
+            // call withdraw
+            await feeDistributorSignedByNobody.withdraw(proof, amountInGwei)
             //
             // const totalBlockReward = ethers.utils.parseEther('2')
             //

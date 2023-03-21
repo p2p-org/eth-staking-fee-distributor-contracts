@@ -271,6 +271,9 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         // set client config
         s_clientConfig = _clientConfig;
 
+        // set validator data
+        s_validatorData = _validatorData;
+
         emit Initialized(
             _clientConfig.recipient,
             _clientConfig.basisPoints,

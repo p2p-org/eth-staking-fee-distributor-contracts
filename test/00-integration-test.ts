@@ -31,7 +31,7 @@ describe("Integration", function () {
 
     const clientBasisPoints = 9000;
 
-    const referrerBasisPoints =  400;
+    const referrerBasisPoints = 400;
 
     const serviceBasisPoints =  10000 - clientBasisPoints - referrerBasisPoints;
 
@@ -105,109 +105,116 @@ describe("Integration", function () {
     })
 
     it("distributes fees", async function () {
-        try {
-            // deploy reference instance
-            const feeDistributorReferenceInstance = await deployerFactory.deploy(
-                oracleSignedByDeployer.address,
-                feeDistributorFactorySignedByDeployer.address,
-                serviceAddress
-            )
+        // deploy reference instance
+        const feeDistributorReferenceInstance = await deployerFactory.deploy(
+            oracleSignedByDeployer.address,
+            feeDistributorFactorySignedByDeployer.address,
+            serviceAddress
+        )
 
-            // set reference instance
-            await feeDistributorFactorySignedByDeployer.setReferenceInstance(feeDistributorReferenceInstance.address)
+        // set reference instance
+        await feeDistributorFactorySignedByDeployer.setReferenceInstance(feeDistributorReferenceInstance.address)
 
 
-            const batchDepositData = generateMockDepositData(depositCount)
+        const batchDepositData = generateMockDepositData(depositCount)
 
-            const depositTx = await p2pEth2DepositorSignedByClientDepositor.deposit(
-                batchDepositData.map(d => d.pubkey),
-                batchDepositData[0].withdrawal_credentials,
-                batchDepositData.map(d => d.signature),
-                batchDepositData.map(d => d.deposit_data_root),
-                { recipient: clientAddress, basisPoints: clientBasisPoints },
-                { recipient: nobody, basisPoints: referrerBasisPoints },
+        const depositTx = await p2pEth2DepositorSignedByClientDepositor.deposit(
+            batchDepositData.map(d => d.pubkey),
+            batchDepositData[0].withdrawal_credentials,
+            batchDepositData.map(d => d.signature),
+            batchDepositData.map(d => d.deposit_data_root),
+            { recipient: clientAddress, basisPoints: clientBasisPoints },
+            { recipient: nobody, basisPoints: referrerBasisPoints },
 
-                {
-                    value: ethers.utils.parseUnits((depositCount * 32).toString(), 'ether')
-                }
-            );
-
-            await expect(depositTx).to.emit(p2pEth2DepositorSignedByClientDepositor, 'P2pEth2DepositEvent')
-
-            const depositTxReceipt = await depositTx.wait();
-
-            const event = depositTxReceipt?.events?.find(event => event.event === 'P2pEth2DepositEvent');
-            if (!event) {
-                throw Error('No depositTxReceipt event found')
+            {
+                value: ethers.utils.parseUnits((depositCount * 32).toString(), 'ether')
             }
+        );
 
-            const _from = event.args?._from
-            expect(_from).to.be.equal(clientDepositor)
+        await expect(depositTx).to.emit(p2pEth2DepositorSignedByClientDepositor, 'P2pEth2DepositEvent')
 
-            const _firstValidatorId = event.args?._firstValidatorId
-            expect(_firstValidatorId).to.be.equal(eth2DepositContractDepositCount + 1)
-            const firstValidatorIdNumber = _firstValidatorId.toNumber()
+        const depositTxReceipt = await depositTx.wait();
 
-            const _validatorCount = event.args?._validatorCount
-            expect(_validatorCount).to.be.equal(depositCount)
-            const validatorCountNumber = _validatorCount.toNumber()
-
-            // retrieve client instance address from event
-            const _newFeeDistributorAddress = event.args?._newFeeDistributorAddress
-            console.log(_newFeeDistributorAddress)
-
-            // CL rewards from DB
-            const batchRewardData = generateMockBatchRewardData(BatchCount, firstValidatorIdNumber, validatorCountNumber, testAmountInGwei);
-
-            // build Merkle Tree
-            const tree = buildMerkleTreeForValidatorBatch(batchRewardData)
-
-            // Send it to the Oracle contract
-            console.log('Merkle Root:', tree.root);
-
-            await oracleSignedByDeployer.report(tree.root)
-
-            // Send tree.json file to the website and to the withdrawer
-            fs.writeFileSync("tree.json", JSON.stringify(tree.dump()));
-
-            // obtain Proof and rewards info for the batch of validators
-            const {proof, value} = obtainProof(firstValidatorIdNumber)
-            const amountInGwei = value[2]
-
-            // set the newly created FeeDistributor contract as coinbase (block rewards recipient)
-            // In the real world this will be done in a validator's settings
-            await ethers.provider.send("hardhat_setCoinbase", [
-                _newFeeDistributorAddress,
-            ])
-
-            // simulate producing a new block so that our FeeDistributor contract can get its rewards
-            await ethers.provider.send("evm_mine", [])
-
-            // attach to the FeeDistributor contract with the owner (signer)
-            const feeDistributorSignedByNobody = nobodyFactory.attach(_newFeeDistributorAddress)
-
-            const serviceAddressBalanceBefore = await ethers.provider.getBalance(serviceAddress)
-
-            // call withdraw
-            await feeDistributorSignedByNobody.withdraw(proof, amountInGwei)
-            //
-            // const totalBlockReward = ethers.utils.parseEther('2')
-            //
-            // // get service address balance
-            // const serviceAddressBalance = await ethers.provider.getBalance(serviceAddress)
-            //
-            // // make sure P2P (service) got its share
-            // expect(serviceAddressBalance.sub(serviceAddressBalanceBefore)).to.equal(totalBlockReward.mul(serviceBasisPoints).div(10000))
-            //
-            // // get client address balance
-            // const clientAddressBalance = await ethers.provider.getBalance(clientAddress)
-            //
-            // // make sure client got its share
-            // expect(clientAddressBalance).to.equal(totalBlockReward.mul(clientBasisPoints).div(10000))
-
-        } catch (error) {
-            console.log(error)
+        const event = depositTxReceipt?.events?.find(event => event.event === 'P2pEth2DepositEvent');
+        if (!event) {
+            throw Error('No depositTxReceipt event found')
         }
+
+        const _from = event.args?._from
+        expect(_from).to.be.equal(clientDepositor)
+
+        const _firstValidatorId = event.args?._firstValidatorId
+        expect(_firstValidatorId).to.be.equal(eth2DepositContractDepositCount + 1)
+        const firstValidatorIdNumber = _firstValidatorId.toNumber()
+
+        const _validatorCount = event.args?._validatorCount
+        expect(_validatorCount).to.be.equal(depositCount)
+        const validatorCountNumber = _validatorCount.toNumber()
+
+        // retrieve client instance address from event
+        const _newFeeDistributorAddress = event.args?._newFeeDistributorAddress
+
+        // CL rewards from DB
+        const batchRewardData = generateMockBatchRewardData(BatchCount, firstValidatorIdNumber, validatorCountNumber, testAmountInGwei);
+
+        // build Merkle Tree
+        const tree = buildMerkleTreeForValidatorBatch(batchRewardData)
+
+        // Send it to the Oracle contract
+        await oracleSignedByDeployer.report(tree.root)
+
+        // Send tree.json file to the website and to the withdrawer
+        fs.writeFileSync("tree.json", JSON.stringify(tree.dump()));
+
+        // obtain Proof and rewards info for the batch of validators
+        const {proof, value} = obtainProof(firstValidatorIdNumber)
+        const amountInGwei = value[2]
+
+        // set the newly created FeeDistributor contract as coinbase (block rewards recipient)
+        // In the real world this will be done in a validator's settings
+        await ethers.provider.send("hardhat_setCoinbase", [
+            _newFeeDistributorAddress,
+        ])
+
+        // simulate producing a new block so that our FeeDistributor contract can get its rewards
+        await ethers.provider.send("evm_mine", [])
+
+        // attach to the FeeDistributor contract with the owner (signer)
+        const feeDistributorSignedByNobody = nobodyFactory.attach(_newFeeDistributorAddress)
+
+        const serviceAddressBalanceBefore = await ethers.provider.getBalance(serviceAddress)
+        const clientAddressBalanceBefore = await ethers.provider.getBalance(clientAddress)
+        const feeDistributorBalanceBefore = await ethers.provider.getBalance(feeDistributorSignedByNobody.address)
+
+        // call withdraw
+        await feeDistributorSignedByNobody.withdraw(proof, amountInGwei)
+
+        const elRewards = ethers.utils.parseEther('2')
+        const clRewards = ethers.BigNumber.from(testAmountInGwei).mul(1e9)
+        const totalRewards = elRewards.add(clRewards)
+
+        // get service address balance
+        const serviceAddressBalance = await ethers.provider.getBalance(serviceAddress)
+
+        // get client address balance
+        const clientAddressBalance = await ethers.provider.getBalance(clientAddress)
+
+        const feeDistributorBalance = await ethers.provider.getBalance(feeDistributorSignedByNobody.address)
+
+        // make sure the feeDistributor contract does not have ether left
+        expect(feeDistributorBalance.sub(feeDistributorBalanceBefore)).to.equal(0)
+
+        // make sure P2P (service) got its share
+        expect(serviceAddressBalance.sub(serviceAddressBalanceBefore)).to.equal(
+            totalRewards.mul(serviceBasisPoints)
+                .div(10000))
+
+        // make sure client got its share
+        expect(clientAddressBalance.sub(clientAddressBalanceBefore)).to.equal(
+            feeDistributorBalanceBefore
+                .sub(totalRewards.mul(serviceBasisPoints).div(10000))
+                .sub(totalRewards.mul(referrerBasisPoints).div(10000)))
+
     })
 
     // it("recoverEther should simply withdraw in a normal case", async function () {

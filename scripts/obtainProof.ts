@@ -7,11 +7,7 @@ export function obtainProof(firstValidatorId: number) {
 
     for (const [i, value] of tree.entries()) {
         if (value[0] === firstValidatorId) {
-            // (3)
             const proof = tree.getProof(i);
-            console.log('Value:', value);
-            console.log('Proof:', proof);
-
             return ({proof, value})
         }
     }

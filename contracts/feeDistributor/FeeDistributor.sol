@@ -448,6 +448,27 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     }
 
     /**
+    * @dev Returns First Validator Id
+    */
+    function firstValidatorId() external view returns (uint256) {
+        return s_validatorData.firstValidatorId;
+    }
+
+    /**
+    * @dev Returns a portion of CL rewards that should not be counted during withdraw (belongs to client only)
+    */
+    function clientOnlyClRewards() external view returns (uint256) {
+        return s_validatorData.clientOnlyClRewards;
+    }
+
+    /**
+    * @dev Returns validator count
+    */
+    function validatorCount() external view returns (uint256) {
+        return s_validatorData.validatorCount;
+    }
+
+    /**
     * @dev See {IERC165-supportsInterface}.
     */
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {

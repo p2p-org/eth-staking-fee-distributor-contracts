@@ -20,7 +20,7 @@ import { obtainProof } from "../scripts/obtainProof"
 describe("Integration", function () {
 
     const BatchCount = 13
-    const testAmountInGwei = 80000000000
+    const testAmountInGwei = 8000000000000
     const depositCount = 100
     const eth2DepositContractDepositCount = 567254
     const defaultClientBasisPoints = 9000;
@@ -202,32 +202,17 @@ describe("Integration", function () {
         // make sure the feeDistributor contract does not have ether left
         expect(feeDistributorBalance).to.equal(0)
 
-        const desiredServiceAmount = totalRewards.mul(serviceBasisPoints)
+        // make sure P2P (service) got its share
+        expect(serviceAddressBalance.sub(serviceAddressBalanceBefore)).to.equal(
+            elRewards.div(2)
+                .mul(serviceBasisPoints)
+                .div(serviceBasisPoints + referrerBasisPoints)
+        )
 
-        if (desiredServiceAmount.gt(elRewards.div(2))) { // serviceAmount > halfBalance
-            // make sure P2P (service) got its share
-            expect(serviceAddressBalance.sub(serviceAddressBalanceBefore)).to.equal(
-                elRewards.div(2)
-                    .mul(serviceBasisPoints)
-                    .div(serviceBasisPoints + referrerBasisPoints)
-            )
-
-            // make sure client got its share
-            expect(clientAddressBalance.sub(clientAddressBalanceBefore)).to.equal(
-                elRewards.div(2)
-            )
-        } else {
-            // make sure P2P (service) got its share
-            expect(serviceAddressBalance.sub(serviceAddressBalanceBefore)).to.equal(
-                totalRewards.mul(serviceBasisPoints)
-                    .div(10000))
-
-            // make sure client got its share
-            expect(clientAddressBalance.sub(clientAddressBalanceBefore)).to.equal(
-                feeDistributorBalanceBefore
-                    .sub(totalRewards.mul(serviceBasisPoints).div(10000))
-                    .sub(totalRewards.mul(referrerBasisPoints).div(10000)))
-        }
+        // make sure client got its share
+        expect(clientAddressBalance.sub(clientAddressBalanceBefore)).to.equal(
+            elRewards.div(2)
+        )
     })
 
     it("recoverEther should simply withdraw in a normal case", async function () {
@@ -336,32 +321,17 @@ describe("Integration", function () {
         // make sure the feeDistributor contract does not have ether left
         expect(feeDistributorBalance).to.equal(0)
 
-        const desiredServiceAmount = totalRewards.mul(serviceBasisPoints)
+        // make sure P2P (service) got its share
+        expect(serviceAddressBalance.sub(serviceAddressBalanceBefore)).to.equal(
+            elRewards.div(2)
+                .mul(serviceBasisPoints)
+                .div(serviceBasisPoints + referrerBasisPoints)
+        )
 
-        if (desiredServiceAmount.gt(elRewards.div(2))) { // serviceAmount > halfBalance
-            // make sure P2P (service) got its share
-            expect(serviceAddressBalance.sub(serviceAddressBalanceBefore)).to.equal(
-                elRewards.div(2)
-                    .mul(serviceBasisPoints)
-                    .div(serviceBasisPoints + referrerBasisPoints)
-            )
-
-            // make sure client got its share
-            expect(clientAddressBalance.sub(clientAddressBalanceBefore)).to.equal(
-                elRewards.div(2)
-            )
-        } else {
-            // make sure P2P (service) got its share
-            expect(serviceAddressBalance.sub(serviceAddressBalanceBefore)).to.equal(
-                totalRewards.mul(serviceBasisPoints)
-                    .div(10000))
-
-            // make sure client got its share
-            expect(clientAddressBalance.sub(clientAddressBalanceBefore)).to.equal(
-                feeDistributorBalanceBefore
-                    .sub(totalRewards.mul(serviceBasisPoints).div(10000))
-                    .sub(totalRewards.mul(referrerBasisPoints).div(10000)))
-        }
+        // make sure client got its share
+        expect(clientAddressBalance.sub(clientAddressBalanceBefore)).to.equal(
+            elRewards.div(2)
+        )
 
         // no recovery should happen if the normal withdraw completed successfully
         const EtherRecoveredEvent = recoverEtherTxReceipt?.events?.find(event => event.event === 'EtherRecovered')
@@ -475,33 +445,22 @@ describe("Integration", function () {
         // get client address balance
         const clientAddressBalance = await ethers.provider.getBalance(clientAddress)
 
-        const desiredServiceAmount = totalRewards.mul(serviceBasisPoints)
+        // make sure P2P (service) got its share
+        expect(serviceAddressBalance.sub(serviceAddressBalanceBefore)).to.equal(
+            elRewards.div(2)
+                .mul(serviceBasisPoints)
+                .div(serviceBasisPoints + referrerBasisPoints)
+        )
 
-        if (desiredServiceAmount.gt(elRewards.div(2))) { // serviceAmount > halfBalance
-            // make sure P2P (service) got its share
-            expect(serviceAddressBalance.sub(serviceAddressBalanceBefore)).to.equal(
-                elRewards.div(2)
-                    .mul(serviceBasisPoints)
-                    .div(serviceBasisPoints + referrerBasisPoints)
-            )
-
-            // client did not get its share due to the revert
-            expect(clientAddressBalance.sub(clientAddressBalanceBefore)).to.equal(
-                0
-            )
-        } else {
-            // make sure P2P (service) got its share
-            expect(serviceAddressBalance.sub(serviceAddressBalanceBefore)).to.equal(totalRewards.mul(serviceBasisPoints).div(10000))
-            // client did not get its share due to the revert
-            expect(clientAddressBalance.sub(clientAddressBalanceBefore)).to.equal(0)
-        }
+        // client did not get its share due to the revert
+        expect(clientAddressBalance.sub(clientAddressBalanceBefore)).to.equal(
+            0
+        )
 
         const serviceAddressBalanceBeforeRecoverEther = await ethers.provider.getBalance(serviceAddress)
         const clientAddressBalanceBeforeRecoverEther = await ethers.provider.getBalance(clientAddress)
         const remainingEtherBefore = await ethers.provider.getBalance(_newFeeDistributorAddress)
         const recoverDestinationEtherBefore = await ethers.provider.getBalance(clientDepositor)
-
-        console.log('remainingEtherBefore: ' + remainingEtherBefore.toString())
 
         // recoverEther
         const recoverEtherTx = await feeDistributorSignedByDeployer.recoverEther(clientDepositor, proof, amountInGwei)
@@ -511,28 +470,17 @@ describe("Integration", function () {
         const serviceAddressBalanceAfterRecoverEther = await ethers.provider.getBalance(serviceAddress)
         const clientAddressBalanceAfterRecoverEther = await ethers.provider.getBalance(clientAddress)
 
-        if ((remainingEtherBefore.add(clRewards)).mul(serviceBasisPoints)
-            .gt(remainingEtherBefore.div(2))) { // serviceAmount > halfBalance
+        // make sure P2P (service) got its share
+        expect(serviceAddressBalanceAfterRecoverEther.sub(serviceAddressBalanceBeforeRecoverEther)).to.equal(
+            remainingEtherBefore.div(2)
+                .mul(serviceBasisPoints)
+                .div(serviceBasisPoints + referrerBasisPoints)
+        )
 
-            // make sure P2P (service) got its share
-            expect(serviceAddressBalanceAfterRecoverEther.sub(serviceAddressBalanceBeforeRecoverEther)).to.equal(
-                remainingEtherBefore.div(2)
-                    .mul(serviceBasisPoints)
-                    .div(serviceBasisPoints + referrerBasisPoints)
-            )
-
-            // client did not get its share due to the revert
-            expect(clientAddressBalanceAfterRecoverEther.sub(clientAddressBalanceBeforeRecoverEther)).to.equal(
-                0
-            )
-        } else {
-            // make sure P2P (service) got its share
-            expect(serviceAddressBalanceAfterRecoverEther.sub(serviceAddressBalanceBeforeRecoverEther))
-                .to.equal(remainingEtherBefore.mul(serviceBasisPoints).div(10000))
-            // client did not get its share due to the revert
-            expect(clientAddressBalanceAfterRecoverEther.sub(clientAddressBalanceBeforeRecoverEther))
-                .to.equal(0)
-        }
+        // client did not get its share due to the revert
+        expect(clientAddressBalanceAfterRecoverEther.sub(clientAddressBalanceBeforeRecoverEther)).to.equal(
+            0
+        )
 
         // recovery should happen
         const EtherRecoveredEvent = recoverEtherTxReceipt?.events?.find(event => event.event === 'EtherRecovered')
@@ -541,17 +489,9 @@ describe("Integration", function () {
         expect(!!EtherRecoveryFailedEvent).to.be.false
 
         const recoverDestinationEtherAfter = await ethers.provider.getBalance(clientDepositor)
-        console.log(recoverDestinationEtherAfter.sub(recoverDestinationEtherBefore))
 
-        if ((remainingEtherBefore.add(clRewards)).mul(serviceBasisPoints)
-            .gt(remainingEtherBefore.div(2))) { // serviceAmount > halfBalance
-
-            expect(recoverDestinationEtherAfter.sub(recoverDestinationEtherBefore))
-                .to.equal(remainingEtherBefore.div(2))
-        } else {
-            expect(recoverDestinationEtherAfter.sub(recoverDestinationEtherBefore))
-                .to.equal(remainingEtherBefore.mul(10000 - serviceBasisPoints).div(10000))
-        }
+        expect(recoverDestinationEtherAfter.sub(recoverDestinationEtherBefore))
+            .to.equal(remainingEtherBefore.div(2))
 
         const remainingEtherAfter = await ethers.provider.getBalance(_newFeeDistributorAddress)
         expect(remainingEtherAfter).to.equal(0)

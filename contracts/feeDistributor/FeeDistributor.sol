@@ -11,8 +11,6 @@ import "../assetRecovering/OwnableTokenRecoverer.sol";
 import "./IFeeDistributor.sol";
 import "../oracle/IOracle.sol";
 
-import "hardhat/console.sol";
-
 /**
 * @notice Should be a Oracle contract
 * @param _passedAddress passed address that does not support IOracle interface
@@ -354,7 +352,6 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         // if a half of the available balance is not enough to cover service (and referrer) shares
         // can happen when CL rewards (only accessible by client) are way much than EL rewards
         if (serviceAmount > halfBalance) {
-            console.log("serviceAmount > halfBalance");
             // client gets 50% of EL rewards
             clientAmount = halfBalance;
 

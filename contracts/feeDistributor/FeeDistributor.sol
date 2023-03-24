@@ -11,6 +11,8 @@ import "../assetRecovering/OwnableTokenRecoverer.sol";
 import "./IFeeDistributor.sol";
 import "../oracle/IOracle.sol";
 
+import "hardhat/console.sol";
+
 /**
 * @notice Should be a Oracle contract
 * @param _passedAddress passed address that does not support IOracle interface
@@ -352,6 +354,7 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         // if a half of the available balance is not enough to cover service (and referrer) shares
         // can happen when CL rewards (only accessible by client) are way much than EL rewards
         if (serviceAmount > halfBalance) {
+            console.log("serviceAmount > halfBalance");
             // client gets 50% of EL rewards
             clientAmount = halfBalance;
 
@@ -359,14 +362,14 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
             serviceAmount = balance - halfBalance;
 
             // update the total amount being split to a smaller value to fit the actual balance of this contract
-            totalAmountToSplit = (serviceAmount * 10000) / (10000 - clientBp);
+            totalAmountToSplit = (halfBalance * 10000) / (10000 - clientBp);
         } else {
             // send the remaining balance to client
             clientAmount = balance - serviceAmount;
         }
 
         // client gets the rest from CL as not split anymore amount
-        s_validatorData.clientOnlyClRewards = uint176(vd.clientOnlyClRewards + (totalAmountToSplit - clientAmount));
+        s_validatorData.clientOnlyClRewards = uint176(vd.clientOnlyClRewards + (totalAmountToSplit - balance));
 
         // how much should referrer get
         uint256 referrerAmount;
@@ -445,6 +448,20 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
      */
     function clientBasisPoints() external view returns (uint256) {
         return s_clientConfig.basisPoints;
+    }
+
+    /**
+    * @dev Returns the referrer address
+     */
+    function referrer() external view returns (address) {
+        return s_referrerConfig.recipient;
+    }
+
+    /**
+     * @dev Returns the referrer basis points
+     */
+    function referrerBasisPoints() external view returns (uint256) {
+        return s_referrerConfig.basisPoints;
     }
 
     /**

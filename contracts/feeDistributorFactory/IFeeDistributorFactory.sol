@@ -26,6 +26,12 @@ interface IFeeDistributorFactory is IOwnable, IERC165 {
     */
     event ReferenceInstanceSet(address indexed _referenceFeeDistributor);
 
+    /**
+    * @notice Emits when a new P2pEth2Depositor contract address has been set.
+    * @param _p2pEth2Depositor the address of the new P2pEth2Depositor contract
+    */
+    event P2pEth2DepositorSet(address indexed _p2pEth2Depositor);
+
     // Functions
 
     /**
@@ -41,12 +47,13 @@ interface IFeeDistributorFactory is IOwnable, IERC165 {
     * @param _clientConfig address and basis points (percent * 100) of the client
     * @param _referrerConfig address and basis points (percent * 100) of the referrer.
     * @param _validatorData clientOnlyClRewards, firstValidatorId, and validatorCount
+    * @return newFeeDistributorAddress user FeeDistributor instance that has just been deployed
     */
     function createFeeDistributor(
         IFeeDistributor.FeeRecipient calldata _clientConfig,
         IFeeDistributor.FeeRecipient calldata _referrerConfig,
         IFeeDistributor.ValidatorData calldata _validatorData
-    ) external;
+    ) external returns (address newFeeDistributorAddress);
 
     /**
      * @dev Returns the reference FeeDistributor contract address

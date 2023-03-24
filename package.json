@@ -38,7 +38,6 @@
     "typechain": "yarn hardhat typechain",
     "size": "yarn run hardhat size-contracts",
     "deployToGoerli": "yarn hardhat run --network goerli scripts/deploy.ts",
-    "buildMerkleTree": "yarn hardhat run scripts/buildMerkleTree.ts",
-    "obtainProof": "yarn hardhat run scripts/obtainProof.ts"
+    "main": "yarn hardhat run scripts/main.ts"
   }
 }

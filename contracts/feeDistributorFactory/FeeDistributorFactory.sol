@@ -11,6 +11,7 @@ import "./IFeeDistributorFactory.sol";
 import "../feeDistributor/IFeeDistributor.sol";
 import "../access/Ownable.sol";
 import "../access/OwnableWithOperator.sol";
+import "../p2pEth2Depositor/IP2pEth2Depositor.sol";
 
 /**
 * @notice Should be a FeeDistributor contract
@@ -19,9 +20,21 @@ import "../access/OwnableWithOperator.sol";
 error FeeDistributorFactory__NotFeeDistributor(address _passedAddress);
 
 /**
+* @notice Should be a P2pEth2Depositor contract
+* @param _passedAddress passed address that does not support IP2pEth2Depositor interface
+*/
+error FeeDistributorFactory__NotP2pEth2Depositor(address _passedAddress);
+
+/**
 * @notice Reference FeeDistributor should be set before calling `createFeeDistributor`
 */
 error FeeDistributorFactory__ReferenceFeeDistributorNotSet();
+
+/**
+* @notice caller should be owner, operator, or P2pEth2Depositor contract
+* @param _caller calling address
+*/
+error FeeDistributorFactory__CallerNotAuthorized(address _caller);
 
 /**
 * @title Factory for cloning (EIP-1167) FeeDistributor instances pre client
@@ -47,6 +60,11 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     uint96 s_defaultClientBasisPoints;
 
     /**
+    * @notice The address of P2pEth2Depositor
+    */
+    address private s_p2pEth2Depositor;
+
+    /**
     * @dev Set values known at the initial deploy time.
     * @param _defaultClientBasisPoints Default Client Basis Points
     */
@@ -70,6 +88,19 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     }
 
     /**
+    * @notice Set a new version of P2pEth2Depositor contract
+    * @param _p2pEth2Depositor the address of the new P2pEth2Depositor contract
+    */
+    function setP2pEth2Depositor(address _p2pEth2Depositor) external onlyOwner {
+        if (!ERC165Checker.supportsInterface(_p2pEth2Depositor, type(IP2pEth2Depositor).interfaceId)) {
+            revert FeeDistributorFactory__NotP2pEth2Depositor(_p2pEth2Depositor);
+        }
+
+        s_p2pEth2Depositor = _p2pEth2Depositor;
+        emit P2pEth2DepositorSet(_p2pEth2Depositor);
+    }
+
+    /**
     * @notice Set a new Default Client Basis Points
     * @param _defaultClientBasisPoints Default Client Basis Points
     */
@@ -84,18 +115,34 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     * @param _clientConfig address and basis points (percent * 100) of the client
     * @param _referrerConfig address and basis points (percent * 100) of the referrer.
     * @param _validatorData clientOnlyClRewards, firstValidatorId, and validatorCount
+    * @return newFeeDistributorAddress user FeeDistributor instance that has just been deployed
     */
     function createFeeDistributor(
-        IFeeDistributor.FeeRecipient calldata _clientConfig,
+        IFeeDistributor.FeeRecipient memory _clientConfig,
         IFeeDistributor.FeeRecipient calldata _referrerConfig,
         IFeeDistributor.ValidatorData calldata _validatorData
-    ) external onlyOperatorOrOwner {
+    ) external returns (address newFeeDistributorAddress) {
+        address currentOwner = owner();
+        address currentOperator = operator();
+        address p2pEth2Depositor = s_p2pEth2Depositor;
+
+        if (currentOperator != _msgSender()
+            && currentOwner != _msgSender()
+            && p2pEth2Depositor != _msgSender()
+        ) {
+            revert FeeDistributorFactory__CallerNotAuthorized(_msgSender());
+        }
+
         if (s_referenceFeeDistributor == address(0)) {
             revert FeeDistributorFactory__ReferenceFeeDistributorNotSet();
         }
 
+        if (_clientConfig.basisPoints == 0) {
+            _clientConfig.basisPoints = s_defaultClientBasisPoints;
+        }
+
         // clone the reference implementation of FeeDistributor
-        address newFeeDistributorAddress = s_referenceFeeDistributor.clone();
+        newFeeDistributorAddress = s_referenceFeeDistributor.clone();
 
         // cast address to FeeDistributor
         IFeeDistributor newFeeDistributor = IFeeDistributor(newFeeDistributorAddress);
@@ -105,6 +152,8 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
 
         // emit event with the address of the newly created instance for the external listener
         emit FeeDistributorCreated(newFeeDistributorAddress, _clientConfig.recipient);
+
+        return newFeeDistributorAddress;
     }
 
     /**

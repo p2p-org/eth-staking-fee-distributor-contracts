@@ -271,6 +271,9 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         // set client config
         s_clientConfig = _clientConfig;
 
+        // set validator data
+        s_validatorData = _validatorData;
+
         emit Initialized(
             _clientConfig.recipient,
             _clientConfig.basisPoints,
@@ -305,11 +308,11 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     * `recoverEther` function is just an emergency backup plan and does not replace `withdraw`.
     *
     * @param _proof Merkle proof (the leaf's sibling, and each non-leaf hash that could not otherwise be calculated without additional leaf nodes)
-    * @param _amount total CL rewards earned by all validators (see _validatorCount)
+    * @param _amountInGwei total CL rewards earned by all validators in GWei (see _validatorCount)
     */
     function withdraw(
         bytes32[] calldata _proof,
-        uint256 _amount
+        uint256 _amountInGwei
     ) external nonReentrant {
         if (s_clientConfig.recipient == address(0)) {
             revert FeeDistributor__ClientNotSet();
@@ -327,10 +330,13 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         ValidatorData memory vd = s_validatorData;
 
         // verify the data from the caller against the orcale
-        i_oracle.verify(_proof, vd.firstValidatorId, vd.validatorCount, _amount);
+        i_oracle.verify(_proof, vd.firstValidatorId, vd.validatorCount, _amountInGwei);
+
+        // Gwei to Wei
+        uint256 amount = _amountInGwei * (10 ** 9);
 
         // total to split = EL + CL - already split part of CL (should be OK unless halfBalance < serviceAmount)
-        uint256 totalAmountToSplit = balance + _amount - vd.clientOnlyClRewards;
+        uint256 totalAmountToSplit = balance + amount - vd.clientOnlyClRewards;
 
         // set client basis points to value from storage config
         uint256 clientBp = s_clientConfig.basisPoints;
@@ -353,14 +359,14 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
             serviceAmount = balance - halfBalance;
 
             // update the total amount being split to a smaller value to fit the actual balance of this contract
-            totalAmountToSplit = (serviceAmount * 10000) / (10000 - clientBp);
+            totalAmountToSplit = (halfBalance * 10000) / (10000 - clientBp);
         } else {
             // send the remaining balance to client
             clientAmount = balance - serviceAmount;
         }
 
         // client gets the rest from CL as not split anymore amount
-        s_validatorData.clientOnlyClRewards = uint176(vd.clientOnlyClRewards + (totalAmountToSplit - clientAmount));
+        s_validatorData.clientOnlyClRewards = uint176(vd.clientOnlyClRewards + (totalAmountToSplit - balance));
 
         // how much should referrer get
         uint256 referrerAmount;
@@ -390,14 +396,14 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
     * refuse to accept ether.
     * @param _to receiver address
     * @param _proof Merkle proof (the leaf's sibling, and each non-leaf hash that could not otherwise be calculated without additional leaf nodes)
-    * @param _amount total CL rewards earned by all validators (see _validatorCount)
+    * @param _amountInGwei total CL rewards earned by all validators in GWei (see _validatorCount)
     */
     function recoverEther(
         address payable _to,
         bytes32[] calldata _proof,
-        uint256 _amount
+        uint256 _amountInGwei
     ) external onlyOwner {
-        this.withdraw(_proof, _amount);
+        this.withdraw(_proof, _amountInGwei);
 
         // get the contract's balance
         uint256 balance = address(this).balance;
@@ -439,6 +445,41 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
      */
     function clientBasisPoints() external view returns (uint256) {
         return s_clientConfig.basisPoints;
+    }
+
+    /**
+    * @dev Returns the referrer address
+     */
+    function referrer() external view returns (address) {
+        return s_referrerConfig.recipient;
+    }
+
+    /**
+     * @dev Returns the referrer basis points
+     */
+    function referrerBasisPoints() external view returns (uint256) {
+        return s_referrerConfig.basisPoints;
+    }
+
+    /**
+    * @dev Returns First Validator Id
+    */
+    function firstValidatorId() external view returns (uint256) {
+        return s_validatorData.firstValidatorId;
+    }
+
+    /**
+    * @dev Returns a portion of CL rewards that should not be counted during withdraw (belongs to client only)
+    */
+    function clientOnlyClRewards() external view returns (uint256) {
+        return s_validatorData.clientOnlyClRewards;
+    }
+
+    /**
+    * @dev Returns validator count
+    */
+    function validatorCount() external view returns (uint256) {
+        return s_validatorData.validatorCount;
     }
 
     /**

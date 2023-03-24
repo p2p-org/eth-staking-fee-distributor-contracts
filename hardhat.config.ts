@@ -32,7 +32,7 @@ const config: HardhatUserConfig = {
       },
       forking: {
         url: MAINNET_RPC_URL,
-        blockNumber: 15789305
+        blockNumber: 16846616
       }
     },
     goerli: {
@@ -82,8 +82,14 @@ const config: HardhatUserConfig = {
     serviceAddress: { // will receive EL rewards, P2P secure address (cold storage, multisig, etc.)
       default: 3
     },
-    nobody: {
+    clientAddress: { // // will receive client's EL rewards
       default: 4
+    },
+    clientDepositor: { // client address making initial ETH deposit
+      default: 5
+    },
+    nobody: {
+      default: 6
     },
   },
 }

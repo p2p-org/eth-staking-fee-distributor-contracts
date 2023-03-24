@@ -36,15 +36,15 @@ contract Oracle is OwnableAssetRecoverer, OwnableWithOperator, ERC165, IOracle {
     * @param _proof Merkle proof (the leaf's sibling, and each non-leaf hash that could not otherwise be calculated without additional leaf nodes)
     * @param _firstValidatorId Validator Id (number of all deposits previously made to ETH2 DepositContract plus 1)
     * @param _validatorCount (number of validators corresponding to a given FeeDistributor instance, eqaul to the number of ETH2 deposits made with 1 P2pEth2Depositor's deposit)
-    * @param _amount total CL rewards earned by all validators (see _validatorCount)
+    * @param _amountInGwei total CL rewards earned by all validators in GWei (see _validatorCount)
     */
     function verify(
         bytes32[] calldata _proof,
         uint64 _firstValidatorId,
         uint16 _validatorCount,
-        uint256 _amount
+        uint256 _amountInGwei
     ) external view {
-        bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(_firstValidatorId, _validatorCount, _amount))));
+        bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(_firstValidatorId, _validatorCount, _amountInGwei))));
 
         if (!MerkleProof.verify(_proof, s_root, leaf)) {
             revert Oracle__InvalidProof();

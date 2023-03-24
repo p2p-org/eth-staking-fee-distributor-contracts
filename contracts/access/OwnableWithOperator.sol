@@ -53,7 +53,7 @@ abstract contract OwnableWithOperator is Ownable2Step {
     /**
      * @dev Returns the current operator.
      */
-    function operator() external view virtual returns (address) {
+    function operator() public view virtual returns (address) {
         return s_operator;
     }
 

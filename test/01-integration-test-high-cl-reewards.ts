@@ -22,7 +22,7 @@ describe("Integration", function () {
     const BatchCount = 13
     const testAmountInGwei = 8000000000000
     const depositCount = 100
-    const eth2DepositContractDepositCount = 567254
+    const eth2DepositContractDepositCount = 531130
     const defaultClientBasisPoints = 9000;
     const clientBasisPoints = 9000;
     const referrerBasisPoints = 400;

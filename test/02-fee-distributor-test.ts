@@ -245,17 +245,17 @@ describe("FeeDistributor", function () {
         await erc20.transfer(newFeeDistributorAddress, erc20Amount)
 
         // ERC721
-        const erc721Owner = '0xa4f0cb9FBef5Af5b811788f77e48d62dc07Ba017'
+        const erc721Owner = '0x25Fa18641B5344542130FD88BEc35F8e8b70571E'
         await ethers.provider.send("hardhat_impersonateAccount", [
             erc721Owner,
         ])
         const erc721OwnerSigner = await ethers.getSigner(erc721Owner)
-        const erc721Address = '0xb7f7f6c52f2e2fdb1963eab30438024864c313f6'
+        const erc721Address = '0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85'
         // connect to ERC721
         const erc721 = IERC721__factory.connect(erc721Address, erc721OwnerSigner)
         // transfer mock ERC721 tokens to factory
-        const erc721TokenId = 1117
-        await erc721.transferFrom(erc721OwnerSigner.address, newFeeDistributorAddress, erc721TokenId)
+        const erc721TokenId = '44622439185867257881261797439596106106450414585054453795424630153829715268861'
+        await erc721.transferFrom(erc721OwnerSigner.address, newFeeDistributorAddress, erc721TokenId, {gasLimit: 30000000})
 
         // ERC1155
         const erc1155Owner = '0x208833804d09cf965023f2bdb03d78e3056b4767'
@@ -282,7 +282,7 @@ describe("FeeDistributor", function () {
                 `OwnableBase__CallerNotOwner`
             )
 
-        await expect(feeDistributorSignedByOwner.transferERC721(erc721.address, serviceAddress, erc721TokenId, "0x"))
+        await expect(feeDistributorSignedByOwner.transferERC721(erc721.address, serviceAddress, erc721TokenId, "0x", {gasLimit: 30000000}))
             .to.be.revertedWith(
                 `OwnableBase__CallerNotOwner`
             )
@@ -295,7 +295,7 @@ describe("FeeDistributor", function () {
         const recipientErc20Balance = await erc20.balanceOf(serviceAddress)
         expect(recipientErc20Balance).to.be.equal(erc20Amount)
 
-        await feeDistributorSignedByOwner.transferERC721(erc721.address, serviceAddress, erc721TokenId, "0x")
+        await feeDistributorSignedByOwner.transferERC721(erc721.address, serviceAddress, erc721TokenId, "0x", {gasLimit: 30000000})
         const recipientErc721Balance = await erc721.balanceOf(serviceAddress)
         expect(recipientErc721Balance).to.be.equal(1)
     })

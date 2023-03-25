@@ -17,7 +17,7 @@ import { buildMerkleTreeForValidatorBatch } from "../scripts/buildMerkleTreeForV
 import fs from "fs"
 import { obtainProof } from "../scripts/obtainProof"
 
-describe("Integration", function () {
+describe("Integration with Low CL rewards", function () {
 
     const BatchCount = 13
     const testAmountInGwei = 8000000

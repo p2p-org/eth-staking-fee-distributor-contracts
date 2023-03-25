@@ -32,7 +32,7 @@ const config: HardhatUserConfig = {
       },
       forking: {
         url: MAINNET_RPC_URL,
-        blockNumber: 16846616
+        blockNumber: 16902726
       }
     },
     goerli: {

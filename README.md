@@ -12,12 +12,26 @@ yarn test
 ```
 
 ## Basic use case
-The basic use case is reflected in `./test/integration-test.ts`
+The basic use case is reflected in `./test/00-integration-test-low-cl-rewards.ts`
 
-1. Anyone (deployer, does not matter who) deploys `FeeDistributorFactory`.
+1. Anyone (deployer, does not matter who) deploys `FeeDistributorFactory` providing `_defaultClientBasisPoints` argument.
+This default value of client basis points will be used in case later on, during a client instance creation, in `createFeeDistributor` function, `_clientConfig.basisPoints == 0`.
+Initially, the plan is to use `9000` as the default value.
 
 
-2. Anyone (deployer, does not matter who) deploys a reference implementation of `FeeDistributor` providing the constant arguments:
+2. Anyone (deployer, does not matter who) deploys `Oracle`.
+
+
+3. Anyone (deployer, does not matter who) deploys `P2pEth2Depositor` providing arguments:
+   - _mainnet: true (means "mainnet")
+   - _depositContract: 0x0000000000000000000000000000000000000000 (will be replaced with 0x00000000219ab540356cBB839Cbe05303d7705Fa, the real ETH2 DepositContract address).
+   - _feeDistributorFactory: address of `FeeDistributorFactory`
+
+
+4. The deployer calls `setP2pEth2Depositor` on `FeeDistributorFactory` with the address of the `P2pEth2Depositor` contract from Step 3.
+
+
+5. Anyone (deployer, does not matter who) deploys a reference implementation of `FeeDistributor` providing the arguments:
    - address of `FeeDistributorFactory`
    - address of the service (P2P) fee recipient
 

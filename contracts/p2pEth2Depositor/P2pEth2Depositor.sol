@@ -1,54 +1,52 @@
+// SPDX-FileCopyrightText: 2023 P2P Validator <info@p2p.org>
 // SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.10;
 
+import "../@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "../@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "./interfaces/IDepositContract.sol";
-import "../feeDistributorFactory/FeeDistributorFactory.sol";
+import "../feeDistributorFactory/IFeeDistributorFactory.sol";
 import "./IP2pEth2Depositor.sol";
 
+/**
+* @notice Should be a FeeDistributorFactory contract
+* @param _passedAddress passed address that does not support IFeeDistributorFactory interface
+*/
+error P2pEth2Depositor__NotFactory(address _passedAddress);
+
+/**
+* @notice do not send ETH directly here
+*/
+error P2pEth2Depositor__DoNotSendEthDirectlyHere();
+
+/**
+* @notice you can deposit only 1 to 400 validators per transaction
+*/
+error P2pEth2Depositor__ValidatorCountError();
+
+/**
+* @notice the amount of ETH does not match the amount of validators
+*/
+error P2pEth2Depositor__EtherValueError();
+
+/**
+* @notice amount of parameters do no match
+*/
+error P2pEth2Depositor__AmountOfParametersError();
+
+/**
+* @title Batch deposit contract
+* @dev Makes up to 400 ETH2 DepositContract calls within 1 transaction
+* @dev Create a FeeDistributor instance (1 for batch)
+*/
 contract P2pEth2Depositor is ERC165, IP2pEth2Depositor {
-
+    
     /**
-    * @notice do not send ETH directly here
-    */
-    error P2pEth2Depositor__DoNotSendEthDirectlyHere();
-
-    /**
-    * @notice you can deposit only 1 to 1000 nodes per transaction
-    */
-    error P2pEth2Depositor__NodeCountError();
-
-    /**
-    * @notice the amount of ETH does not match the amount of nodes
-    */
-    error P2pEth2Depositor__EtherValueError();
-
-    /**
-    * @notice amount of parameters do no match
-    */
-    error P2pEth2Depositor__AmountOfParametersError();
-
-    /**
-     * @dev Eth2 Deposit Contract address.
-     */
-    IDepositContract public immutable depositContract;
-
-    /**
-    * @dev Factory for cloning (EIP-1167) FeeDistributor instances pre client
-    */
-    FeeDistributorFactory public immutable i_feeDistributorFactory;
-
-    /**
-     * @dev Minimal and maximum amount of nodes per transaction.
-     */
-    uint256 public constant nodesMinAmount = 1;
-
-    /**
-    * @dev 314 deposits (10048 ETH) is determined by calldata size limit of 128 kb
+    * @dev 400 deposits (12800 ETH) is determined by calldata size limit of 128 kb
     * @dev https://ethereum.stackexchange.com/questions/144120/maximum-calldata-size-per-block
     */
-    uint256 public constant nodesMaxAmount = 500;
+    uint256 public constant validatorsMaxAmount = 400;
 
     /**
      * @dev Collateral size of one node.
@@ -56,16 +54,30 @@ contract P2pEth2Depositor is ERC165, IP2pEth2Depositor {
     uint256 public constant collateral = 32 ether;
 
     /**
+     * @dev Eth2 Deposit Contract address.
+     */
+    IDepositContract public immutable i_depositContract;
+
+    /**
+    * @dev Factory for cloning (EIP-1167) FeeDistributor instances pre client
+    */
+    IFeeDistributorFactory public immutable i_feeDistributorFactory;
+
+    /**
      * @dev Setting Eth2 Smart Contract address during construction.
      */
-    constructor(bool mainnet, address depositContract_, FeeDistributorFactory feeDistributorFactory_) {
-        depositContract = mainnet
-        ? IDepositContract(0x00000000219ab540356cBB839Cbe05303d7705Fa)
-        : (depositContract_ == 0x0000000000000000000000000000000000000000)
-            ? IDepositContract(0x8c5fecdC472E27Bc447696F431E425D02dd46a8c)
-            : IDepositContract(depositContract_);
+    constructor(bool _mainnet, address _depositContract, address _feeDistributorFactory) {
+        if (!ERC165Checker.supportsInterface(_feeDistributorFactory, type(IFeeDistributorFactory).interfaceId)) {
+            revert P2pEth2Depositor__NotFactory(_feeDistributorFactory);
+        }
 
-        i_feeDistributorFactory = feeDistributorFactory_;
+        i_depositContract = _mainnet
+        ? IDepositContract(0x00000000219ab540356cBB839Cbe05303d7705Fa)
+        : (_depositContract == 0x0000000000000000000000000000000000000000)
+            ? IDepositContract(0x8c5fecdC472E27Bc447696F431E425D02dd46a8c)
+            : IDepositContract(_depositContract);
+
+        i_feeDistributorFactory = IFeeDistributorFactory(_feeDistributorFactory);
     }
 
     /**
@@ -76,26 +88,32 @@ contract P2pEth2Depositor is ERC165, IP2pEth2Depositor {
     }
 
     /**
-     * @dev Function that allows to deposit up to 1000 nodes at once.
-     *
-     * - pubkeys                - Array of BLS12-381 public keys.
-     * - withdrawal_credentials - Array of commitments to a public keys for withdrawals.
-     * - signatures             - Array of BLS12-381 signatures.
-     * - deposit_data_roots     - Array of the SHA-256 hashes of the SSZ-encoded DepositData objects.
-     */
+    * @notice Function that allows to deposit up to 400 validators at once.
+    *
+    * @dev In _clientConfig, recipient is mandantory.
+    * @dev In _clientConfig, basisPoints can be 0, defaultClientBasisPoints from FeeDistributorFactory will be applied in that case.
+    * @dev In _referrerConfig, both recipient and basisPoints can be 0 if there is no referrer.
+    *
+    * @param _pubkeys Array of BLS12-381 public keys.
+    * @param _withdrawal_credentials Commitment to a public keys for withdrawals. 1, same for all
+    * @param _signatures Array of BLS12-381 signatures.
+    * @param _deposit_data_roots Array of the SHA-256 hashes of the SSZ-encoded DepositData objects.
+    * @param _clientConfig Address and basis points (percent * 100) of the client
+    * @param _referrerConfig Address and basis points (percent * 100) of the referrer.
+    */
     function deposit(
-        bytes[] calldata pubkeys,
-        bytes calldata withdrawal_credentials, // 1, same for all
-        bytes[] calldata signatures,
-        bytes32[] calldata deposit_data_roots,
+        bytes[] calldata _pubkeys,
+        bytes calldata _withdrawal_credentials, // 1, same for all
+        bytes[] calldata _signatures,
+        bytes32[] calldata _deposit_data_roots,
         IFeeDistributor.FeeRecipient calldata _clientConfig,
         IFeeDistributor.FeeRecipient calldata _referrerConfig
     ) external payable {
 
-        uint256 validatorCount = pubkeys.length;
+        uint256 validatorCount = _pubkeys.length;
 
-        if (validatorCount == 0 || validatorCount > nodesMaxAmount) {
-            revert P2pEth2Depositor__NodeCountError();
+        if (validatorCount == 0 || validatorCount > validatorsMaxAmount) {
+            revert P2pEth2Depositor__ValidatorCountError();
         }
 
         if (msg.value != collateral * validatorCount) {
@@ -103,22 +121,22 @@ contract P2pEth2Depositor is ERC165, IP2pEth2Depositor {
         }
 
         if (!(
-            signatures.length == validatorCount &&
-            deposit_data_roots.length == validatorCount
+            _signatures.length == validatorCount &&
+            _deposit_data_roots.length == validatorCount
         )) {
             revert P2pEth2Depositor__AmountOfParametersError();
         }
 
-        uint64 firstValidatorId = toUint64(depositContract.get_deposit_count()) + 1;
+        uint64 firstValidatorId = toUint64(i_depositContract.get_deposit_count()) + 1;
 
         for (uint256 i = 0; i < validatorCount;) {
             // pubkey, withdrawal_credentials, signature lengths are already checked inside ETH DepositContract
 
-            depositContract.deposit{value : collateral}(
-                pubkeys[i],
-                withdrawal_credentials,
-                signatures[i],
-                deposit_data_roots[i]
+            i_depositContract.deposit{value : collateral}(
+                _pubkeys[i],
+                _withdrawal_credentials,
+                _signatures[i],
+                _deposit_data_roots[i]
             );
 
             // An array can't have a total length

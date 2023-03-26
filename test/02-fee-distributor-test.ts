@@ -4,12 +4,13 @@ import {
     FeeDistributor__factory,
     FeeDistributorFactory__factory,
     FeeDistributor,
-    FeeDistributorFactory, IERC20__factory, IERC721__factory, IERC1155__factory
+    FeeDistributorFactory, IERC20__factory, IERC721__factory, IERC1155__factory, Oracle__factory, Oracle
 } from "../typechain-types"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 describe("FeeDistributor", function () {
 
+    const defaultClientBasisPoints =  9000;
     const clientBasisPoints =  7000;
     const referrerBasisPoints =  1000;
 
@@ -27,6 +28,7 @@ describe("FeeDistributor", function () {
 
     let feeDistributorFactory: FeeDistributorFactory
     let ownerFactoryFactory: FeeDistributorFactory__factory
+    let oracleSignedByDeployer: Oracle
 
     let deployer: string
     let owner: string
@@ -55,18 +57,22 @@ describe("FeeDistributor", function () {
 
         // deploy factory contract
         const factoryFactory = new FeeDistributorFactory__factory(deployerSigner)
-        feeDistributorFactory = await factoryFactory.deploy({gasLimit: 3000000})
+        feeDistributorFactory = await factoryFactory.deploy(defaultClientBasisPoints)
 
         ownerFactoryFactory = new FeeDistributorFactory__factory(ownerSigner)
+
+        // deploy oracle contract
+        oracleSignedByDeployer = await new Oracle__factory(deployerSigner).deploy()
     })
 
     it("should not be created with incorrect factory", async function () {
         const factory = new FeeDistributor__factory(deployerSigner)
 
         await expect(factory.deploy(
+            oracleSignedByDeployer.address,
             nobody,
             serviceAddress,
-            {gasLimit: 3000000}
+            {gasLimit: 30000000}
         )).to.be.revertedWith(
             `FeeDistributor__NotFactory("${nobody}")`
         )
@@ -76,6 +82,7 @@ describe("FeeDistributor", function () {
         const factory = new FeeDistributor__factory(deployerSigner)
 
         await expect(factory.deploy(
+            oracleSignedByDeployer.address,
             feeDistributorFactory.address,
             ethers.constants.AddressZero,
             {gasLimit: 1000000}
@@ -88,6 +95,7 @@ describe("FeeDistributor", function () {
         const factory = new FeeDistributor__factory(deployerSigner)
 
         await expect(factory.deploy(
+            oracleSignedByDeployer.address,
             feeDistributorFactory.address,
             feeDistributorFactory.address,
             {gasLimit: 1000000}
@@ -100,9 +108,10 @@ describe("FeeDistributor", function () {
         const factory = new FeeDistributor__factory(deployerSigner)
 
         const feeDistributor = await factory.deploy(
+            oracleSignedByDeployer.address,
             feeDistributorFactory.address,
             serviceAddress,
-            {gasLimit: 3000000}
+            {gasLimit: 30000000}
         );
 
         await feeDistributorFactory.setReferenceInstance(feeDistributor.address)
@@ -110,7 +119,8 @@ describe("FeeDistributor", function () {
         await expect(feeDistributorFactory.createFeeDistributor(
             {recipient: clientAddress, basisPoints: 10001},
             {recipient: ethers.constants.AddressZero, basisPoints: 0},
-            {gasLimit: 3000000}
+            {clientOnlyClRewards: 0, firstValidatorId: 100500, validatorCount: 42},
+            {gasLimit: 30000000}
         )).to.be.revertedWith(
             `FeeDistributor__InvalidClientBasisPoints`
         )
@@ -118,7 +128,8 @@ describe("FeeDistributor", function () {
         await expect(feeDistributorFactory.createFeeDistributor(
             {recipient: clientAddress, basisPoints: 10001},
             {recipient: ethers.constants.AddressZero, basisPoints: 0},
-            {gasLimit: 3000000}
+            {clientOnlyClRewards: 0, firstValidatorId: 100500, validatorCount: 42},
+            {gasLimit: 30000000}
         )).to.throw
     })
 
@@ -126,15 +137,17 @@ describe("FeeDistributor", function () {
         const factory = new FeeDistributor__factory(deployerSigner)
 
         const feeDistributor = await factory.deploy(
+            oracleSignedByDeployer.address,
             feeDistributorFactory.address,
             serviceAddress,
-            {gasLimit: 3000000}
+            {gasLimit: 30000000}
         )
 
         await expect(feeDistributor.initialize(
             {recipient: nobody, basisPoints: clientBasisPoints},
             {recipient: ethers.constants.AddressZero, basisPoints: 0},
-            {gasLimit: 1000000}
+            {clientOnlyClRewards: 0, firstValidatorId: 100500, validatorCount: 42},
+            {gasLimit: 30000000}
         )).to.be.revertedWith(
             `FeeDistributor__NotFactoryCalled`
         )
@@ -144,9 +157,10 @@ describe("FeeDistributor", function () {
         const factory = new FeeDistributor__factory(deployerSigner)
 
         const feeDistributor = await factory.deploy(
+            oracleSignedByDeployer.address,
             feeDistributorFactory.address,
             serviceAddress,
-            {gasLimit: 3000000}
+            {gasLimit: 30000000}
         )
 
         const feeDistributorOwner = await feeDistributor.owner()
@@ -159,9 +173,10 @@ describe("FeeDistributor", function () {
 
         // deoply reference instance
         const feeDistributorReferenceInstance = await deployerSignerFactory.deploy(
+            oracleSignedByDeployer.address,
             feeDistributorFactory.address,
             serviceAddress,
-            { gasLimit: 3000000 }
+            { gasLimit: 30000000 }
         )
 
         // set reference instance
@@ -172,6 +187,8 @@ describe("FeeDistributor", function () {
         const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(
             {recipient: clientAddress, basisPoints: clientBasisPoints},
             {recipient: ethers.constants.AddressZero, basisPoints: 0},
+            {clientOnlyClRewards: 0, firstValidatorId: 100500, validatorCount: 42},
+            {gasLimit: 30000000}
         )
         const createFeeDistributorTxReceipt = await createFeeDistributorTx.wait();
         const event = createFeeDistributorTxReceipt?.events?.find(event => event.event === 'FeeDistributorCreated');
@@ -193,9 +210,10 @@ describe("FeeDistributor", function () {
 
         // deoply reference instance
         const feeDistributorReferenceInstance = await deployerSignerFactory.deploy(
+            oracleSignedByDeployer.address,
             feeDistributorFactory.address,
             serviceAddress,
-            { gasLimit: 3000000 }
+            { gasLimit: 30000000 }
         )
 
         // set reference instance
@@ -203,8 +221,10 @@ describe("FeeDistributor", function () {
 
         // create client instance
         const createFeeDistributorTx = await feeDistributorFactory.createFeeDistributor(
-            {recipient: clientAddress, basisPoints: clientBasisPoints},
-            {recipient: ethers.constants.AddressZero, basisPoints: 0},
+            { recipient: clientAddress, basisPoints: clientBasisPoints },
+            { recipient: ethers.constants.AddressZero, basisPoints: 0 },
+            { clientOnlyClRewards: 0, firstValidatorId: 100500, validatorCount: 42 },
+            { gasLimit: 30000000 }
         )
         const createFeeDistributorTxReceipt = await createFeeDistributorTx.wait();
         const event = createFeeDistributorTxReceipt?.events?.find(event => event.event === 'FeeDistributorCreated');
@@ -220,22 +240,22 @@ describe("FeeDistributor", function () {
         const WETHAddress = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
         const erc20 = IERC20__factory.connect(WETHAddress, deployerSigner)
         // wrap ETH
-        await deployerSigner.sendTransaction({to: WETHAddress, value: erc20Amount})
+        await deployerSigner.sendTransaction({ to: WETHAddress, value: erc20Amount })
         // transfer WETH tokens to factory
         await erc20.transfer(newFeeDistributorAddress, erc20Amount)
 
         // ERC721
-        const erc721Owner = '0xEBbfaE088c8643ee4Dd4186d703bE6aC8b1AE7D6'
+        const erc721Owner = '0x25Fa18641B5344542130FD88BEc35F8e8b70571E'
         await ethers.provider.send("hardhat_impersonateAccount", [
             erc721Owner,
         ])
         const erc721OwnerSigner = await ethers.getSigner(erc721Owner)
-        const erc721Address = '0xb7f7f6c52f2e2fdb1963eab30438024864c313f6'
+        const erc721Address = '0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85'
         // connect to ERC721
         const erc721 = IERC721__factory.connect(erc721Address, erc721OwnerSigner)
         // transfer mock ERC721 tokens to factory
-        const erc721TokenId = 1117
-        await erc721.transferFrom(erc721OwnerSigner.address, newFeeDistributorAddress, erc721TokenId)
+        const erc721TokenId = '44622439185867257881261797439596106106450414585054453795424630153829715268861'
+        await erc721.transferFrom(erc721OwnerSigner.address, newFeeDistributorAddress, erc721TokenId, {gasLimit: 30000000})
 
         // ERC1155
         const erc1155Owner = '0x208833804d09cf965023f2bdb03d78e3056b4767'
@@ -262,7 +282,7 @@ describe("FeeDistributor", function () {
                 `OwnableBase__CallerNotOwner`
             )
 
-        await expect(feeDistributorSignedByOwner.transferERC721(erc721.address, serviceAddress, erc721TokenId, "0x"))
+        await expect(feeDistributorSignedByOwner.transferERC721(erc721.address, serviceAddress, erc721TokenId, "0x", {gasLimit: 30000000}))
             .to.be.revertedWith(
                 `OwnableBase__CallerNotOwner`
             )
@@ -275,7 +295,7 @@ describe("FeeDistributor", function () {
         const recipientErc20Balance = await erc20.balanceOf(serviceAddress)
         expect(recipientErc20Balance).to.be.equal(erc20Amount)
 
-        await feeDistributorSignedByOwner.transferERC721(erc721.address, serviceAddress, erc721TokenId, "0x")
+        await feeDistributorSignedByOwner.transferERC721(erc721.address, serviceAddress, erc721TokenId, "0x", {gasLimit: 30000000})
         const recipientErc721Balance = await erc721.balanceOf(serviceAddress)
         expect(recipientErc721Balance).to.be.equal(1)
     })

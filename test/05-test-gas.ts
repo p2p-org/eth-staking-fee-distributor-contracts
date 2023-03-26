@@ -43,6 +43,6 @@ describe("TestP2pEth2Depositor", function () {
             {gasLimit: 2000000, value: ethers.utils.parseUnits('32', 18)}
         )
         const txReceipt = await tx.wait(1)
-        expect(txReceipt.cumulativeGasUsed).to.be.lessThan(2000000)
+        expect(txReceipt.cumulativeGasUsed.toNumber()).to.be.lessThan(2000000)
     })
 })

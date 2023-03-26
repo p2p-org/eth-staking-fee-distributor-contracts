@@ -21,12 +21,12 @@ error P2pEth2Depositor__NotFactory(address _passedAddress);
 error P2pEth2Depositor__DoNotSendEthDirectlyHere();
 
 /**
-* @notice you can deposit only 1 to 1000 nodes per transaction
+* @notice you can deposit only 1 to 400 validators per transaction
 */
-error P2pEth2Depositor__NodeCountError();
+error P2pEth2Depositor__ValidatorCountError();
 
 /**
-* @notice the amount of ETH does not match the amount of nodes
+* @notice the amount of ETH does not match the amount of validators
 */
 error P2pEth2Depositor__EtherValueError();
 
@@ -37,20 +37,16 @@ error P2pEth2Depositor__AmountOfParametersError();
 
 /**
 * @title Batch deposit contract
-* @dev Makes many ETH2 DepositContract calls within 1 transaction
+* @dev Makes up to 400 ETH2 DepositContract calls within 1 transaction
 * @dev Create a FeeDistributor instance (1 for batch)
 */
 contract P2pEth2Depositor is ERC165, IP2pEth2Depositor {
+    
     /**
-    * @dev Minimal and maximum amount of nodes per transaction.
-    */
-    uint256 public constant nodesMinAmount = 1;
-
-    /**
-    * @dev 314 deposits (10048 ETH) is determined by calldata size limit of 128 kb
+    * @dev 400 deposits (12800 ETH) is determined by calldata size limit of 128 kb
     * @dev https://ethereum.stackexchange.com/questions/144120/maximum-calldata-size-per-block
     */
-    uint256 public constant nodesMaxAmount = 500; // TODO
+    uint256 public constant validatorsMaxAmount = 400;
 
     /**
      * @dev Collateral size of one node.
@@ -92,7 +88,7 @@ contract P2pEth2Depositor is ERC165, IP2pEth2Depositor {
     }
 
     /**
-    * @notice Function that allows to deposit up to 1000 validators at once.
+    * @notice Function that allows to deposit up to 400 validators at once.
     *
     * @dev In _clientConfig, recipient is mandantory.
     * @dev In _clientConfig, basisPoints can be 0, defaultClientBasisPoints from FeeDistributorFactory will be applied in that case.
@@ -116,8 +112,8 @@ contract P2pEth2Depositor is ERC165, IP2pEth2Depositor {
 
         uint256 validatorCount = _pubkeys.length;
 
-        if (validatorCount == 0 || validatorCount > nodesMaxAmount) {
-            revert P2pEth2Depositor__NodeCountError();
+        if (validatorCount == 0 || validatorCount > validatorsMaxAmount) {
+            revert P2pEth2Depositor__ValidatorCountError();
         }
 
         if (msg.value != collateral * validatorCount) {

@@ -40,9 +40,9 @@ describe("TestP2pEth2Depositor", function () {
             [...Array(BatchCount).keys()].map(index => depositData[0].deposit_data_root),
             { recipient: clientAddress, basisPoints: clientBasisPoints },
             { recipient: referrerAddress, basisPoints: referrerBasisPoints },
-            {gasLimit: 30000000, value: ethers.utils.parseUnits('32', 18)}
+            {gasLimit: 2000000, value: ethers.utils.parseUnits('32', 18)}
         )
         const txReceipt = await tx.wait(1)
-        console.log(txReceipt.cumulativeGasUsed.toString())
+        expect(txReceipt.cumulativeGasUsed).to.be.lessThan(2000000)
     })
 })

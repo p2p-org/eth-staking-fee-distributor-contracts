@@ -12,7 +12,7 @@ const clientBasisPoints = 9000;
 const referrerBasisPoints = 400;
 const clientAddress = '0x388C818CA8B9251b393131C08a736A67ccB19297'
 const referrerAddress = '0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5'
-const BatchCount = 366
+const BatchCount = 407
 
 async function main() {
     try {

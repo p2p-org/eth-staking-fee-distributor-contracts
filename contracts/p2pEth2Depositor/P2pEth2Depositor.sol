@@ -90,7 +90,7 @@ contract P2pEth2Depositor is ERC165, IP2pEth2Depositor {
     /**
     * @notice Function that allows to deposit up to 400 validators at once.
     *
-    * @dev In _clientConfig, recipient is mandantory.
+    * @dev In _clientConfig, recipient is mandatory.
     * @dev In _clientConfig, basisPoints can be 0, defaultClientBasisPoints from FeeDistributorFactory will be applied in that case.
     * @dev In _referrerConfig, both recipient and basisPoints can be 0 if there is no referrer.
     *

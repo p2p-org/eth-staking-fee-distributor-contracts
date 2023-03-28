@@ -373,3 +373,10 @@ pubkeys
 SSZ
 Gwei
 quickstart
+readme
+multiproofs
+IOracle
+GWei
+validators
+IDeposit
+fecd

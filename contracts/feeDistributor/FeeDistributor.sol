@@ -329,7 +329,7 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         // read from storage once
         ValidatorData memory vd = s_validatorData;
 
-        // verify the data from the caller against the orcale
+        // verify the data from the caller against the oracle
         i_oracle.verify(_proof, vd.firstValidatorId, vd.validatorCount, _amountInGwei);
 
         // Gwei to Wei

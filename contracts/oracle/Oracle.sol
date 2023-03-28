@@ -36,7 +36,7 @@ contract Oracle is OwnableAssetRecoverer, OwnableWithOperator, ERC165, IOracle {
     * @notice Verify Merkle proof (that the leaf belongs to the tree)
     * @param _proof Merkle proof (the leaf's sibling, and each non-leaf hash that could not otherwise be calculated without additional leaf nodes)
     * @param _firstValidatorId Validator Id (number of all deposits previously made to ETH2 DepositContract plus 1)
-    * @param _validatorCount (number of validators corresponding to a given FeeDistributor instance, eqaul to the number of ETH2 deposits made with 1 P2pEth2Depositor's deposit)
+    * @param _validatorCount (number of validators corresponding to a given FeeDistributor instance, equal to the number of ETH2 deposits made with 1 P2pEth2Depositor's deposit)
     * @param _amountInGwei total CL rewards earned by all validators in GWei (see _validatorCount)
     */
     function verify(

@@ -89,7 +89,7 @@ It returns:
 
 
 15. Anyone at any time can call `withdraw` on a per batch deposit copy of `FeeDistributor`.
-The requied arguments are: `_proof` and `_amountInGwei` from Step 14.
+The required arguments are: `_proof` and `_amountInGwei` from Step 14.
 
 The result will be sending the whole current contract's balance to 
     - address of the service (P2P)
@@ -128,4 +128,4 @@ Anyone at any time can call `withdraw` on the user's own copy of `FeeDistributor
 Its `deposit` function passes all the ether to the official ETH2 DepositContract and calls `FeeDistributorFactory` to create an instance of `FeeDistributor`.
 
 **P2pMessageSender** is a small auxiliary contract. Its only purpose is to write any text to event log.
-This functionality will be used for sending persisted messages without structural contraints. 
+This functionality will be used for sending persisted messages without structural constraints. 

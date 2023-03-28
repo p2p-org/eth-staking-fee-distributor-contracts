@@ -365,3 +365,11 @@ xef
 yml
 cheatcodes
 STDCHEATS
+infura
+INFURA
+Cbe
+configs
+pubkeys
+SSZ
+Gwei
+quickstart

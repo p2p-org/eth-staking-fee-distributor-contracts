@@ -40,6 +40,10 @@
     "deployToGoerli": "yarn hardhat run --network goerli scripts/deploy.ts",
     "deployP2pMessageSender": "yarn hardhat run --network goerli scripts/deployP2pMessageSender.ts",
     "testLotsOfCalldata": "yarn hardhat run --network goerli scripts/testLotsOfCalldata.ts",
+    "fetchFromBigQuery": "yarn hardhat run --network goerli scripts/fetchFromBigQuery.ts",
     "main": "yarn hardhat run scripts/main.ts"
+  },
+  "dependencies": {
+    "@google-cloud/bigquery": "^6.2.0"
   }
 }

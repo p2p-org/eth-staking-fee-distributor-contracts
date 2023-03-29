@@ -41,6 +41,7 @@
     "deployP2pMessageSender": "yarn hardhat run --network goerli scripts/deployP2pMessageSender.ts",
     "testLotsOfCalldata": "yarn hardhat run --network goerli scripts/testLotsOfCalldata.ts",
     "fetchFromBigQuery": "yarn hardhat run --network goerli scripts/fetchFromBigQuery.ts",
+    "makeBatchDeposit": "yarn hardhat run --network goerli scripts/makeBatchDeposit.ts",
     "main": "yarn hardhat run scripts/main.ts"
   },
   "dependencies": {

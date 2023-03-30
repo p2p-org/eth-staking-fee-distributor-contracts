@@ -74,7 +74,7 @@ contract P2pEth2Depositor is ERC165, IP2pEth2Depositor {
         i_depositContract = _mainnet
         ? IDepositContract(0x00000000219ab540356cBB839Cbe05303d7705Fa)
         : (_depositContract == 0x0000000000000000000000000000000000000000)
-            ? IDepositContract(0x8c5fecdC472E27Bc447696F431E425D02dd46a8c)
+            ? IDepositContract(0xff50ed3d0ec03aC01D4C79aAd74928BFF48a7b2b)
             : IDepositContract(_depositContract);
 
         i_feeDistributorFactory = IFeeDistributorFactory(_feeDistributorFactory);

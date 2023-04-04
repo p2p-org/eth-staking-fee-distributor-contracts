@@ -1,4 +1,5 @@
 import { BigQuery } from "@google-cloud/bigquery"
+import { getFeeDistributorsFromLogs } from "./getFeeDistributorsFromLogs"
 
 async function main() {
     console.log('Start fetch from BQ')
@@ -17,7 +18,11 @@ async function main() {
     });
     const [rows] = await job.getQueryResults();
 
-    // get a list of FeeDistributor instances from FeeDistributorFactory logs
+    const feeDistributorAddresses = await getFeeDistributorsFromLogs("0xD00BFa0A263Bb29C383E1dB3493c3172dE0B367A")
+
+
+
+
     // get firstValidatorId and validatorCount from each FeeDistributor
     // create batches val_id ∈ [firstValidatorId, firstValidatorId + validatorCount - 1] out of rows
 

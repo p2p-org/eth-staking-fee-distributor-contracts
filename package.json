@@ -42,8 +42,7 @@
     "testLotsOfCalldata": "yarn hardhat run --network goerli scripts/testLotsOfCalldata.ts",
     "fetchFromBigQuery": "yarn hardhat run --network goerli scripts/fetchFromBigQuery.ts",
     "makeBatchDeposit": "yarn hardhat run --network goerli scripts/makeBatchDeposit.ts",
-    "testEventLogs": "yarn hardhat run --network mainnet scripts/testEventLogs.ts",
-    "main": "yarn hardhat run scripts/main.ts"
+    "main": "yarn hardhat run --network goerli scripts/main.ts"
   },
   "dependencies": {
     "@google-cloud/bigquery": "^6.2.0"

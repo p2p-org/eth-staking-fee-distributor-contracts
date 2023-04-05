@@ -131,6 +131,18 @@ error FeeDistributor__ReferrerCannotReceiveEther(address _referrer);
 error FeeDistributor__NothingToWithdraw();
 
 /**
+* @notice cannot withdraw until rewards (CL+EL) are enough to be split
+*/
+error FeeDistributor__WaitForEnoughRewardsToWithdraw();
+
+/**
+* @notice Throws if called by any account other than the client.
+* @param _caller address of the caller
+* @param _client address of the client
+*/
+error FeeDistributor__CallerNotClient(address _caller, address _client);
+
+/**
 * @title Contract receiving MEV and priority fees
 * and distributing them to the service and the client.
 */
@@ -196,6 +208,19 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         if (!serviceCanReceiveEther) {
             revert FeeDistributor__ServiceCannotReceiveEther(_service);
         }
+    }
+
+    /**
+    * @dev Throws if called by any account other than the client.
+    */
+    modifier onlyClient() {
+        address caller = _msgSender();
+        address clientAddress = s_clientConfig.recipient;
+
+        if (clientAddress != caller) {
+            revert FeeDistributor__CallerNotClient(caller, clientAddress);
+        }
+        _;
     }
 
     // Functions
@@ -335,6 +360,14 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         // Gwei to Wei
         uint256 amount = _amountInGwei * (10 ** 9);
 
+        if (balance + amount < vd.clientOnlyClRewards) {
+            // Can happen if the client has called emergencyEtherRecoveryWithoutOracleData before
+            // but the actual rewards amount now appeared to be lower than the already split.
+            // Should happen rarely.
+
+            revert FeeDistributor__WaitForEnoughRewardsToWithdraw();
+        }
+
         // total to split = EL + CL - already split part of CL (should be OK unless halfBalance < serviceAmount)
         uint256 totalAmountToSplit = balance + amount - vd.clientOnlyClRewards;
 
@@ -417,6 +450,55 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
                 emit EtherRecoveryFailed(_to, balance);
             }
         }
+    }
+
+    /**
+    * @notice SHOULD NEVER BE CALLED NORMALLY!!!! Recover ether if oracle data (Merkle proof) is not available for some reason.
+    */
+    function emergencyEtherRecoveryWithoutOracleData() external onlyClient nonReentrant {
+        // get the contract's balance
+        uint256 balance = address(this).balance;
+
+        if (balance == 0) {
+            // revert if there is no ether to withdraw
+            revert FeeDistributor__NothingToWithdraw();
+        }
+
+        uint256 halfBalance = balance / 2;
+
+        // client gets 50% of EL rewards
+        uint256 clientAmount = halfBalance;
+
+        // service (and referrer) get 50% of EL rewards combined (+1 wei in case balance is odd)
+        uint256 serviceAmount = balance - halfBalance;
+
+        // the total amount being split fits the actual balance of this contract
+        uint256 totalAmountToSplit = (halfBalance * 10000) / (10000 - s_clientConfig.basisPoints);
+
+        // client gets the rest from CL as not split anymore amount
+        s_validatorData.clientOnlyClRewards = uint176(s_validatorData.clientOnlyClRewards + (totalAmountToSplit - balance));
+
+        // how much should referrer get
+        uint256 referrerAmount;
+
+        if (s_referrerConfig.recipient != address(0)) {
+            // if there is a referrer
+
+            referrerAmount = (totalAmountToSplit * s_referrerConfig.basisPoints) / 10000;
+
+            serviceAmount -= referrerAmount;
+
+            // Send ETH to referrer. Ignore the possible yet unlikely revert in the receive function.
+            _sendValue(s_referrerConfig.recipient, referrerAmount);
+        }
+
+        // Send ETH to service. Ignore the possible yet unlikely revert in the receive function.
+        _sendValue(i_service, serviceAmount);
+
+        // Send ETH to client. Ignore the possible yet unlikely revert in the receive function.
+        _sendValue(s_clientConfig.recipient, clientAmount);
+
+        emit Withdrawn(serviceAmount, clientAmount, referrerAmount);
     }
 
     /**

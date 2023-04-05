@@ -30,4 +30,4 @@ main().catch((error) => {
     process.exitCode = 1;
 });
 
-// P2pMessageSender deployed at: 0x3d646129EA5Bb4ca3098C9dA408142183ad675Aa
+// P2pMessageSender: 0x3d646129EA5Bb4ca3098C9dA408142183ad675Aa

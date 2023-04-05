@@ -84,8 +84,11 @@ main().catch((error) => {
 });
 
 
-// FeeDistributorFactory deployed at: 0xD00BFa0A263Bb29C383E1dB3493c3172dE0B367A
-// Oracle deployed at: 0x5aBFeC1E3781f0a16241a82AA767041B7bd63F42
-// P2pEth2Depositor deployed at: 0xE9667CAe191Fb683557750231AA2190E1d90e04D
-// FeeDistributor instance deployed at: 0xf2d018A724F00E0c526da7bDce1e83Ffb6F8f1B1
+// FeeDistributorFactory deployed at: 0x7A4204cf477e01BF9E34BdA6592BD4392a787Cb7
+//
+// Oracle deployed at: 0x22CE48f95bD232F4840f6eCF825C957924735E29
+//
+// P2pEth2Depositor deployed at: 0x2E0743aAAB3118945564b715598B7DF10e083dC1
+//
+// FeeDistributor instance deployed at: 0xA9CaC9e4E1b530105603E7e9BA4AF210E5ce9683
 

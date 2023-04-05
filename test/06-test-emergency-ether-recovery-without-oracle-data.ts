@@ -20,9 +20,9 @@ import { obtainProof } from "../scripts/obtainProof"
 describe("test emergencyEtherRecoveryWithoutOracleData", function () {
 
     const BatchCount = 13
-    const testAmountInGwei = 8000000000000
+    const testAmountInGwei = 800 // very low
     const depositCount = 100
-    const eth2DepositContractDepositCount = 571930
+    const eth2DepositContractDepositCount = 572530
     const defaultClientBasisPoints = 9000;
     const clientBasisPoints = 9000;
     const referrerBasisPoints = 400;
@@ -183,7 +183,7 @@ describe("test emergencyEtherRecoveryWithoutOracleData", function () {
         const serviceAddressBalanceBefore = await ethers.provider.getBalance(serviceAddress)
         const clientAddressBalanceBefore = await ethers.provider.getBalance(clientAddress)
 
-        // call withdraw
+        // call emergencyEtherRecoveryWithoutOracleData
         await feeDistributorSignedByClient.emergencyEtherRecoveryWithoutOracleData()
 
         const elRewards = ethers.utils.parseEther('2')
@@ -211,6 +211,19 @@ describe("test emergencyEtherRecoveryWithoutOracleData", function () {
         // make sure client got its share
         expect(clientAddressBalance.sub(clientAddressBalanceBefore)).to.equal(
             elRewards.div(2)
+        )
+
+        await ethers.provider.send("hardhat_setCoinbase", [
+            _newFeeDistributorAddress,
+        ])
+        await ethers.provider.send("evm_mine", [])
+        await ethers.provider.send("hardhat_setCoinbase", [
+            ethers.constants.AddressZero,
+        ])
+
+        // call withdraw
+        await expect(feeDistributorSignedByClient.withdraw(proof, amountInGwei)).to.be.revertedWith(
+            `FeeDistributor__WaitForEnoughRewardsToWithdraw`
         )
     })
 })

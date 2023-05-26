@@ -11,19 +11,10 @@ import "./IP2pOrgUnlimitedEthDepositor.sol";
 
 contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
 
-    /**
-    * @dev Eth2 Deposit Contract address.
-    */
     IDepositContract public immutable i_depositContract;
 
-    /**
-    * @dev ETH shares to be used for staking or refund
-    */
     mapping(address => uint256) public s_balanceOf;
 
-    /**
-    * @dev Setting Eth2 Smart Contract address during construction.
-    */
     constructor(bool _mainnet) {
         i_depositContract = _mainnet
             ? IDepositContract(0x00000000219ab540356cBB839Cbe05303d7705Fa) // real Mainnet DepositContract
@@ -56,16 +47,9 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
         emit P2pOrgUnlimitedEthDepositor__Refund(msg.sender, balance);
     }
 
-    /**
-    * @notice Function that allows to deposit up to 400 validators at once.
-    * @param _pubkeys Array of BLS12-381 public keys.
-    * @param _withdrawal_credentials Commitment to a public keys for withdrawals. 1, same for all
-    * @param _signatures Array of BLS12-381 signatures.
-    * @param _deposit_data_roots Array of the SHA-256 hashes of the SSZ-encoded DepositData objects.
-    */
     function makeBeaconDeposit(
         bytes[] calldata _pubkeys,
-        bytes calldata _withdrawal_credentials, // 1, same for all
+        bytes calldata _withdrawal_credentials,
         bytes[] calldata _signatures,
         bytes32[] calldata _deposit_data_roots
     ) external {
@@ -124,9 +108,6 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
         return address(this).balance;
     }
 
-    /**
-    * @dev ETH to be used for staking or refund by account
-    */
     function balanceOf(address _owner) external view returns (uint256) {
         return s_balanceOf[_owner];
     }

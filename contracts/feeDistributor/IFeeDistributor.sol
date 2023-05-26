@@ -151,19 +151,4 @@ interface IFeeDistributor is IERC165 {
      * @dev Returns the referrer basis points
      */
     function referrerBasisPoints() external view returns (uint256);
-
-    /**
-    * @dev Returns First Validator Id
-    */
-    function firstValidatorId() external view returns (uint256);
-
-    /**
-    * @dev Returns a portion of CL rewards that should not be counted during withdraw (belongs to client only)
-    */
-    function clientOnlyClRewards() external view returns (uint256);
-
-    /**
-    * @dev Returns validator count
-    */
-    function validatorCount() external view returns (uint256);
 }

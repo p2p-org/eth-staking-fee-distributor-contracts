@@ -7,17 +7,6 @@ import "../@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 interface IFeeDistributor is IERC165 {
 
-    struct FeeRecipient {
-        uint96 basisPoints;
-        address payable recipient;
-    }
-
-    struct ValidatorData {
-        uint176 clientOnlyClRewards;
-        uint64 firstValidatorId;
-        uint16 validatorCount;
-    }
-
     event Withdrawn(uint256 _serviceAmount, uint256 _clientAmount, uint256 _referrerAmount);
 
     event Initialized(

@@ -3,12 +3,20 @@
 
 pragma solidity 0.8.10;
 
-error P2pOrgUnlimitedEthDepositor__FailedToSendEth(address indexed _receiver, uint256 _wad);
+error P2pOrgUnlimitedEthDepositor__FailedToSendEth(address _receiver, uint256 _amount);
 
-error P2pOrgUnlimitedEthDepositor__InsufficientBalance(address indexed _account);
+error P2pOrgUnlimitedEthDepositor__NoZeroDeposits(address _sender, address _client);
+
+error P2pOrgUnlimitedEthDepositor__InsufficientBalance(address _account);
 
 error P2pOrgUnlimitedEthDepositor__ValidatorCountError();
 
 error P2pOrgUnlimitedEthDepositor__EtherValueError();
 
 error P2pOrgUnlimitedEthDepositor__AmountOfParametersError();
+
+error P2pOrgUnlimitedEthDepositor__DoNotSendEthDirectlyHere();
+
+error P2pOrgUnlimitedEthDepositor__ClientNotAcceptingEth(address _client);
+
+error P2pOrgUnlimitedEthDepositor__NotFeeDistributor(address _passedAddress);

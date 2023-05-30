@@ -13,7 +13,7 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
 
     IDepositContract public immutable i_depositContract;
 
-    mapping(address => uint256) public s_balanceOf;
+    mapping(address => ClientDeposit) public s_clientDeposits;
 
     constructor(bool _mainnet) {
         i_depositContract = _mainnet
@@ -22,34 +22,52 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
     }
 
     receive() external payable {
-        deposit();
+        revert P2pOrgUnlimitedEthDepositor__DoNotSendEthDirectlyHere();
     }
 
-    function deposit() public payable {
-        s_balanceOf[msg.sender] += msg.value;
-        emit P2pOrgUnlimitedEthDepositor__Deposit(msg.sender, msg.value);
+    function deposit(
+        address _referenceFeeDistributor,
+        IFeeDistributor.FeeRecipient calldata _clientConfig,
+        IFeeDistributor.FeeRecipient calldata _referrerConfig
+    ) public payable {
+        if (msg.value == 0) {
+            revert P2pOrgUnlimitedEthDepositor__NoZeroDeposits(msg.sender, _client);
+        }
+
+        if (!ERC165Checker.supportsInterface(_referenceFeeDistributor, type(IFeeDistributor).interfaceId)) {
+            revert P2pOrgUnlimitedEthDepositor__NotFeeDistributor(_referenceFeeDistributor);
+        }
+
+        s_balanceOf[_client] = msg.value;
+
+        // check if _client accepts ETH
+        bool success = P2pAddressLib._sendValue(payable(_client), 0);
+        if (!success) {
+            revert P2pOrgUnlimitedEthDepositor__ClientNotAcceptingEth(_client);
+        }
+
+        emit P2pOrgUnlimitedEthDepositor__Deposit(msg.sender, _client, msg.value);
     }
 
     function refund() external {
-        uint256 balance = s_balanceOf[msg.sender];
+        uint256 clientBalance = s_balanceOf[msg.sender];
 
-        if (balance == 0) {
+        if (clientBalance == 0) {
             revert P2pOrgUnlimitedEthDepositor__InsufficientBalance();
         }
 
         s_balanceOf[msg.sender] = 0;
 
-        bool success = P2pAddressLib._sendValue(payable(msg.sender), balance);
+        bool success = P2pAddressLib._sendValue(payable(msg.sender), clientBalance);
         if (!success) {
-            revert P2pOrgUnlimitedEthDepositor__FailedToSendEth(msg.sender, balance);
+            revert P2pOrgUnlimitedEthDepositor__FailedToSendEth(msg.sender, clientBalance);
         }
 
-        emit P2pOrgUnlimitedEthDepositor__Refund(msg.sender, balance);
+        emit P2pOrgUnlimitedEthDepositor__Refund(msg.sender, clientBalance);
     }
 
     function makeBeaconDeposit(
         bytes[] calldata _pubkeys,
-        bytes calldata _withdrawal_credentials,
         bytes[] calldata _signatures,
         bytes32[] calldata _deposit_data_roots
     ) external {

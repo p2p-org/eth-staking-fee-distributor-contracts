@@ -43,13 +43,12 @@ error FeeDistributor__ReferrerCannotReceiveEther(address _referrer);
 
 error FeeDistributor__NothingToWithdraw();
 
-contract ElClientWcFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
+contract ContractWcFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
 
     IFeeDistributorFactory private immutable i_factory;
     address payable private immutable i_service;
 
     FeeRecipient private s_clientConfig;
-
     FeeRecipient private s_referrerConfig;
 
     constructor(
@@ -66,7 +65,7 @@ contract ElClientWcFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC
         i_factory = IFeeDistributorFactory(_factory);
         i_service = _service;
 
-        bool serviceCanReceiveEther = _sendValue(_service, 0);
+        bool serviceCanReceiveEther = P2pAddressLib._sendValue(_service, 0);
         if (!serviceCanReceiveEther) {
             revert FeeDistributor__ServiceCannotReceiveEther(_service);
         }
@@ -79,7 +78,10 @@ contract ElClientWcFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC
         }
     }
 
-    function initialize(FeeRecipient calldata _clientConfig, FeeRecipient calldata _referrerConfig) external {
+    function initialize(
+        FeeRecipient calldata _clientConfig,
+        FeeRecipient calldata _referrerConfig
+    ) external {
         if (msg.sender != address(i_factory)) {
             revert FeeDistributor__NotFactoryCalled(msg.sender, i_factory);
         }
@@ -126,12 +128,12 @@ contract ElClientWcFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC
             _referrerConfig.basisPoints
         );
 
-        bool clientCanReceiveEther = _sendValue(_clientConfig.recipient, 0);
+        bool clientCanReceiveEther = P2pAddressLib._sendValue(_clientConfig.recipient, 0);
         if (!clientCanReceiveEther) {
             revert FeeDistributor__ClientCannotReceiveEther(_clientConfig.recipient);
         }
         if (_referrerConfig.recipient != address(0)) {// if there is a referrer
-            bool referrerCanReceiveEther = _sendValue(_referrerConfig.recipient, 0);
+            bool referrerCanReceiveEther = P2pAddressLib._sendValue(_referrerConfig.recipient, 0);
             if (!referrerCanReceiveEther) {
                 revert FeeDistributor__ReferrerCannotReceiveEther(_referrerConfig.recipient);
             }
@@ -167,14 +169,14 @@ contract ElClientWcFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC
             serviceAmount -= referrerAmount;
 
             // Send ETH to referrer. Ignore the possible yet unlikely revert in the receive function.
-            _sendValue(s_referrerConfig.recipient, referrerAmount);
+            P2pAddressLib._sendValue(s_referrerConfig.recipient, referrerAmount);
         }
 
         // Send ETH to service. Ignore the possible yet unlikely revert in the receive function.
-        _sendValue(i_service, serviceAmount);
+        P2pAddressLib._sendValue(i_service, serviceAmount);
 
         // Send ETH to client. Ignore the possible yet unlikely revert in the receive function.
-        _sendValue(s_clientConfig.recipient, clientAmount);
+        P2pAddressLib._sendValue(s_clientConfig.recipient, clientAmount);
 
         emit Withdrawn(serviceAmount, clientAmount, referrerAmount);
     }
@@ -186,7 +188,7 @@ contract ElClientWcFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC
         uint256 balance = address(this).balance;
 
         if (balance > 0) { // only happens if at least 1 party reverted in their receive
-            bool success = _sendValue(_to, balance);
+            bool success = P2pAddressLib._sendValue(_to, balance);
 
             if (success) {
                 emit EtherRecovered(_to, balance);
@@ -196,20 +198,28 @@ contract ElClientWcFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC
         }
     }
 
-    function getFactory() external view returns (address) {
+    function factory() external view returns (address) {
         return address(i_factory);
     }
 
-    function getService() external view returns (address) {
+    function service() external view returns (address) {
         return i_service;
     }
 
-    function getClient() external view returns (address) {
+    function client() external view returns (address) {
         return s_clientConfig.recipient;
     }
 
-    function getClientBasisPoints() external view returns (uint256) {
+    function clientBasisPoints() external view returns (uint256) {
         return s_clientConfig.basisPoints;
+    }
+
+    function referrer() external view returns (address) {
+        return s_referrerConfig.recipient;
+    }
+
+    function referrerBasisPoints() external view returns (uint256) {
+        return s_referrerConfig.basisPoints;
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
@@ -218,14 +228,5 @@ contract ElClientWcFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC
 
     function owner() public view override returns (address) {
         return i_factory.owner();
-    }
-
-    function _sendValue(address payable _recipient, uint256 _amount) internal returns (bool) {
-        (bool success, ) = _recipient.call{
-            value: _amount,
-            gas: gasleft() / 4 // to prevent DOS, should be enough in normal cases
-        }("");
-
-        return success;
     }
 }

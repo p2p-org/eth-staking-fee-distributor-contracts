@@ -55,7 +55,7 @@ error FeeDistributor__WaitForEnoughRewardsToWithdraw();
 
 error FeeDistributor__CallerNotClient(address _caller, address _client);
 
-contract ClElClientWcFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
+contract OracleFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
 
     IFeeDistributorFactory private immutable i_factory;
     IOracle private immutable i_oracle;
@@ -84,7 +84,7 @@ contract ClElClientWcFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, E
         i_factory = IFeeDistributorFactory(_factory);
         i_service = _service;
 
-        bool serviceCanReceiveEther = _sendValue(_service, 0);
+        bool serviceCanReceiveEther = P2pAddressLib._sendValue(_service, 0);
         if (!serviceCanReceiveEther) {
             revert FeeDistributor__ServiceCannotReceiveEther(_service);
         }
@@ -170,12 +170,12 @@ contract ClElClientWcFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, E
             _referrerConfig.basisPoints
         );
 
-        bool clientCanReceiveEther = _sendValue(_clientConfig.recipient, 0);
+        bool clientCanReceiveEther = P2pAddressLib._sendValue(_clientConfig.recipient, 0);
         if (!clientCanReceiveEther) {
             revert FeeDistributor__ClientCannotReceiveEther(_clientConfig.recipient);
         }
         if (_referrerConfig.recipient != address(0)) {// if there is a referrer
-            bool referrerCanReceiveEther = _sendValue(_referrerConfig.recipient, 0);
+            bool referrerCanReceiveEther = P2pAddressLib._sendValue(_referrerConfig.recipient, 0);
             if (!referrerCanReceiveEther) {
                 revert FeeDistributor__ReferrerCannotReceiveEther(_referrerConfig.recipient);
             }
@@ -259,14 +259,14 @@ contract ClElClientWcFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, E
             serviceAmount -= referrerAmount;
 
             // Send ETH to referrer. Ignore the possible yet unlikely revert in the receive function.
-            _sendValue(s_referrerConfig.recipient, referrerAmount);
+            P2pAddressLib._sendValue(s_referrerConfig.recipient, referrerAmount);
         }
 
         // Send ETH to service. Ignore the possible yet unlikely revert in the receive function.
-        _sendValue(i_service, serviceAmount);
+        P2pAddressLib._sendValue(i_service, serviceAmount);
 
         // Send ETH to client. Ignore the possible yet unlikely revert in the receive function.
-        _sendValue(s_clientConfig.recipient, clientAmount);
+        P2pAddressLib._sendValue(s_clientConfig.recipient, clientAmount);
 
         emit Withdrawn(serviceAmount, clientAmount, referrerAmount);
     }
@@ -282,7 +282,7 @@ contract ClElClientWcFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, E
         uint256 balance = address(this).balance;
 
         if (balance > 0) { // only happens if at least 1 party reverted in their receive
-            bool success = _sendValue(_to, balance);
+            bool success = P2pAddressLib._sendValue(_to, balance);
 
             if (success) {
                 emit EtherRecovered(_to, balance);
@@ -326,14 +326,14 @@ contract ClElClientWcFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, E
             serviceAmount -= referrerAmount;
 
             // Send ETH to referrer. Ignore the possible yet unlikely revert in the receive function.
-            _sendValue(s_referrerConfig.recipient, referrerAmount);
+            P2pAddressLib._sendValue(s_referrerConfig.recipient, referrerAmount);
         }
 
         // Send ETH to service. Ignore the possible yet unlikely revert in the receive function.
-        _sendValue(i_service, serviceAmount);
+        P2pAddressLib._sendValue(i_service, serviceAmount);
 
         // Send ETH to client. Ignore the possible yet unlikely revert in the receive function.
-        _sendValue(s_clientConfig.recipient, clientAmount);
+        P2pAddressLib._sendValue(s_clientConfig.recipient, clientAmount);
 
         emit Withdrawn(serviceAmount, clientAmount, referrerAmount);
     }
@@ -380,14 +380,5 @@ contract ClElClientWcFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, E
 
     function owner() public view override returns (address) {
         return i_factory.owner();
-    }
-
-    function _sendValue(address payable _recipient, uint256 _amount) internal returns (bool) {
-        (bool success, ) = _recipient.call{
-            value: _amount,
-            gas: gasleft() / 4 // to prevent DOS, should be enough in normal cases
-        }("");
-
-        return success;
     }
 }

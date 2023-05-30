@@ -36,7 +36,7 @@ interface IOracle is IOwnable, IERC165 {
     function verify(
         bytes32[] calldata _proof,
         uint64 _firstValidatorId,
-        uint16 _validatorCount,
+        uint32 _validatorCount,
         uint256 _amountInGwei
     ) external view;
 }

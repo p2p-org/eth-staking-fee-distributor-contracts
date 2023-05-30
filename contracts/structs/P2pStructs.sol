@@ -11,9 +11,10 @@ struct FeeRecipient {
 }
 
 struct ValidatorData {
-    uint176 clientOnlyClRewards;
+    uint112 clientOnlyClRewards;
     uint64 firstValidatorId;
-    uint16 validatorCount;
+    uint32 validatorCount;
+    uint48 reservedForFutureUse;
 }
 
 struct ClientDeposit {

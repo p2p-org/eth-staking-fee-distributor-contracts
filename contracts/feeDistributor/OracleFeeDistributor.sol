@@ -14,9 +14,9 @@ import "../structs/P2pStructs.sol";
 import "./BaseFeeDistributor.sol";
 
 error OracleFeeDistributor__NotOracle(address _passedAddress);
-error OracleFeeDistributor__NonZeroInitialClientOnlyClRewards(uint176 _passedValue);
+error OracleFeeDistributor__NonZeroInitialClientOnlyClRewards(uint112 _passedValue);
 error OracleFeeDistributor__InvalidFirstValidatorId(uint64 _firstValidatorId);
-error OracleFeeDistributor__InvalidValidatorCount(uint16 _validatorCount);
+error OracleFeeDistributor__InvalidValidatorCount(uint32 _validatorCount);
 error OracleFeeDistributor__WaitForEnoughRewardsToWithdraw();
 
 contract OracleFeeDistributor is BaseFeeDistributor {
@@ -122,7 +122,7 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         }
 
         // client gets the rest from CL as not split anymore amount
-        s_validatorData.clientOnlyClRewards = uint176(vd.clientOnlyClRewards + (totalAmountToSplit - balance));
+        s_validatorData.clientOnlyClRewards = uint112(vd.clientOnlyClRewards + (totalAmountToSplit - balance));
 
         // how much should referrer get
         uint256 referrerAmount;
@@ -189,7 +189,7 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         uint256 totalAmountToSplit = (halfBalance * 10000) / (10000 - s_clientConfig.basisPoints);
 
         // client gets the rest from CL as not split anymore amount
-        s_validatorData.clientOnlyClRewards = uint176(s_validatorData.clientOnlyClRewards + (totalAmountToSplit - balance));
+        s_validatorData.clientOnlyClRewards = uint112(s_validatorData.clientOnlyClRewards + (totalAmountToSplit - balance));
 
         // how much should referrer get
         uint256 referrerAmount;

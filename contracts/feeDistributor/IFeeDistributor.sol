@@ -21,9 +21,21 @@ interface IFeeDistributor is IERC165 {
         uint256 _referrerAmount
     );
 
-    event EtherRecovered(address indexed _to, uint256 _amount);
+    event VoluntaryExit(
+        bytes[] _pubkeys
+    );
 
-    event EtherRecoveryFailed(address indexed _to, uint256 _amount);
+    event EtherRecovered(
+        address indexed _to,
+        uint256 _amount
+    );
+
+    event EtherRecoveryFailed(
+        address indexed _to,
+        uint256 _amount
+    );
+
+    function voluntaryExit(bytes[] calldata _pubkeys) external;
 
     function factory() external view returns (address);
 

@@ -115,7 +115,7 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
             IFeeDistributor.ValidatorData({
                 clientOnlyClRewards : 0,
                 firstValidatorId : firstValidatorId,
-                validatorCount : uint16(validatorCount)
+                validatorCount : uint32(validatorCount)
             })
         );
 

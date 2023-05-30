@@ -14,6 +14,8 @@ import "./BaseFeeDistributor.sol";
 
 contract ContractWcFeeDistributor is BaseFeeDistributor {
 
+    uint256 private s_validatorCount;
+
     constructor(
         address _factory,
         address payable _service
@@ -24,7 +26,17 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig
     ) external {
+        s_validatorCount = _validatorCount;
+
         _initialize(_clientConfig, _referrerConfig);
+    }
+
+    function increaseValidatorCount(uint256 _validatorCount) external {
+
+    }
+
+    function voluntaryExit(bytes[] calldata _pubkeys) external override {
+        BaseFeeDistributor.voluntaryExit(_pubkeys);
     }
 
     function withdraw() external nonReentrant {

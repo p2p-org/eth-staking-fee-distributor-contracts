@@ -153,7 +153,7 @@ contract P2pEth2Depositor is ERC165, IP2pEth2Depositor {
             IFeeDistributor.ValidatorData({
                 clientOnlyClRewards : 0,
                 firstValidatorId : firstValidatorId,
-                validatorCount : uint16(validatorCount)
+                validatorCount : uint32(validatorCount)
             })
         );
 

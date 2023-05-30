@@ -63,12 +63,22 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
         }
     }
 
+    function voluntaryExit(bytes[] calldata _pubkeys) external virtual onlyClient {
+        emit VoluntaryExit(_pubkeys);
+    }
+
     modifier onlyClient() {
-        address caller = _msgSender();
         address clientAddress = s_clientConfig.recipient;
 
-        if (clientAddress != caller) {
-            revert FeeDistributor__CallerNotClient(caller, clientAddress);
+        if (clientAddress != msg.sender) {
+            revert FeeDistributor__CallerNotClient(msg.sender, clientAddress);
+        }
+        _;
+    }
+
+    modifier onlyFactory() {
+        if (msg.sender != address(i_factory)) {
+            revert FeeDistributor__NotFactoryCalled(msg.sender, i_factory);
         }
         _;
     }
@@ -76,10 +86,7 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
     function _initialize(
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig
-    ) internal {
-        if (msg.sender != address(i_factory)) {
-            revert FeeDistributor__NotFactoryCalled(msg.sender, i_factory);
-        }
+    ) internal onlyFactory {
         if (_clientConfig.recipient == address(0)) {
             revert FeeDistributor__ZeroAddressClient();
         }

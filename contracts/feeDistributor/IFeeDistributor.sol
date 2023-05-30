@@ -4,10 +4,9 @@
 pragma solidity 0.8.10;
 
 import "../@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "../structs/P2pStructs.sol";
 
 interface IFeeDistributor is IERC165 {
-
-    event Withdrawn(uint256 _serviceAmount, uint256 _clientAmount, uint256 _referrerAmount);
 
     event Initialized(
         address indexed _client,
@@ -16,20 +15,15 @@ interface IFeeDistributor is IERC165 {
         uint96 _referrerBasisPoints
     );
 
+    event Withdrawn(
+        uint256 _serviceAmount,
+        uint256 _clientAmount,
+        uint256 _referrerAmount
+    );
+
     event EtherRecovered(address indexed _to, uint256 _amount);
 
     event EtherRecoveryFailed(address indexed _to, uint256 _amount);
-
-    function initialize(
-        FeeRecipient calldata _clientConfig,
-        FeeRecipient calldata _referrerConfig,
-        ValidatorData calldata _validatorData
-    ) external;
-
-    function withdraw(
-        bytes32[] calldata _proof,
-        uint256 _amount
-    ) external;
 
     function factory() external view returns (address);
 

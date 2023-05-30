@@ -10,101 +10,31 @@ import "../feeDistributorFactory/IFeeDistributorFactory.sol";
 import "../assetRecovering/OwnableTokenRecoverer.sol";
 import "./IFeeDistributor.sol";
 import "../oracle/IOracle.sol";
+import "../structs/P2pStructs.sol";
+import "./BaseFeeDistributor.sol";
 
-error FeeDistributor__NotOracle(address _passedAddress);
+error OracleFeeDistributor__NotOracle(address _passedAddress);
+error OracleFeeDistributor__NonZeroInitialClientOnlyClRewards(uint176 _passedValue);
+error OracleFeeDistributor__InvalidFirstValidatorId(uint64 _firstValidatorId);
+error OracleFeeDistributor__InvalidValidatorCount(uint16 _validatorCount);
+error OracleFeeDistributor__WaitForEnoughRewardsToWithdraw();
 
-error FeeDistributor__NonZeroInitialClientOnlyClRewards(uint176 _passedValue);
+contract OracleFeeDistributor is BaseFeeDistributor {
 
-error FeeDistributor__InvalidFirstValidatorId(uint64 _firstValidatorId);
-
-error FeeDistributor__InvalidValidatorCount(uint16 _validatorCount);
-
-error FeeDistributor__NotFactory(address _passedAddress);
-
-error FeeDistributor__ZeroAddressService();
-
-error FeeDistributor__ClientAddressEqualsService(address _passedAddress);
-
-error FeeDistributor__ZeroAddressClient();
-
-error FeeDistributor__InvalidClientBasisPoints(uint96 _clientBasisPoints);
-
-error FeeDistributor__ClientPlusReferralBasisPointsExceed10000(uint96 _clientBasisPoints, uint96 _referralBasisPoints);
-
-error FeeDistributor__ReferrerAddressEqualsService(address _passedAddress);
-
-error FeeDistributor__ReferrerAddressEqualsClient(address _passedAddress);
-
-error FeeDistributor__NotFactoryCalled(address _msgSender, IFeeDistributorFactory _actualFactory);
-
-error FeeDistributor__ClientAlreadySet(address _existingClient);
-
-error FeeDistributor__ClientNotSet();
-
-error FeeDistributor__ReferrerBasisPointsMustBeZeroIfAddressIsZero(uint96 _referrerBasisPoints);
-
-error FeeDistributor__ServiceCannotReceiveEther(address _service);
-
-error FeeDistributor__ClientCannotReceiveEther(address _client);
-
-error FeeDistributor__ReferrerCannotReceiveEther(address _referrer);
-
-error FeeDistributor__NothingToWithdraw();
-
-error FeeDistributor__WaitForEnoughRewardsToWithdraw();
-
-error FeeDistributor__CallerNotClient(address _caller, address _client);
-
-contract OracleFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
-
-    IFeeDistributorFactory private immutable i_factory;
     IOracle private immutable i_oracle;
-    address payable private immutable i_service;
 
-    FeeRecipient private s_clientConfig;
-    FeeRecipient private s_referrerConfig;
     ValidatorData private s_validatorData;
 
     constructor(
         address _oracle,
         address _factory,
         address payable _service
-    ) {
+    ) BaseFeeDistributor(_factory, _service) {
         if (!ERC165Checker.supportsInterface(_oracle, type(IOracle).interfaceId)) {
-            revert ClElClientWcFeeDistributor__NotOracle(_factory);
-        }
-        if (!ERC165Checker.supportsInterface(_factory, type(IFeeDistributorFactory).interfaceId)) {
-            revert FeeDistributor__NotFactory(_factory);
-        }
-        if (_service == address(0)) {
-            revert FeeDistributor__ZeroAddressService();
+            revert OracleFeeDistributor__NotOracle(_oracle);
         }
 
         i_oracle = IOracle(_oracle);
-        i_factory = IFeeDistributorFactory(_factory);
-        i_service = _service;
-
-        bool serviceCanReceiveEther = P2pAddressLib._sendValue(_service, 0);
-        if (!serviceCanReceiveEther) {
-            revert FeeDistributor__ServiceCannotReceiveEther(_service);
-        }
-    }
-
-    modifier onlyClient() {
-        address caller = _msgSender();
-        address clientAddress = s_clientConfig.recipient;
-
-        if (clientAddress != caller) {
-            revert FeeDistributor__CallerNotClient(caller, clientAddress);
-        }
-        _;
-    }
-
-    receive() external payable {
-        // only accept ether in an instance, not in a template
-        if (s_clientConfig.recipient == address(0)) {
-            revert FeeDistributor__ClientNotSet();
-        }
     }
 
     function initialize(
@@ -112,74 +42,20 @@ contract OracleFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165,
         FeeRecipient calldata _referrerConfig,
         ValidatorData calldata _validatorData
     ) external {
-        if (msg.sender != address(i_factory)) {
-            revert FeeDistributor__NotFactoryCalled(msg.sender, i_factory);
-        }
-        if (_clientConfig.recipient == address(0)) {
-            revert FeeDistributor__ZeroAddressClient();
-        }
-        if (_clientConfig.recipient == i_service) {
-            revert FeeDistributor__ClientAddressEqualsService(_clientConfig.recipient);
-        }
-        if (s_clientConfig.recipient != address(0)) {
-            revert FeeDistributor__ClientAlreadySet(s_clientConfig.recipient);
-        }
-        if (_clientConfig.basisPoints > 10000) {
-            revert FeeDistributor__InvalidClientBasisPoints(_clientConfig.basisPoints);
-        }
         if (_validatorData.clientOnlyClRewards != 0) {
-            revert FeeDistributor__NonZeroInitialClientOnlyClRewards(_validatorData.clientOnlyClRewards);
+            revert OracleFeeDistributor__NonZeroInitialClientOnlyClRewards(_validatorData.clientOnlyClRewards);
         }
         if (_validatorData.firstValidatorId == 0) {
-            revert FeeDistributor__InvalidFirstValidatorId(_validatorData.firstValidatorId);
+            revert OracleFeeDistributor__InvalidFirstValidatorId(_validatorData.firstValidatorId);
         }
         if (_validatorData.validatorCount == 0) {
-            revert FeeDistributor__InvalidValidatorCount(_validatorData.validatorCount);
+            revert OracleFeeDistributor__InvalidValidatorCount(_validatorData.validatorCount);
         }
-
-        if (_referrerConfig.recipient != address(0)) {// if there is a referrer
-            if (_referrerConfig.recipient == i_service) {
-                revert FeeDistributor__ReferrerAddressEqualsService(_referrerConfig.recipient);
-            }
-            if (_referrerConfig.recipient == _clientConfig.recipient) {
-                revert FeeDistributor__ReferrerAddressEqualsClient(_referrerConfig.recipient);
-            }
-            if (_clientConfig.basisPoints + _referrerConfig.basisPoints > 10000) {
-                revert FeeDistributor__ClientPlusReferralBasisPointsExceed10000(_clientConfig.basisPoints, _referrerConfig.basisPoints);
-            }
-
-            // set referrer config
-            s_referrerConfig = _referrerConfig;
-
-        } else {// if there is no referrer
-            if (_referrerConfig.basisPoints != 0) {
-                revert FeeDistributor__ReferrerBasisPointsMustBeZeroIfAddressIsZero(_referrerConfig.basisPoints);
-            }
-        }
-
-        // set client config
-        s_clientConfig = _clientConfig;
 
         // set validator data
         s_validatorData = _validatorData;
 
-        emit Initialized(
-            _clientConfig.recipient,
-            _clientConfig.basisPoints,
-            _referrerConfig.recipient,
-            _referrerConfig.basisPoints
-        );
-
-        bool clientCanReceiveEther = P2pAddressLib._sendValue(_clientConfig.recipient, 0);
-        if (!clientCanReceiveEther) {
-            revert FeeDistributor__ClientCannotReceiveEther(_clientConfig.recipient);
-        }
-        if (_referrerConfig.recipient != address(0)) {// if there is a referrer
-            bool referrerCanReceiveEther = P2pAddressLib._sendValue(_referrerConfig.recipient, 0);
-            if (!referrerCanReceiveEther) {
-                revert FeeDistributor__ReferrerCannotReceiveEther(_referrerConfig.recipient);
-            }
-        }
+        _initialize(_clientConfig, _referrerConfig);
     }
 
     function withdraw(
@@ -212,7 +88,7 @@ contract OracleFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165,
             // but the actual rewards amount now appeared to be lower than the already split.
             // Should happen rarely.
 
-            revert FeeDistributor__WaitForEnoughRewardsToWithdraw();
+            revert OracleFeeDistributor__WaitForEnoughRewardsToWithdraw();
         }
 
         // total to split = EL + CL - already split part of CL (should be OK unless halfBalance < serviceAmount)
@@ -338,30 +214,6 @@ contract OracleFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165,
         emit Withdrawn(serviceAmount, clientAmount, referrerAmount);
     }
 
-    function factory() external view returns (address) {
-        return address(i_factory);
-    }
-
-    function service() external view returns (address) {
-        return i_service;
-    }
-
-    function client() external view returns (address) {
-        return s_clientConfig.recipient;
-    }
-
-    function clientBasisPoints() external view returns (uint256) {
-        return s_clientConfig.basisPoints;
-    }
-
-    function referrer() external view returns (address) {
-        return s_referrerConfig.recipient;
-    }
-
-    function referrerBasisPoints() external view returns (uint256) {
-        return s_referrerConfig.basisPoints;
-    }
-
     function firstValidatorId() external view returns (uint256) {
         return s_validatorData.firstValidatorId;
     }
@@ -375,10 +227,6 @@ contract OracleFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165,
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
-        return interfaceId == type(IFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
-    }
-
-    function owner() public view override returns (address) {
-        return i_factory.owner();
+        return interfaceId == type(OracleFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
     }
 }

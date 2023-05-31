@@ -12,6 +12,9 @@ import "./IFeeDistributor.sol";
 import "../structs/P2pStructs.sol";
 import "./BaseFeeDistributor.sol";
 
+error ContractWcFeeDistributor__NoPubkeysPassed();
+error ContractWcFeeDistributor__TooManyPubkeysPassed();
+
 contract ContractWcFeeDistributor is BaseFeeDistributor {
 
     uint256 private s_validatorCount;
@@ -25,17 +28,24 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
     function initialize(
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig
-    ) external {
+    ) external { // onlyFactory due to _initialize
         s_validatorCount = _validatorCount;
 
         _initialize(_clientConfig, _referrerConfig);
     }
 
-    function increaseValidatorCount(uint256 _validatorCount) external {
-
+    function increaseValidatorCount(uint256 _validatorCountToAdd) external onlyFactory {
+        s_validatorCount += _validatorCountToAdd;
     }
 
-    function voluntaryExit(bytes[] calldata _pubkeys) external override {
+    function voluntaryExit(bytes[] calldata _pubkeys) external override { // onlyClient due to BaseFeeDistributor
+        if (_pubkeys.length == 0) {
+            revert ContractWcFeeDistributor__NoPubkeysPassed();
+        }
+        if (_pubkeys.length > s_validatorCount) {
+            revert ContractWcFeeDistributor__TooManyPubkeysPassed();
+        }
+
         BaseFeeDistributor.voluntaryExit(_pubkeys);
     }
 

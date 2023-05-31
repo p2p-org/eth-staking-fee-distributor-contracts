@@ -23,7 +23,7 @@ contract ElOnlyFeeDistributor is BaseFeeDistributor {
     function initialize(
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig
-    ) external {
+    ) external { // onlyFactory due to _initialize
         _initialize(_clientConfig, _referrerConfig);
     }
 

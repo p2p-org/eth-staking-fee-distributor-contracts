@@ -41,7 +41,7 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig,
         ValidatorData calldata _validatorData
-    ) external {
+    ) external { // onlyFactory due to _initialize
         if (_validatorData.clientOnlyClRewards != 0) {
             revert OracleFeeDistributor__NonZeroInitialClientOnlyClRewards(_validatorData.clientOnlyClRewards);
         }

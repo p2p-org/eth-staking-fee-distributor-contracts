@@ -19,12 +19,6 @@ error FeeDistributor__NotOracle(address _passedAddress);
 
 /**
 * @notice Initial client-only CL rewards must be zero
-* @param _passedValue passed value for clientOnlyClRewards
-*/
-error FeeDistributor__NonZeroInitialClientOnlyClRewards(uint176 _passedValue);
-
-/**
-* @notice Initial client-only CL rewards must be zero
 * @param _firstValidatorId passed value for firstValidatorId
 */
 error FeeDistributor__InvalidFirstValidatorId(uint64 _firstValidatorId);
@@ -262,9 +256,6 @@ contract FeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeD
         }
         if (_clientConfig.basisPoints > 10000) {
             revert FeeDistributor__InvalidClientBasisPoints(_clientConfig.basisPoints);
-        }
-        if (_validatorData.clientOnlyClRewards != 0) {
-            revert FeeDistributor__NonZeroInitialClientOnlyClRewards(_validatorData.clientOnlyClRewards);
         }
         if (_validatorData.firstValidatorId == 0) {
             revert FeeDistributor__InvalidFirstValidatorId(_validatorData.firstValidatorId);

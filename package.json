@@ -42,6 +42,7 @@
     "testLotsOfCalldata": "yarn hardhat run --network goerli scripts/testLotsOfCalldata.ts",
     "fetchFromBigQuery": "yarn hardhat run --network goerli scripts/fetchFromBigQuery.ts",
     "makeBatchDeposit": "yarn hardhat run --network goerli scripts/makeBatchDeposit.ts",
+    "getIitialClientOnlyClRewards": "yarn hardhat run --network goerli scripts/getIitialClientOnlyClRewards.ts",
     "main": "yarn hardhat run --network goerli scripts/main.ts"
   },
   "dependencies": {

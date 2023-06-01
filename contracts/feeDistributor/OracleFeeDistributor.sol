@@ -14,7 +14,6 @@ import "../structs/P2pStructs.sol";
 import "./BaseFeeDistributor.sol";
 
 error OracleFeeDistributor__NotOracle(address _passedAddress);
-error OracleFeeDistributor__NonZeroInitialClientOnlyClRewards(uint112 _passedValue);
 error OracleFeeDistributor__InvalidFirstValidatorId(uint64 _firstValidatorId);
 error OracleFeeDistributor__InvalidValidatorCount(uint32 _validatorCount);
 error OracleFeeDistributor__WaitForEnoughRewardsToWithdraw();
@@ -23,7 +22,7 @@ contract OracleFeeDistributor is BaseFeeDistributor {
 
     IOracle private immutable i_oracle;
 
-    ValidatorData private s_validatorData;
+    OracleValidatorData private s_validatorData;
 
     constructor(
         address _oracle,
@@ -40,11 +39,8 @@ contract OracleFeeDistributor is BaseFeeDistributor {
     function initialize(
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig,
-        ValidatorData calldata _validatorData
+        OracleValidatorData calldata _validatorData
     ) external { // onlyFactory due to _initialize
-        if (_validatorData.clientOnlyClRewards != 0) {
-            revert OracleFeeDistributor__NonZeroInitialClientOnlyClRewards(_validatorData.clientOnlyClRewards);
-        }
         if (_validatorData.firstValidatorId == 0) {
             revert OracleFeeDistributor__InvalidFirstValidatorId(_validatorData.firstValidatorId);
         }
@@ -75,7 +71,7 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         }
 
         // read from storage once
-        ValidatorData memory vd = s_validatorData;
+        OracleValidatorData memory vd = s_validatorData;
 
         // verify the data from the caller against the oracle
         i_oracle.verify(_proof, vd.firstValidatorId, vd.validatorCount, _amountInGwei);

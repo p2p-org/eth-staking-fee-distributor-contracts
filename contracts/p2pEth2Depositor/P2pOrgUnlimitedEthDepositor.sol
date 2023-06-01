@@ -6,7 +6,7 @@ pragma solidity 0.8.10;
 import "./interfaces/IDepositContract.sol";
 import "../lib/P2pAddressLib.sol";
 import "./P2pOrgUnlimitedEthDepositorErrors.sol";
-import "./P2pOrgUnlimitedEthDepositorConstants.sol";
+import "../constants/P2pConstants.sol";
 import "./IP2pOrgUnlimitedEthDepositor.sol";
 
 contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
@@ -38,7 +38,7 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
             revert P2pOrgUnlimitedEthDepositor__NotFeeDistributor(_referenceFeeDistributor);
         }
 
-        s_balanceOf[_client] = msg.value;
+        s_balanceOf[_client] += msg.value;
 
         // check if _client accepts ETH
         bool success = P2pAddressLib._sendValue(payable(_client), 0);

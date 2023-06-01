@@ -10,6 +10,7 @@ import "../feeDistributorFactory/IFeeDistributorFactory.sol";
 import "../assetRecovering/OwnableTokenRecoverer.sol";
 import "./IFeeDistributor.sol";
 import "../structs/P2pStructs.sol";
+import "../constants/P2pConstants.sol";
 import "./BaseFeeDistributor.sol";
 
 error ContractWcFeeDistributor__NoPubkeysPassed();
@@ -17,7 +18,7 @@ error ContractWcFeeDistributor__TooManyPubkeysPassed();
 
 contract ContractWcFeeDistributor is BaseFeeDistributor {
 
-    uint256 private s_validatorCount;
+    ValidatorData private s_validatorData;
 
     constructor(
         address _factory,
@@ -27,24 +28,27 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
 
     function initialize(
         FeeRecipient calldata _clientConfig,
-        FeeRecipient calldata _referrerConfig
+        FeeRecipient calldata _referrerConfig,
+        uint32 _depositedCount
     ) external { // onlyFactory due to _initialize
-        s_validatorCount = _validatorCount;
+        s_validatorData.depositedCount = _depositedCount;
 
         _initialize(_clientConfig, _referrerConfig);
     }
 
-    function increaseValidatorCount(uint256 _validatorCountToAdd) external onlyFactory {
-        s_validatorCount += _validatorCountToAdd;
+    function increasedepositedCount(uint256 _validatorCountToAdd) external onlyFactory {
+        s_validatorData.depositedCount += _validatorCountToAdd;
     }
 
     function voluntaryExit(bytes[] calldata _pubkeys) external override { // onlyClient due to BaseFeeDistributor
         if (_pubkeys.length == 0) {
             revert ContractWcFeeDistributor__NoPubkeysPassed();
         }
-        if (_pubkeys.length > s_validatorCount) {
+        if (_pubkeys.length > s_validatorData.depositedCount - s_validatorData.exitedCount) {
             revert ContractWcFeeDistributor__TooManyPubkeysPassed();
         }
+
+        s_validatorData.exitedCount += _pubkeys.length;
 
         BaseFeeDistributor.voluntaryExit(_pubkeys);
     }
@@ -60,6 +64,21 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
         if (balance == 0) {
             // revert if there is no ether to withdraw
             revert FeeDistributor__NothingToWithdraw();
+        }
+
+        if (balance >= COLLATERAL && s_validatorData.collateralReturnedCount < s_validatorData.exitedCount) {
+            // if exited and some validators withdrawn
+
+            // integer division
+            uint256 collateralsCountToReturn = balance / COLLATERAL;
+
+            s_validatorData.collateralReturnedCount += collateralsCountToReturn;
+
+            // Send collaterals to client
+            P2pAddressLib._sendValue(s_clientConfig.recipient, collateralsCountToReturn * COLLATERAL);
+
+            // Balance remainder to split
+            balance = address(this).balance;
         }
 
         // how much should client get
@@ -108,6 +127,6 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
-        return interfaceId == type(ElOnlyFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
+        return interfaceId == type(ContractWcFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
     }
 }

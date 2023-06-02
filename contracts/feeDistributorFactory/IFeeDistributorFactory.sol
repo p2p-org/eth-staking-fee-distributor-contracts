@@ -6,19 +6,27 @@ pragma solidity 0.8.10;
 import "../@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "../access/IOwnable.sol";
 import "../feeDistributor/IFeeDistributor.sol";
+import "../structs/P2pStructs.sol";
 
 interface IFeeDistributorFactory is IOwnable, IERC165 {
-    event FeeDistributorCreated(address indexed _newFeeDistributorAddress, address indexed _clientAddress);
-    event ReferenceInstanceSet(address indexed _referenceFeeDistributor);
+    event FeeDistributorCreated(
+        address indexed _newFeeDistributorAddress,
+        address indexed _clientAddress,
+        address indexed _referenceFeeDistributor,
+        uint96 _clientBasisPoints
+    );
     event P2pEth2DepositorSet(address indexed _p2pEth2Depositor);
 
-    function setReferenceInstance(address _referenceFeeDistributor) external;
-
     function createFeeDistributor(
-        IFeeDistributor.FeeRecipient calldata _clientConfig,
-        IFeeDistributor.FeeRecipient calldata _referrerConfig,
-        IFeeDistributor.ValidatorData calldata _validatorData
+        address _referenceFeeDistributor,
+        FeeRecipient calldata _clientConfig,
+        FeeRecipient calldata _referrerConfig,
+        bytes calldata _additionalData
     ) external returns (address newFeeDistributorAddress);
 
-    function getReferenceFeeDistributor() external view returns (address);
+    function predictFeeDistributorAddress(
+        address _referenceFeeDistributor,
+        FeeRecipient calldata _clientConfig,
+        FeeRecipient calldata _referrerConfig
+    ) external view returns (address);
 }

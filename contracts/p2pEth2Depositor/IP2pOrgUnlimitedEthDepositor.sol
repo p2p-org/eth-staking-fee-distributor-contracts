@@ -7,11 +7,17 @@ import "../@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "../feeDistributor/IFeeDistributor.sol";
 
 interface IP2pOrgUnlimitedEthDepositor is IERC165 {
+    event P2pOrgUnlimitedEthDepositor__Deposit(
+        address indexed _sender,
+        address indexed _feeDistributorInstance,
+        uint256 _amount,
+        uint40 _expiration
+    );
 
-
-
-    event P2pOrgUnlimitedEthDepositor__Deposit(address indexed _sender, address indexed _client, uint256 _amount);
-    event P2pOrgUnlimitedEthDepositor__Refund(address indexed _client, uint256 _amount);
+    event P2pOrgUnlimitedEthDepositor__Refund(
+        address indexed _client,
+        uint256 _amount
+    );
 
     event P2pEth2DepositEvent(
         address indexed _from,

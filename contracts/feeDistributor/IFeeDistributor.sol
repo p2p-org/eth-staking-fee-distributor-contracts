@@ -35,6 +35,12 @@ interface IFeeDistributor is IERC165 {
         uint256 _amount
     );
 
+    function initialize(
+        FeeRecipient calldata _clientConfig,
+        FeeRecipient calldata _referrerConfig,
+        bytes calldata _additionalData
+    ) external;
+
     function voluntaryExit(bytes[] calldata _pubkeys) external;
 
     function factory() external view returns (address);

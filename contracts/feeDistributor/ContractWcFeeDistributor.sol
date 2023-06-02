@@ -29,11 +29,11 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
     function initialize(
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig,
-        uint32 _depositedCount
-    ) external { // onlyFactory due to _initialize
-        s_validatorData.depositedCount = _depositedCount;
+        bytes calldata _additionalData
+    ) external override { // onlyFactory due to _initialize
+        s_validatorData.depositedCount = uint32(_additionalData);
 
-        _initialize(_clientConfig, _referrerConfig);
+        BaseFeeDistributor._initialize(_clientConfig, _referrerConfig);
     }
 
     function increasedepositedCount(uint256 _validatorCountToAdd) external onlyFactory {

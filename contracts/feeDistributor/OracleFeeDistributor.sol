@@ -39,19 +39,23 @@ contract OracleFeeDistributor is BaseFeeDistributor {
     function initialize(
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig,
-        OracleValidatorData calldata _validatorData
-    ) external { // onlyFactory due to _initialize
-        if (_validatorData.firstValidatorId == 0) {
-            revert OracleFeeDistributor__InvalidFirstValidatorId(_validatorData.firstValidatorId);
+        bytes calldata _additionalData
+    ) external override { // onlyFactory due to _initialize
+        if (OracleValidatorData(_validatorData).firstValidatorId == 0) {
+            revert OracleFeeDistributor__InvalidFirstValidatorId(
+                OracleValidatorData(_validatorData).firstValidatorId
+            );
         }
-        if (_validatorData.validatorCount == 0) {
-            revert OracleFeeDistributor__InvalidValidatorCount(_validatorData.validatorCount);
+        if (OracleValidatorData(_validatorData).validatorCount == 0) {
+            revert OracleFeeDistributor__InvalidValidatorCount(
+                OracleValidatorData(_validatorData).validatorCount
+            );
         }
 
         // set validator data
-        s_validatorData = _validatorData;
+        s_validatorData = OracleValidatorData(_validatorData);
 
-        _initialize(_clientConfig, _referrerConfig);
+        BaseFeeDistributor._initialize(_clientConfig, _referrerConfig);
     }
 
     function withdraw(

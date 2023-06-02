@@ -11,7 +11,8 @@ import "./IFeeDistributorFactory.sol";
 import "../feeDistributor/IFeeDistributor.sol";
 import "../access/Ownable.sol";
 import "../access/OwnableWithOperator.sol";
-import "../p2pEth2Depositor/IP2pEth2Depositor.sol";
+import "../p2pEth2Depositor/IP2pOrgUnlimitedEthDepositor.sol";
+import "../structs/P2pStructs.sol";
 
 error FeeDistributorFactory__NotFeeDistributor(address _passedAddress);
 error FeeDistributorFactory__NotP2pEth2Depositor(address _passedAddress);
@@ -19,9 +20,7 @@ error FeeDistributorFactory__ReferenceFeeDistributorNotSet();
 error FeeDistributorFactory__CallerNotAuthorized(address _caller);
 
 contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ERC165, IFeeDistributorFactory {
-    using Clones for address;
 
-    address private s_referenceFeeDistributor;
     uint96 s_defaultClientBasisPoints;
     address private s_p2pEth2Depositor;
 
@@ -29,17 +28,8 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
         s_defaultClientBasisPoints = _defaultClientBasisPoints;
     }
 
-    function setReferenceInstance(address _referenceFeeDistributor) external onlyOwner {
-        if (!ERC165Checker.supportsInterface(_referenceFeeDistributor, type(IFeeDistributor).interfaceId)) {
-            revert FeeDistributorFactory__NotFeeDistributor(_referenceFeeDistributor);
-        }
-
-        s_referenceFeeDistributor = _referenceFeeDistributor;
-        emit ReferenceInstanceSet(_referenceFeeDistributor);
-    }
-
     function setP2pEth2Depositor(address _p2pEth2Depositor) external onlyOwner {
-        if (!ERC165Checker.supportsInterface(_p2pEth2Depositor, type(IP2pEth2Depositor).interfaceId)) {
+        if (!ERC165Checker.supportsInterface(_p2pEth2Depositor, type(IP2pOrgUnlimitedEthDepositor).interfaceId)) {
             revert FeeDistributorFactory__NotP2pEth2Depositor(_p2pEth2Depositor);
         }
 
@@ -52,9 +42,10 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     }
 
     function createFeeDistributor(
-        IFeeDistributor.FeeRecipient memory _clientConfig,
-        IFeeDistributor.FeeRecipient calldata _referrerConfig,
-        IFeeDistributor.ValidatorData calldata _validatorData
+        address _referenceFeeDistributor,
+        FeeRecipient memory _clientConfig,
+        FeeRecipient calldata _referrerConfig,
+        bytes calldata _additionalData
     ) external returns (address newFeeDistributorAddress) {
         address currentOwner = owner();
         address currentOperator = operator();
@@ -67,8 +58,12 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
             revert FeeDistributorFactory__CallerNotAuthorized(_msgSender());
         }
 
-        if (s_referenceFeeDistributor == address(0)) {
+        if (_referenceFeeDistributor == address(0)) {
             revert FeeDistributorFactory__ReferenceFeeDistributorNotSet();
+        }
+
+        if (!ERC165Checker.supportsInterface(_referenceFeeDistributor, type(IFeeDistributor).interfaceId)) {
+            revert FeeDistributorFactory__NotFeeDistributor(_referenceFeeDistributor);
         }
 
         if (_clientConfig.basisPoints == 0) {
@@ -76,22 +71,37 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
         }
 
         // clone the reference implementation of FeeDistributor
-        newFeeDistributorAddress = s_referenceFeeDistributor.clone();
+        newFeeDistributorAddress = Clones.cloneDeterministic(
+            _referenceFeeDistributor,
+            _getSalt(_clientConfig, _referrerConfig)
+        );
 
         // cast address to FeeDistributor
         IFeeDistributor newFeeDistributor = IFeeDistributor(newFeeDistributorAddress);
 
         // set the client address to the cloned FeeDistributor instance
-        newFeeDistributor.initialize(_clientConfig, _referrerConfig, _validatorData);
+        newFeeDistributor.initialize(_clientConfig, _referrerConfig, _additionalData);
 
         // emit event with the address of the newly created instance for the external listener
-        emit FeeDistributorCreated(newFeeDistributorAddress, _clientConfig.recipient);
+        emit FeeDistributorCreated(
+            newFeeDistributorAddress,
+            _clientConfig.recipient,
+            _referenceFeeDistributor,
+            _clientConfig.basisPoints
+        );
 
         return newFeeDistributorAddress;
     }
 
-    function getReferenceFeeDistributor() external view returns (address) {
-        return s_referenceFeeDistributor;
+    function predictFeeDistributorAddress(
+        address _referenceFeeDistributor,
+        FeeRecipient calldata _clientConfig,
+        FeeRecipient calldata _referrerConfig
+    ) public view returns (address) {
+        return Clones.predictDeterministicAddress(
+            _referenceFeeDistributor,
+            _getSalt(_clientConfig, _referrerConfig)
+        );
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
@@ -100,5 +110,13 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
 
     function owner() public view override(Ownable, OwnableBase, IOwnable) returns (address) {
         return super.owner();
+    }
+
+    function _getSalt(
+        FeeRecipient calldata _clientConfig,
+        FeeRecipient calldata _referrerConfig
+    ) private view returns (bytes32)
+    {
+        return keccak256(abi.encode(_clientConfig, _referrerConfig));
     }
 }

@@ -63,6 +63,12 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
         }
     }
 
+    function initialize(
+        FeeRecipient calldata _clientConfig,
+        FeeRecipient calldata _referrerConfig,
+        bytes calldata _additionalData
+    ) external virtual;
+
     function voluntaryExit(bytes[] calldata _pubkeys) external virtual onlyClient {
         emit VoluntaryExit(_pubkeys);
     }

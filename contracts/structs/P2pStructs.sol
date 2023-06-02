@@ -26,6 +26,5 @@ struct ValidatorData {
 struct ClientDeposit {
     uint112 amount;
     uint40 expiration;
-    IFeeDistributor feeDistributorTemplate;
-    uint96 reservedForFutureUse;
+    uint104 reservedForFutureUse1;
 }

@@ -3,19 +3,29 @@
 
 pragma solidity 0.8.10;
 
+import "../@openzeppelin/contracts/proxy/Clones.sol";
 import "./interfaces/IDepositContract.sol";
 import "../lib/P2pAddressLib.sol";
 import "./P2pOrgUnlimitedEthDepositorErrors.sol";
 import "../constants/P2pConstants.sol";
 import "./IP2pOrgUnlimitedEthDepositor.sol";
+import "../feeDistributorFactory/IFeeDistributorFactory.sol";
+import "../structs/P2pStructs.sol";
 
 contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
 
     IDepositContract public immutable i_depositContract;
+    IFeeDistributorFactory public immutable i_feeDistributorFactory;
 
     mapping(address => ClientDeposit) public s_clientDeposits;
 
-    constructor(bool _mainnet) {
+    constructor(bool _mainnet, address _feeDistributorFactory) {
+        if (!ERC165Checker.supportsInterface(_feeDistributorFactory, type(IFeeDistributorFactory).interfaceId)) {
+            revert P2pEth2Depositor__NotFactory(_feeDistributorFactory);
+        }
+
+        i_feeDistributorFactory = IFeeDistributorFactory(_feeDistributorFactory);
+
         i_depositContract = _mainnet
             ? IDepositContract(0x00000000219ab540356cBB839Cbe05303d7705Fa) // real Mainnet DepositContract
             : IDepositContract(0xff50ed3d0ec03aC01D4C79aAd74928BFF48a7b2b); // real Goerli DepositContract
@@ -27,8 +37,9 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
 
     function deposit(
         address _referenceFeeDistributor,
-        IFeeDistributor.FeeRecipient calldata _clientConfig,
-        IFeeDistributor.FeeRecipient calldata _referrerConfig
+        FeeRecipient calldata _clientConfig,
+        FeeRecipient calldata _referrerConfig,
+        bytes calldata _additionalData
     ) public payable {
         if (msg.value == 0) {
             revert P2pOrgUnlimitedEthDepositor__NoZeroDeposits(msg.sender, _client);
@@ -38,18 +49,40 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
             revert P2pOrgUnlimitedEthDepositor__NotFeeDistributor(_referenceFeeDistributor);
         }
 
-        s_balanceOf[_client] += msg.value;
+        address feeDistributorInstance = i_feeDistributorFactory.predictFeeDistributorAddress(
+            _referenceFeeDistributor,
+            _clientConfig,
+            _referrerConfig
+        );
 
-        // check if _client accepts ETH
-        bool success = P2pAddressLib._sendValue(payable(_client), 0);
-        if (!success) {
-            revert P2pOrgUnlimitedEthDepositor__ClientNotAcceptingEth(_client);
+        if (feeDistributorInstance.code.length == 0) {
+            // if feeDistributorInstance doesn't exist, deploy it
+
+            i_feeDistributorFactory.createFeeDistributor(
+                _referenceFeeDistributor,
+                _clientConfig,
+                _referrerConfig,
+                _additionalData
+            );
         }
 
-        emit P2pOrgUnlimitedEthDepositor__Deposit(msg.sender, _client, msg.value);
+        uint256 amount = s_clientDeposits[feeDistributorInstance] + msg.value;
+        uint40 expiration = block.timestamp + TIMEOUT;
+
+        s_clientDeposits[feeDistributorInstance] = ClientDeposit({
+            amount: amount,
+            expiration: expiration
+        });
+
+        emit P2pOrgUnlimitedEthDepositor__Deposit(
+            msg.sender,
+            feeDistributorInstance,
+            amount,
+            expiration
+        );
     }
 
-    function refund() external {
+    function refund(address _referenceFeeDistributor) external {
         uint256 clientBalance = s_balanceOf[msg.sender];
 
         if (clientBalance == 0) {

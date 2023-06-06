@@ -20,14 +20,6 @@ contract ElOnlyFeeDistributor is BaseFeeDistributor {
     ) BaseFeeDistributor(_factory, _service) {
     }
 
-    function initialize(
-        FeeRecipient calldata _clientConfig,
-        FeeRecipient calldata _referrerConfig,
-        bytes
-    ) external override { // onlyFactory due to _initialize
-        BaseFeeDistributor._initialize(_clientConfig, _referrerConfig);
-    }
-
     function withdraw() external nonReentrant {
         if (s_clientConfig.recipient == address(0)) {
             revert FeeDistributor__ClientNotSet();

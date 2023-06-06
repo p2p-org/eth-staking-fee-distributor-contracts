@@ -37,8 +37,7 @@ interface IFeeDistributor is IERC165 {
 
     function initialize(
         FeeRecipient calldata _clientConfig,
-        FeeRecipient calldata _referrerConfig,
-        bytes calldata _additionalData
+        FeeRecipient calldata _referrerConfig
     ) external;
 
     function voluntaryExit(bytes[] calldata _pubkeys) external;

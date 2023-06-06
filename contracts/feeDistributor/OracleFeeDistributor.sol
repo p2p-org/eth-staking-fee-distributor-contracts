@@ -14,15 +14,13 @@ import "../structs/P2pStructs.sol";
 import "./BaseFeeDistributor.sol";
 
 error OracleFeeDistributor__NotOracle(address _passedAddress);
-error OracleFeeDistributor__InvalidFirstValidatorId(uint64 _firstValidatorId);
-error OracleFeeDistributor__InvalidValidatorCount(uint32 _validatorCount);
 error OracleFeeDistributor__WaitForEnoughRewardsToWithdraw();
 
 contract OracleFeeDistributor is BaseFeeDistributor {
 
     IOracle private immutable i_oracle;
 
-    OracleValidatorData private s_validatorData;
+    uint256 s_clientOnlyClRewards;
 
     constructor(
         address _oracle,
@@ -34,30 +32,6 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         }
 
         i_oracle = IOracle(_oracle);
-    }
-
-    function initialize(
-        FeeRecipient calldata _clientConfig,
-        FeeRecipient calldata _referrerConfig,
-        bytes calldata _additionalData
-    ) external override { // onlyFactory due to _initialize
-        // TODO: validate _additionalData as OracleValidatorData
-
-        if (OracleValidatorData(_additionalData).firstValidatorId == 0) {
-            revert OracleFeeDistributor__InvalidFirstValidatorId(
-                OracleValidatorData(_validatorData).firstValidatorId
-            );
-        }
-        if (OracleValidatorData(_additionalData).validatorCount == 0) {
-            revert OracleFeeDistributor__InvalidValidatorCount(
-                OracleValidatorData(_validatorData).validatorCount
-            );
-        }
-
-        // set validator data
-        s_validatorData = OracleValidatorData(_additionalData);
-
-        BaseFeeDistributor._initialize(_clientConfig, _referrerConfig);
     }
 
     function withdraw(
@@ -76,16 +50,13 @@ contract OracleFeeDistributor is BaseFeeDistributor {
             revert FeeDistributor__NothingToWithdraw();
         }
 
-        // read from storage once
-        OracleValidatorData memory vd = s_validatorData;
-
         // verify the data from the caller against the oracle
-        i_oracle.verify(_proof, vd.firstValidatorId, vd.validatorCount, _amountInGwei);
+        i_oracle.verify(_proof, address(this), _amountInGwei);
 
         // Gwei to Wei
         uint256 amount = _amountInGwei * (10 ** 9);
 
-        if (balance + amount < vd.clientOnlyClRewards) {
+        if (balance + amount < s_clientOnlyClRewards) {
             // Can happen if the client has called emergencyEtherRecoveryWithoutOracleData before
             // but the actual rewards amount now appeared to be lower than the already split.
             // Should happen rarely.
@@ -94,7 +65,7 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         }
 
         // total to split = EL + CL - already split part of CL (should be OK unless halfBalance < serviceAmount)
-        uint256 totalAmountToSplit = balance + amount - vd.clientOnlyClRewards;
+        uint256 totalAmountToSplit = balance + amount - s_clientOnlyClRewards;
 
         // set client basis points to value from storage config
         uint256 clientBp = s_clientConfig.basisPoints;
@@ -124,7 +95,7 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         }
 
         // client gets the rest from CL as not split anymore amount
-        s_validatorData.clientOnlyClRewards = uint112(vd.clientOnlyClRewards + (totalAmountToSplit - balance));
+        s_clientOnlyClRewards += (totalAmountToSplit - balance);
 
         // how much should referrer get
         uint256 referrerAmount;
@@ -191,7 +162,7 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         uint256 totalAmountToSplit = (halfBalance * 10000) / (10000 - s_clientConfig.basisPoints);
 
         // client gets the rest from CL as not split anymore amount
-        s_validatorData.clientOnlyClRewards = uint112(s_validatorData.clientOnlyClRewards + (totalAmountToSplit - balance));
+        s_clientOnlyClRewards += (totalAmountToSplit - balance);
 
         // how much should referrer get
         uint256 referrerAmount;
@@ -216,16 +187,8 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         emit Withdrawn(serviceAmount, clientAmount, referrerAmount);
     }
 
-    function firstValidatorId() external view returns (uint256) {
-        return s_validatorData.firstValidatorId;
-    }
-
     function clientOnlyClRewards() external view returns (uint256) {
-        return s_validatorData.clientOnlyClRewards;
-    }
-
-    function validatorCount() external view returns (uint256) {
-        return s_validatorData.validatorCount;
+        return s_clientOnlyClRewards;
     }
 
     function eth2WithdrawalCredentialsAddress() external override view returns (address) {

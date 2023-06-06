@@ -10,13 +10,6 @@ struct FeeRecipient {
     address payable recipient;
 }
 
-struct OracleValidatorData {
-    uint112 clientOnlyClRewards;
-    uint64 firstValidatorId;
-    uint32 validatorCount;
-    uint48 reservedForFutureUse;
-}
-
 struct ValidatorData {
     uint32 depositedCount;
     uint32 exitedCount;

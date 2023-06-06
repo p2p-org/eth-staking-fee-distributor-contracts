@@ -56,43 +56,10 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
         }
     }
 
-    receive() external payable {
-        // only accept ether in an instance, not in a template
-        if (s_clientConfig.recipient == address(0)) {
-            revert FeeDistributor__ClientNotSet();
-        }
-    }
-
     function initialize(
         FeeRecipient calldata _clientConfig,
-        FeeRecipient calldata _referrerConfig,
-        bytes calldata _additionalData
-    ) external virtual;
-
-    function voluntaryExit(bytes[] calldata _pubkeys) external virtual onlyClient {
-        emit VoluntaryExit(_pubkeys);
-    }
-
-    modifier onlyClient() {
-        address clientAddress = s_clientConfig.recipient;
-
-        if (clientAddress != msg.sender) {
-            revert FeeDistributor__CallerNotClient(msg.sender, clientAddress);
-        }
-        _;
-    }
-
-    modifier onlyFactory() {
-        if (msg.sender != address(i_factory)) {
-            revert FeeDistributor__NotFactoryCalled(msg.sender, i_factory);
-        }
-        _;
-    }
-
-    function _initialize(
-        FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig
-    ) internal onlyFactory {
+    ) external onlyFactory {
         if (_clientConfig.recipient == address(0)) {
             revert FeeDistributor__ZeroAddressClient();
         }
@@ -146,6 +113,33 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
                 revert FeeDistributor__ReferrerCannotReceiveEther(_referrerConfig.recipient);
             }
         }
+    }
+
+    receive() external payable {
+        // only accept ether in an instance, not in a template
+        if (s_clientConfig.recipient == address(0)) {
+            revert FeeDistributor__ClientNotSet();
+        }
+    }
+
+    function voluntaryExit(bytes[] calldata _pubkeys) external virtual onlyClient {
+        emit VoluntaryExit(_pubkeys);
+    }
+
+    modifier onlyClient() {
+        address clientAddress = s_clientConfig.recipient;
+
+        if (clientAddress != msg.sender) {
+            revert FeeDistributor__CallerNotClient(msg.sender, clientAddress);
+        }
+        _;
+    }
+
+    modifier onlyFactory() {
+        if (msg.sender != address(i_factory)) {
+            revert FeeDistributor__NotFactoryCalled(msg.sender, i_factory);
+        }
+        _;
     }
 
     function factory() external view returns (address) {

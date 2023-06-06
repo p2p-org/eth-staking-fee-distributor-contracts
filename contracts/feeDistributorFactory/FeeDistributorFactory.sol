@@ -26,6 +26,8 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
 
     mapping(address => address[]) private s_allClientFeeDistributors;
 
+    address[] private s_allFeeDistributors;
+
     constructor(uint96 _defaultClientBasisPoints) {
         s_defaultClientBasisPoints = _defaultClientBasisPoints;
     }
@@ -87,6 +89,9 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
         // append new FeeDistributor address to all client feeDistributors array
         s_allClientFeeDistributors[_clientConfig.recipient].push(newFeeDistributorAddress);
 
+        // append new FeeDistributor address to all feeDistributors array
+        s_allFeeDistributors.push(newFeeDistributorAddress);
+
         // emit event with the address of the newly created instance for the external listener
         emit FeeDistributorCreated(
             newFeeDistributorAddress,
@@ -111,6 +116,10 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
 
     function allClientFeeDistributors(address _client) external view returns (address[] memory) {
         return s_allClientFeeDistributors[_client];
+    }
+
+    function allFeeDistributors() external view returns (address[] memory) {
+        return s_allFeeDistributors;
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {

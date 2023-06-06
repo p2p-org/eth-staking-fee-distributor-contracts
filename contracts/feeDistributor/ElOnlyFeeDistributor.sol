@@ -86,6 +86,10 @@ contract ElOnlyFeeDistributor is BaseFeeDistributor {
         }
     }
 
+    function eth2WithdrawalCredentialsAddress() external override view returns (address) {
+        return s_clientConfig.recipient;
+    }
+
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
         return interfaceId == type(ElOnlyFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
     }

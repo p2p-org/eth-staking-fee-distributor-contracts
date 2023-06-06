@@ -24,3 +24,5 @@ error P2pOrgUnlimitedEthDepositor__DoNotSendEthDirectlyHere();
 error P2pOrgUnlimitedEthDepositor__ClientNotAcceptingEth(address _client);
 
 error P2pOrgUnlimitedEthDepositor__NotFeeDistributor(address _passedAddress);
+
+error P2pOrgUnlimitedEthDepositor__NotOwnerNorOperator(address _passedAddress);

@@ -54,4 +54,6 @@ interface IFeeDistributor is IERC165 {
     function referrer() external view returns (address);
 
     function referrerBasisPoints() external view returns (uint256);
+
+    function eth2WithdrawalCredentialsAddress() external view returns (address);
 }

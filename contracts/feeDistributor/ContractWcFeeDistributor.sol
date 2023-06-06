@@ -127,6 +127,10 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
         }
     }
 
+    function eth2WithdrawalCredentialsAddress() external override view returns (address) {
+        return address(this);
+    }
+
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
         return interfaceId == type(ContractWcFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
     }

@@ -17,7 +17,7 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
     IDepositContract public immutable i_depositContract;
     IFeeDistributorFactory public immutable i_feeDistributorFactory;
 
-    mapping(address => ClientDeposit) public s_deposits;
+    mapping(address => ClientDeposit) private s_deposits;
 
     constructor(bool _mainnet, address _feeDistributorFactory) {
         if (!ERC165Checker.supportsInterface(_feeDistributorFactory, type(IFeeDistributorFactory).interfaceId)) {
@@ -35,7 +35,7 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
         revert P2pOrgUnlimitedEthDepositor__DoNotSendEthDirectlyHere();
     }
 
-    function deposit(
+    function addEth(
         address _referenceFeeDistributor,
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig,
@@ -112,7 +112,8 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
         emit P2pOrgUnlimitedEthDepositor__Refund(client, amount);
     }
 
-    // More gas expensive, easier to call
+    // Can be very gas expensive.
+    // Better use refundAll(address[])
     // Only callable by client
     function refundAll() external {
         address[] memory allClientFeeDistributors = i_feeDistributorFactory.allClientFeeDistributors(msg.sender);
@@ -143,38 +144,46 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
     }
 
     function makeBeaconDeposit(
+        address _feeDistributorInstance,
         bytes[] calldata _pubkeys,
         bytes[] calldata _signatures,
-        bytes32[] calldata _deposit_data_roots
+        bytes32[] calldata _depositDataRoots
     ) external {
+        if (msg.sender != i_feeDistributorFactory.operator() && msg.sender != i_feeDistributorFactory.owner()) {
+            revert P2pOrgUnlimitedEthDepositor__NotOwnerNorOperator(msg.sender);
+        }
 
         uint256 validatorCount = _pubkeys.length;
+        uint256 amountToStake = COLLATERAL * validatorCount;
 
         if (validatorCount == 0 || validatorCount > VALIDATORS_MAX_AMOUNT) {
             revert P2pOrgUnlimitedEthDepositor__ValidatorCountError();
         }
 
-        if (msg.value != COLLATERAL * validatorCount) {
+        if (s_deposits[_feeDistributorInstance].amount < amountToStake) {
             revert P2pOrgUnlimitedEthDepositor__EtherValueError();
         }
 
         if (!(
             _signatures.length == validatorCount &&
-            _deposit_data_roots.length == validatorCount
+            _depositDataRoots.length == validatorCount
         )) {
             revert P2pOrgUnlimitedEthDepositor__AmountOfParametersError();
         }
 
-        uint64 firstValidatorId = toUint64(i_depositContract.get_deposit_count()) + 1;
+        s_deposits[_feeDistributorInstance].amount -= amountToStake;
+
+        address eth2WithdrawalCredentialsAddress = IFeeDistributor(_feeDistributorInstance).eth2WithdrawalCredentialsAddress();
+        bytes memory withdrawalCredentials = abi.encode(hex'010000000000000000000000', eth2WithdrawalCredentialsAddress);
 
         for (uint256 i = 0; i < validatorCount;) {
             // pubkey, withdrawal_credentials, signature lengths are already checked inside ETH DepositContract
 
             i_depositContract.deposit{value : collateral}(
                 _pubkeys[i],
-                _withdrawal_credentials,
+                withdrawalCredentials,
                 _signatures[i],
-                _deposit_data_roots[i]
+                _depositDataRoots[i]
             );
 
             // An array can't have a total length
@@ -184,25 +193,18 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
             }
         }
 
-        // First, make sure all the deposits are successful, then deploy FeeDistributor
-        address newFeeDistributorAddress = i_feeDistributorFactory.createFeeDistributor(
-            _clientConfig,
-            _referrerConfig,
-            IFeeDistributor.ValidatorData({
-                clientOnlyClRewards : 0,
-                firstValidatorId : firstValidatorId,
-                validatorCount : uint32(validatorCount)
-            })
-        );
-
-        emit P2pEth2DepositEvent(msg.sender, newFeeDistributorAddress, firstValidatorId, validatorCount);
+        emit P2pEth2DepositEvent(_feeDistributorInstance, validatorCount);
     }
 
-    function totalSupply() public view returns (uint256) {
+    function totalBalance() external view returns (uint256) {
         return address(this).balance;
     }
 
-    function balanceOf(address _owner) external view returns (uint256) {
-        return s_balanceOf[_owner];
+    function depositAmount(address _feeDistributorInstance) external view returns (uint112) {
+        return s_deposits[_feeDistributorInstance].amount;
+    }
+
+    function depositExpiration(address _feeDistributorInstance) external view returns (uint40) {
+        return s_deposits[_feeDistributorInstance].expiration;
     }
 }

@@ -172,6 +172,8 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
         return s_referrerConfig.basisPoints;
     }
 
+    function eth2WithdrawalCredentialsAddress() external virtual view returns (address);
+
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
         return interfaceId == type(IFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
     }

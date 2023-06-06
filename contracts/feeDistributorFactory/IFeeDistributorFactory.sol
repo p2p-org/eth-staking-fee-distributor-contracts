@@ -34,4 +34,8 @@ interface IFeeDistributorFactory is IOwnable, IERC165 {
     function allClientFeeDistributors(
         address _client
     ) external view returns (address[] memory);
+
+    function allFeeDistributors() external view returns (address[] memory);
+
+    function operator() external view returns (address);
 }

@@ -24,6 +24,8 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     uint96 s_defaultClientBasisPoints;
     address private s_p2pEth2Depositor;
 
+    mapping(address => address[]) private s_allClientFeeDistributors;
+
     constructor(uint96 _defaultClientBasisPoints) {
         s_defaultClientBasisPoints = _defaultClientBasisPoints;
     }
@@ -82,6 +84,9 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
         // set the client address to the cloned FeeDistributor instance
         newFeeDistributor.initialize(_clientConfig, _referrerConfig, _additionalData);
 
+        // append new FeeDistributor address to all client feeDistributors array
+        s_allClientFeeDistributors[_clientConfig.recipient].push(newFeeDistributorAddress);
+
         // emit event with the address of the newly created instance for the external listener
         emit FeeDistributorCreated(
             newFeeDistributorAddress,
@@ -102,6 +107,10 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
             _referenceFeeDistributor,
             _getSalt(_clientConfig, _referrerConfig)
         );
+    }
+
+    function allClientFeeDistributors(address _client) external view returns (address[] memory) {
+        return s_allClientFeeDistributors[_client];
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {

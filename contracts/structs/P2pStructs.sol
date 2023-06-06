@@ -21,6 +21,7 @@ struct ValidatorData {
     uint32 depositedCount;
     uint32 exitedCount;
     uint32 collateralReturnedCount;
+    uint160 reservedForFutureUse2;
 }
 
 struct ClientDeposit {

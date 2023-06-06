@@ -41,19 +41,21 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         FeeRecipient calldata _referrerConfig,
         bytes calldata _additionalData
     ) external override { // onlyFactory due to _initialize
-        if (OracleValidatorData(_validatorData).firstValidatorId == 0) {
+        // TODO: validate _additionalData as OracleValidatorData
+
+        if (OracleValidatorData(_additionalData).firstValidatorId == 0) {
             revert OracleFeeDistributor__InvalidFirstValidatorId(
                 OracleValidatorData(_validatorData).firstValidatorId
             );
         }
-        if (OracleValidatorData(_validatorData).validatorCount == 0) {
+        if (OracleValidatorData(_additionalData).validatorCount == 0) {
             revert OracleFeeDistributor__InvalidValidatorCount(
                 OracleValidatorData(_validatorData).validatorCount
             );
         }
 
         // set validator data
-        s_validatorData = OracleValidatorData(_validatorData);
+        s_validatorData = OracleValidatorData(_additionalData);
 
         BaseFeeDistributor._initialize(_clientConfig, _referrerConfig);
     }

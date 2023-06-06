@@ -7,7 +7,11 @@ error P2pOrgUnlimitedEthDepositor__FailedToSendEth(address _receiver, uint256 _a
 
 error P2pOrgUnlimitedEthDepositor__NoZeroDeposits(address _sender, address _client);
 
-error P2pOrgUnlimitedEthDepositor__InsufficientBalance(address _account);
+error P2pOrgUnlimitedEthDepositor__CallerNotClient(address _caller, address _client);
+
+error P2pOrgUnlimitedEthDepositor__InsufficientBalance(address _feeDistributorInstance);
+
+error P2pOrgUnlimitedEthDepositor__WaitForExpiration(uint40 _expiration, uint40 _now);
 
 error P2pOrgUnlimitedEthDepositor__ValidatorCountError();
 

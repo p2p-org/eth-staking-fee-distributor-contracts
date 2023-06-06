@@ -31,6 +31,7 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
         FeeRecipient calldata _referrerConfig,
         bytes calldata _additionalData
     ) external override { // onlyFactory due to _initialize
+        // TODO: validate depositedCount
         s_validatorData.depositedCount = uint32(_additionalData);
 
         BaseFeeDistributor._initialize(_clientConfig, _referrerConfig);

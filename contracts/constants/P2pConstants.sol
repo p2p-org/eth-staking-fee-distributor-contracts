@@ -7,4 +7,4 @@ uint256 constant VALIDATORS_MAX_AMOUNT = 400;
 
 uint256 constant COLLATERAL = 32 ether;
 
-uint64 constant TIMEOUT = 1 days;
+uint40 constant TIMEOUT = 1 days;

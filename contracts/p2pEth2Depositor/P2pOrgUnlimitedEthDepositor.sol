@@ -17,7 +17,7 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
     IDepositContract public immutable i_depositContract;
     IFeeDistributorFactory public immutable i_feeDistributorFactory;
 
-    mapping(address => ClientDeposit) public s_clientDeposits;
+    mapping(address => ClientDeposit) public s_deposits;
 
     constructor(bool _mainnet, address _feeDistributorFactory) {
         if (!ERC165Checker.supportsInterface(_feeDistributorFactory, type(IFeeDistributorFactory).interfaceId)) {
@@ -66,10 +66,13 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
             );
         }
 
-        uint256 amount = s_clientDeposits[feeDistributorInstance] + msg.value;
-        uint40 expiration = block.timestamp + TIMEOUT;
+        // amount = previous amount of feeDistributorInstance + new deposit
+        uint112 amount = uint112(s_deposits[feeDistributorInstance].amount + msg.value);
 
-        s_clientDeposits[feeDistributorInstance] = ClientDeposit({
+        // reset expiration starting from the current block.timestamp
+        uint40 expiration = uint40(block.timestamp + TIMEOUT);
+
+        s_deposits[feeDistributorInstance] = ClientDeposit({
             amount: amount,
             expiration: expiration
         });
@@ -82,21 +85,61 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
         );
     }
 
-    function refund(address _referenceFeeDistributor) external {
-        uint256 clientBalance = s_balanceOf[msg.sender];
-
-        if (clientBalance == 0) {
-            revert P2pOrgUnlimitedEthDepositor__InsufficientBalance();
+    function refund(address _feeDistributorInstance) public {
+        address client = IFeeDistributor(_feeDistributorInstance).client();
+        if (msg.sender != client) {
+            revert P2pOrgUnlimitedEthDepositor__CallerNotClient(msg.sender, client);
         }
 
-        s_balanceOf[msg.sender] = 0;
+        uint40 expiration = s_deposits[_feeDistributorInstance].expiration;
+        uint40 now = uint40(block.timestamp);
+        if (now < expiration) {
+            revert P2pOrgUnlimitedEthDepositor__WaitForExpiration(expiration, now);
+        }
 
-        bool success = P2pAddressLib._sendValue(payable(msg.sender), clientBalance);
+        uint256 amount = s_deposits[_feeDistributorInstance].amount;
+        if (amount == 0) {
+            revert P2pOrgUnlimitedEthDepositor__InsufficientBalance(_feeDistributorInstance);
+        }
+
+        delete s_deposits[feeDistributorInstance];
+
+        bool success = P2pAddressLib._sendValue(payable(client), amount);
         if (!success) {
-            revert P2pOrgUnlimitedEthDepositor__FailedToSendEth(msg.sender, clientBalance);
+            revert P2pOrgUnlimitedEthDepositor__FailedToSendEth(client, amount);
         }
 
-        emit P2pOrgUnlimitedEthDepositor__Refund(msg.sender, clientBalance);
+        emit P2pOrgUnlimitedEthDepositor__Refund(client, amount);
+    }
+
+    // More gas expensive, easier to call
+    // Only callable by client
+    function refundAll() external {
+        address[] memory allClientFeeDistributors = i_feeDistributorFactory.allClientFeeDistributors(msg.sender);
+
+        for (uint256 i = 0; i < allClientFeeDistributors.length;) {
+            refund(allClientFeeDistributors[i]);
+
+            // An array can't have a total length
+            // larger than the max uint256 value.
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    // Cheaper, requires calling feeDistributorFactory's allClientFeeDistributors externally first
+    // Only callable by client
+    function refundAll(address[] calldata _allClientFeeDistributors) external {
+        for (uint256 i = 0; i < _allClientFeeDistributors.length;) {
+            refund(_allClientFeeDistributors[i]);
+
+            // An array can't have a total length
+            // larger than the max uint256 value.
+            unchecked {
+                ++i;
+            }
+        }
     }
 
     function makeBeaconDeposit(

@@ -15,6 +15,7 @@ interface IFeeDistributorFactory is IOwnable, IERC165 {
         address indexed _referenceFeeDistributor,
         uint96 _clientBasisPoints
     );
+
     event P2pEth2DepositorSet(address indexed _p2pEth2Depositor);
 
     function createFeeDistributor(
@@ -29,4 +30,8 @@ interface IFeeDistributorFactory is IOwnable, IERC165 {
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig
     ) external view returns (address);
+
+    function allClientFeeDistributors(
+        address _client
+    ) external view returns (address[] memory);
 }

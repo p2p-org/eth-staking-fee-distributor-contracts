@@ -55,7 +55,7 @@ abstract contract OwnableWithOperator is Ownable2Step {
         _;
     }
 
-    function checkOperatorOrOwner(address _address) external view virtual {
+    function checkOperatorOrOwner(address _address) public view virtual {
         address currentOwner = owner();
         address currentOperator = s_operator;
 

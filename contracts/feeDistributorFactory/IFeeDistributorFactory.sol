@@ -21,8 +21,7 @@ interface IFeeDistributorFactory is IOwnable, IERC165 {
     function createFeeDistributor(
         address _referenceFeeDistributor,
         FeeRecipient calldata _clientConfig,
-        FeeRecipient calldata _referrerConfig,
-        bytes calldata _additionalData
+        FeeRecipient calldata _referrerConfig
     ) external returns (address newFeeDistributorAddress);
 
     function predictFeeDistributorAddress(

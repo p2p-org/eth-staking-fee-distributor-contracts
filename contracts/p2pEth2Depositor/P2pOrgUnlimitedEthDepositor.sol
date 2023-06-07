@@ -40,8 +40,7 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
     function addEth(
         address _referenceFeeDistributor,
         FeeRecipient calldata _clientConfig,
-        FeeRecipient calldata _referrerConfig,
-        bytes calldata _additionalData
+        FeeRecipient calldata _referrerConfig
     ) external payable {
         if (msg.value == 0) {
             revert P2pOrgUnlimitedEthDepositor__NoZeroDeposits();
@@ -63,8 +62,7 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
             i_feeDistributorFactory.createFeeDistributor(
                 _referenceFeeDistributor,
                 _clientConfig,
-                _referrerConfig,
-                _additionalData
+                _referrerConfig
             );
         }
 
@@ -76,7 +74,8 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
 
         s_deposits[feeDistributorInstance] = ClientDeposit({
             amount: amount,
-            expiration: expiration
+            expiration: expiration,
+            reservedForFutureUse: 0
         });
 
         emit P2pOrgUnlimitedEthDepositor__Deposit(
@@ -153,7 +152,7 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         i_feeDistributorFactory.checkOperatorOrOwner(msg.sender);
 
         uint256 validatorCount = _pubkeys.length;
-        uint256 amountToStake = COLLATERAL * validatorCount;
+        uint112 amountToStake = uint112(COLLATERAL * validatorCount);
 
         if (validatorCount == 0 || validatorCount > VALIDATORS_MAX_AMOUNT) {
             revert P2pOrgUnlimitedEthDepositor__ValidatorCountError();
@@ -192,7 +191,7 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
             }
         }
 
-        IFeeDistributor(_feeDistributorInstance).increaseDepositedCount(validatorCount);
+        IFeeDistributor(_feeDistributorInstance).increaseDepositedCount(uint32(validatorCount));
 
         emit P2pEth2DepositEvent(_feeDistributorInstance, validatorCount);
     }

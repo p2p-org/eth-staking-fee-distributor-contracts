@@ -48,8 +48,7 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     function createFeeDistributor(
         address _referenceFeeDistributor,
         FeeRecipient memory _clientConfig,
-        FeeRecipient calldata _referrerConfig,
-        bytes calldata _additionalData
+        FeeRecipient calldata _referrerConfig
     ) external returns (address newFeeDistributorAddress) {
         address currentOwner = owner();
         address currentOperator = operator();
@@ -83,7 +82,7 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
         IFeeDistributor newFeeDistributor = IFeeDistributor(newFeeDistributorAddress);
 
         // set the client address to the cloned FeeDistributor instance
-        newFeeDistributor.initialize(_clientConfig, _referrerConfig, _additionalData);
+        newFeeDistributor.initialize(_clientConfig, _referrerConfig);
 
         // append new FeeDistributor address to all client feeDistributors array
         s_allClientFeeDistributors[_clientConfig.recipient].push(newFeeDistributorAddress);
@@ -137,7 +136,7 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
         return super.operator();
     }
 
-    function checkOperatorOrOwner(address _address) external view override(OwnableWithOperator, IFeeDistributorFactory) {
+    function checkOperatorOrOwner(address _address) public view override(OwnableWithOperator, IFeeDistributorFactory) {
         return super.checkOperatorOrOwner(_address);
     }
 
@@ -148,9 +147,9 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     }
 
     function _getSalt(
-        FeeRecipient calldata _clientConfig,
+        FeeRecipient memory _clientConfig,
         FeeRecipient calldata _referrerConfig
-    ) private view returns (bytes32)
+    ) private pure returns (bytes32)
     {
         return keccak256(abi.encode(_clientConfig, _referrerConfig));
     }

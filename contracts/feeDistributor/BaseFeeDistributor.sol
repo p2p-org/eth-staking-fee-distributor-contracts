@@ -38,6 +38,22 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
     FeeRecipient internal s_clientConfig;
     FeeRecipient internal s_referrerConfig;
 
+    modifier onlyClient() {
+        address clientAddress = s_clientConfig.recipient;
+
+        if (clientAddress != msg.sender) {
+            revert FeeDistributor__CallerNotClient(msg.sender, clientAddress);
+        }
+        _;
+    }
+
+    modifier onlyFactory() {
+        if (msg.sender != address(i_factory)) {
+            revert FeeDistributor__NotFactoryCalled(msg.sender, i_factory);
+        }
+        _;
+    }
+
     constructor(
         address _factory,
         address payable _service
@@ -128,24 +144,8 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
         // Do nothing by defaulf. Can be overridden.
     }
 
-    function voluntaryExit(bytes[] calldata _pubkeys) external virtual onlyClient {
+    function voluntaryExit(bytes[] calldata _pubkeys) public virtual onlyClient {
         emit VoluntaryExit(_pubkeys);
-    }
-
-    modifier onlyClient() {
-        address clientAddress = s_clientConfig.recipient;
-
-        if (clientAddress != msg.sender) {
-            revert FeeDistributor__CallerNotClient(msg.sender, clientAddress);
-        }
-        _;
-    }
-
-    modifier onlyFactory() {
-        if (msg.sender != address(i_factory)) {
-            revert FeeDistributor__NotFactoryCalled(msg.sender, i_factory);
-        }
-        _;
     }
 
     function factory() external view returns (address) {

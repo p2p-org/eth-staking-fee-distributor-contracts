@@ -14,11 +14,11 @@ struct ValidatorData {
     uint32 depositedCount;
     uint32 exitedCount;
     uint32 collateralReturnedCount;
-    uint160 reservedForFutureUse2;
+    uint160 reservedForFutureUse;
 }
 
 struct ClientDeposit {
     uint112 amount;
     uint40 expiration;
-    uint104 reservedForFutureUse1;
+    uint104 reservedForFutureUse;
 }

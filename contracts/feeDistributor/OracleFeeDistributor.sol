@@ -194,8 +194,4 @@ contract OracleFeeDistributor is BaseFeeDistributor {
     function eth2WithdrawalCredentialsAddress() external override view returns (address) {
         return s_clientConfig.recipient;
     }
-
-    function supportsInterface(bytes4 interfaceId) public view virtual override(BaseFeeDistributor) returns (bool) {
-        return interfaceId == type(OracleFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
-    }
 }

@@ -4,11 +4,6 @@
 pragma solidity 0.8.10;
 
 import "../@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "../@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import "../@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-import "../feeDistributorFactory/IFeeDistributorFactory.sol";
-import "../assetRecovering/OwnableTokenRecoverer.sol";
-import "./IFeeDistributor.sol";
 import "../structs/P2pStructs.sol";
 import "../constants/P2pConstants.sol";
 import "./BaseFeeDistributor.sol";
@@ -32,7 +27,7 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
         s_validatorData.depositedCount += _validatorCountToAdd;
     }
 
-    function voluntaryExit(bytes[] calldata _pubkeys) external override { // onlyClient due to BaseFeeDistributor
+    function voluntaryExit(bytes[] calldata _pubkeys) public override { // onlyClient due to BaseFeeDistributor
         if (_pubkeys.length == 0) {
             revert ContractWcFeeDistributor__NoPubkeysPassed();
         }
@@ -120,9 +115,5 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
 
     function eth2WithdrawalCredentialsAddress() external override view returns (address) {
         return address(this);
-    }
-
-    function supportsInterface(bytes4 interfaceId) public view virtual override(BaseFeeDistributor) returns (bool) {
-        return interfaceId == type(ContractWcFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
     }
 }

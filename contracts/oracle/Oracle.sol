@@ -17,9 +17,8 @@ error Oracle__InvalidProof();
 /**
 * @title Oracle stores the Merkle root updated regularly
 * @dev Leaves are hashes of:
-* - first validator id
-* - validator count
-* - sum of CL rewards earned by all validators with ids [id, count])
+* - feeDistributorInstance address
+* - sum of CL rewards earned by all validators of feeDistributorInstance)
 */
 contract Oracle is OwnableAssetRecoverer, OwnableWithOperator, ERC165, IOracle {
     bytes32 private s_root;
@@ -35,17 +34,15 @@ contract Oracle is OwnableAssetRecoverer, OwnableWithOperator, ERC165, IOracle {
     /**
     * @notice Verify Merkle proof (that the leaf belongs to the tree)
     * @param _proof Merkle proof (the leaf's sibling, and each non-leaf hash that could not otherwise be calculated without additional leaf nodes)
-    * @param _firstValidatorId Validator Id (number of all deposits previously made to ETH2 DepositContract plus 1)
-    * @param _validatorCount (number of validators corresponding to a given FeeDistributor instance, equal to the number of ETH2 deposits made with 1 P2pEth2Depositor's deposit)
+    * @param _feeDistributorInstance feeDistributor instance address
     * @param _amountInGwei total CL rewards earned by all validators in GWei (see _validatorCount)
     */
     function verify(
         bytes32[] calldata _proof,
-        uint64 _firstValidatorId,
-        uint32 _validatorCount,
+        address _feeDistributorInstance,
         uint256 _amountInGwei
     ) external view {
-        bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(_firstValidatorId, _validatorCount, _amountInGwei))));
+        bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(_feeDistributorInstance, _amountInGwei))));
 
         if (!MerkleProof.verify(_proof, s_root, leaf)) {
             revert Oracle__InvalidProof();

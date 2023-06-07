@@ -37,5 +37,11 @@ interface IFeeDistributorFactory is IOwnable, IERC165 {
 
     function allFeeDistributors() external view returns (address[] memory);
 
+    function p2pEth2Depositor() external view returns (address);
+
     function operator() external view returns (address);
+
+    function checkOperatorOrOwner(address _address) external view;
+
+    function checkP2pEth2Depositor(address _address) external view;
 }

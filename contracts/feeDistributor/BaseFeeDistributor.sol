@@ -10,6 +10,7 @@ import "../feeDistributorFactory/IFeeDistributorFactory.sol";
 import "../assetRecovering/OwnableTokenRecoverer.sol";
 import "./IFeeDistributor.sol";
 import "../structs/P2pStructs.sol";
+import "../lib/P2pAddressLib.sol";
 
 error FeeDistributor__NotFactory(address _passedAddress);
 error FeeDistributor__ZeroAddressService();
@@ -27,14 +28,15 @@ error FeeDistributor__ServiceCannotReceiveEther(address _service);
 error FeeDistributor__ClientCannotReceiveEther(address _client);
 error FeeDistributor__ReferrerCannotReceiveEther(address _referrer);
 error FeeDistributor__NothingToWithdraw();
+error FeeDistributor__CallerNotClient(address _caller, address _client);
 
 abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
 
-    IFeeDistributorFactory private immutable i_factory;
-    address payable private immutable i_service;
+    IFeeDistributorFactory internal immutable i_factory;
+    address payable internal immutable i_service;
 
-    FeeRecipient private s_clientConfig;
-    FeeRecipient private s_referrerConfig;
+    FeeRecipient internal s_clientConfig;
+    FeeRecipient internal s_referrerConfig;
 
     constructor(
         address _factory,
@@ -120,6 +122,10 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
         if (s_clientConfig.recipient == address(0)) {
             revert FeeDistributor__ClientNotSet();
         }
+    }
+
+    function increaseDepositedCount(uint32 _validatorCountToAdd) external virtual {
+        // Do nothing by defaulf. Can be overridden.
     }
 
     function voluntaryExit(bytes[] calldata _pubkeys) external virtual onlyClient {

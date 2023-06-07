@@ -82,7 +82,7 @@ contract ElOnlyFeeDistributor is BaseFeeDistributor {
         return s_clientConfig.recipient;
     }
 
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view virtual override(BaseFeeDistributor) returns (bool) {
         return interfaceId == type(ElOnlyFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
     }
 }

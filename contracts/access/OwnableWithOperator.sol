@@ -16,9 +16,14 @@ error Access__ZeroNewOperator();
 error Access__SameOperator(address _operator);
 
 /**
-* @notice caller is not the operator
+* @notice caller is neither the operator nor owner
 */
 error Access__CallerNeitherOperatorNorOwner(address _caller, address _operator, address _owner);
+
+/**
+* @notice address is neither the operator nor owner
+*/
+error Access__AddressNeitherOperatorNorOwner(address _address, address _operator, address _owner);
 
 /**
  * @dev Ownable with an additional role of operator
@@ -48,6 +53,15 @@ abstract contract OwnableWithOperator is Ownable2Step {
         }
 
         _;
+    }
+
+    function checkOperatorOrOwner(address _address) external view virtual {
+        address currentOwner = owner();
+        address currentOperator = s_operator;
+
+        if (currentOperator != _address && currentOwner != _address) {
+            revert Access__AddressNeitherOperatorNorOwner(_address, currentOperator, currentOwner);
+        }
     }
 
     /**

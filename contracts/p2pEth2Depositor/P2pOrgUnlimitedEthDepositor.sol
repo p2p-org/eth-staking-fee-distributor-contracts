@@ -4,6 +4,7 @@
 pragma solidity 0.8.10;
 
 import "../@openzeppelin/contracts/proxy/Clones.sol";
+import "../@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "./interfaces/IDepositContract.sol";
 import "../lib/P2pAddressLib.sol";
 import "./P2pOrgUnlimitedEthDepositorErrors.sol";
@@ -21,7 +22,7 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
 
     constructor(bool _mainnet, address _feeDistributorFactory) {
         if (!ERC165Checker.supportsInterface(_feeDistributorFactory, type(IFeeDistributorFactory).interfaceId)) {
-            revert P2pEth2Depositor__NotFactory(_feeDistributorFactory);
+            revert P2pOrgUnlimitedEthDepositor__NotFactory(_feeDistributorFactory);
         }
 
         i_feeDistributorFactory = IFeeDistributorFactory(_feeDistributorFactory);
@@ -40,9 +41,9 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig,
         bytes calldata _additionalData
-    ) public payable {
+    ) external payable {
         if (msg.value == 0) {
-            revert P2pOrgUnlimitedEthDepositor__NoZeroDeposits(msg.sender, _client);
+            revert P2pOrgUnlimitedEthDepositor__NoZeroDeposits();
         }
 
         if (!ERC165Checker.supportsInterface(_referenceFeeDistributor, type(IFeeDistributor).interfaceId)) {
@@ -92,9 +93,8 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
         }
 
         uint40 expiration = s_deposits[_feeDistributorInstance].expiration;
-        uint40 now = uint40(block.timestamp);
-        if (now < expiration) {
-            revert P2pOrgUnlimitedEthDepositor__WaitForExpiration(expiration, now);
+        if (uint40(block.timestamp) < expiration) {
+            revert P2pOrgUnlimitedEthDepositor__WaitForExpiration(expiration, uint40(block.timestamp));
         }
 
         uint256 amount = s_deposits[_feeDistributorInstance].amount;
@@ -102,7 +102,7 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
             revert P2pOrgUnlimitedEthDepositor__InsufficientBalance(_feeDistributorInstance);
         }
 
-        delete s_deposits[feeDistributorInstance];
+        delete s_deposits[_feeDistributorInstance];
 
         bool success = P2pAddressLib._sendValue(payable(client), amount);
         if (!success) {
@@ -149,9 +149,7 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
         bytes[] calldata _signatures,
         bytes32[] calldata _depositDataRoots
     ) external {
-        if (msg.sender != i_feeDistributorFactory.operator() && msg.sender != i_feeDistributorFactory.owner()) {
-            revert P2pOrgUnlimitedEthDepositor__NotOwnerNorOperator(msg.sender);
-        }
+        i_feeDistributorFactory.checkOperatorOrOwner(msg.sender);
 
         uint256 validatorCount = _pubkeys.length;
         uint256 amountToStake = COLLATERAL * validatorCount;
@@ -179,7 +177,7 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
         for (uint256 i = 0; i < validatorCount;) {
             // pubkey, withdrawal_credentials, signature lengths are already checked inside ETH DepositContract
 
-            i_depositContract.deposit{value : collateral}(
+            i_depositContract.deposit{value : COLLATERAL}(
                 _pubkeys[i],
                 withdrawalCredentials,
                 _signatures[i],
@@ -192,6 +190,8 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
                 ++i;
             }
         }
+
+        IFeeDistributor(_feeDistributorInstance).increaseDepositedCount(validatorCount);
 
         emit P2pEth2DepositEvent(_feeDistributorInstance, validatorCount);
     }

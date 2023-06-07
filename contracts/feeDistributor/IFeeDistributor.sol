@@ -40,6 +40,8 @@ interface IFeeDistributor is IERC165 {
         FeeRecipient calldata _referrerConfig
     ) external;
 
+    function increaseDepositedCount(uint32 _validatorCountToAdd) external;
+
     function voluntaryExit(bytes[] calldata _pubkeys) external;
 
     function factory() external view returns (address);

@@ -5,7 +5,7 @@ pragma solidity 0.8.10;
 
 error P2pOrgUnlimitedEthDepositor__FailedToSendEth(address _receiver, uint256 _amount);
 
-error P2pOrgUnlimitedEthDepositor__NoZeroDeposits(address _sender, address _client);
+error P2pOrgUnlimitedEthDepositor__NoZeroDeposits();
 
 error P2pOrgUnlimitedEthDepositor__CallerNotClient(address _caller, address _client);
 
@@ -25,4 +25,4 @@ error P2pOrgUnlimitedEthDepositor__ClientNotAcceptingEth(address _client);
 
 error P2pOrgUnlimitedEthDepositor__NotFeeDistributor(address _passedAddress);
 
-error P2pOrgUnlimitedEthDepositor__NotOwnerNorOperator(address _passedAddress);
+error P2pOrgUnlimitedEthDepositor__NotFactory(address _passedAddress);

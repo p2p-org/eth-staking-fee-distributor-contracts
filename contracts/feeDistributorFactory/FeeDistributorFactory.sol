@@ -122,12 +122,30 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
         return s_allFeeDistributors;
     }
 
+    function p2pEth2Depositor() external view returns (address) {
+        return s_p2pEth2Depositor;
+    }
+
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
         return interfaceId == type(IFeeDistributorFactory).interfaceId || super.supportsInterface(interfaceId);
     }
 
     function owner() public view override(Ownable, OwnableBase, IOwnable) returns (address) {
         return super.owner();
+    }
+
+    function operator() public view override(OwnableWithOperator, IFeeDistributorFactory) returns (address) {
+        return super.operator();
+    }
+
+    function checkOperatorOrOwner(address _address) external view override(OwnableWithOperator, IFeeDistributorFactory) {
+        return super.checkOperatorOrOwner(_address);
+    }
+
+    function checkP2pEth2Depositor(address _address) external view {
+        if (s_p2pEth2Depositor != _address) {
+            revert FeeDistributorFactory__NotP2pEth2Depositor(_address);
+        }
     }
 
     function _getSalt(

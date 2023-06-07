@@ -26,7 +26,9 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
     ) BaseFeeDistributor(_factory, _service) {
     }
 
-    function increaseDepositedCount(uint256 _validatorCountToAdd) external onlyFactory {
+    function increaseDepositedCount(uint32 _validatorCountToAdd) external override {
+        i_factory.checkP2pEth2Depositor(msg.sender);
+
         s_validatorData.depositedCount += _validatorCountToAdd;
     }
 
@@ -120,7 +122,7 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
         return address(this);
     }
 
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view virtual override(BaseFeeDistributor) returns (bool) {
         return interfaceId == type(ContractWcFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
     }
 }

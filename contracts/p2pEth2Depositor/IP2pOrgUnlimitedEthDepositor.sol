@@ -29,7 +29,7 @@ interface IP2pOrgUnlimitedEthDepositor is IERC165 {
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig,
         bytes calldata _additionalData
-    ) external;
+    ) external payable;
 
     function makeBeaconDeposit(
         address _feeDistributorInstance,

@@ -4,6 +4,7 @@
 pragma solidity 0.8.10;
 
 import "../@openzeppelin/contracts/proxy/Clones.sol";
+import "../@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "../@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "./interfaces/IDepositContract.sol";
 import "../lib/P2pAddressLib.sol";
@@ -13,7 +14,7 @@ import "./IP2pOrgUnlimitedEthDepositor.sol";
 import "../feeDistributorFactory/IFeeDistributorFactory.sol";
 import "../structs/P2pStructs.sol";
 
-contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
+contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
 
     IDepositContract public immutable i_depositContract;
     IFeeDistributorFactory public immutable i_feeDistributorFactory;
@@ -206,5 +207,9 @@ contract P2pOrgUnlimitedEthDepositor is IP2pOrgUnlimitedEthDepositor {
 
     function depositExpiration(address _feeDistributorInstance) external view returns (uint40) {
         return s_deposits[_feeDistributorInstance].expiration;
+    }
+
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
+        return interfaceId == type(IP2pOrgUnlimitedEthDepositor).interfaceId || super.supportsInterface(interfaceId);
     }
 }

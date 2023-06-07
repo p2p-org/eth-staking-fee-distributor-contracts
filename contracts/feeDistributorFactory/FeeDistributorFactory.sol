@@ -53,11 +53,10 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     ) external returns (address newFeeDistributorAddress) {
         address currentOwner = owner();
         address currentOperator = operator();
-        address p2pEth2Depositor = s_p2pEth2Depositor;
 
         if (currentOperator != _msgSender()
             && currentOwner != _msgSender()
-            && p2pEth2Depositor != _msgSender()
+            && s_p2pEth2Depositor != _msgSender()
         ) {
             revert FeeDistributorFactory__CallerNotAuthorized(_msgSender());
         }

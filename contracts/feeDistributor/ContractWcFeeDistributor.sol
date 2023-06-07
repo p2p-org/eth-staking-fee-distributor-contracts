@@ -40,9 +40,9 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
             revert ContractWcFeeDistributor__TooManyPubkeysPassed();
         }
 
-        s_validatorData.exitedCount += _pubkeys.length;
+        s_validatorData.exitedCount += uint32(_pubkeys.length);
 
-        BaseFeeDistributor.voluntaryExit(_pubkeys);
+        super.voluntaryExit(_pubkeys);
     }
 
     function withdraw() external nonReentrant {
@@ -62,7 +62,7 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
             // if exited and some validators withdrawn
 
             // integer division
-            uint256 collateralsCountToReturn = balance / COLLATERAL;
+            uint32 collateralsCountToReturn = uint32(balance / COLLATERAL);
 
             s_validatorData.collateralReturnedCount += collateralsCountToReturn;
 

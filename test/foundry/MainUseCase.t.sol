@@ -18,12 +18,20 @@ import "../../contracts/structs/P2pStructs.sol";
 contract MainUseCase is Test {
     Vm cheats = Vm(HEVM_ADDRESS);
 
+    bytes pubKey;
+    bytes signature;
+    bytes32 depositDataRoot;
+
+    bytes[] pubKeys;
+    bytes[] signatures;
+    bytes32[] depositDataRoots;
+
     address payable serviceAddress = payable(0x6Bb8b45a1C6eA816B70d76f83f7dC4f0f87365Ff);
     uint96 defaultClientBasisPoints = 9000;
     uint256 clientDepositedEth = 32000 ether;
 
     address clientDepositorAddress = 0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8;
-    address payable clientWcAddress = payable(0x6D5a7597896A703Fe8c85775B23395a48f971305);
+    address payable clientWcAddress = payable(0xB3E84B6C6409826DC45432B655D8C9489A14A0D7);
     address p2pDeployerAddress = 0x5a52E96BAcdaBb82fd05763E25335261B270Efcb;
     address operatorAddress = 0xDc251802dCAF9a44409a254c04Fc19d22EDa36e2;
     address extraSecureP2pAddress = 0xb0d0f9e74e15345D9E618C6f4Ca1C9Cb061C613A;
@@ -40,6 +48,16 @@ contract MainUseCase is Test {
 
     function setUp() public {
         cheats.createSelectFork("mainnet", 17434740);
+
+        pubKey = bytes(hex'87f08e27a19e0d15764838e3af5c33645545610f268c2dadba3c2c789e2579a5d5300a3d72c6fb5fce4e9aa1c2f32d40');
+        signature = bytes(hex'816597afd6c13068692512ed57e7c6facde10be01b247c58d67f15e3716ec7eb9856d28e25e1375ab526b098fdd3094405435a9bf7bf95369697365536cb904f0ae4f8da07f830ae1892182e318588ce8dd6220be2145f6c29d28e0d57040d42');
+        depositDataRoot = bytes32(hex'34b7017543befa837eb0af8a32b2c6e543b1d869ff526680c9d59291b742d5b7');
+
+        for (uint256 i = 0; i < VALIDATORS_MAX_AMOUNT; i++) {
+            pubKeys.push(pubKey);
+            signatures.push(signature);
+            depositDataRoots.push(depositDataRoot);
+        }
 
         cheats.startPrank(p2pDeployerAddress);
         oracle = new Oracle();
@@ -58,10 +76,35 @@ contract MainUseCase is Test {
         setOperator();
         setOwner();
         setP2pEth2Depositor();
-        addEthToElFeeDistributor();
+        addEthToElFeeDistributor({callNumber: 1});
         refund();
+        addEthToElFeeDistributor({callNumber: 2});
+        makeBeaconDeposit();
 
         console.log("MainUseCase finished");
+    }
+
+    function makeBeaconDeposit() private {
+        console.log("makeBeaconDeposit");
+
+        vm.expectRevert(abi.encodeWithSelector(Access__AddressNeitherOperatorNorOwner.selector, address(this), operatorAddress, extraSecureP2pAddress));
+        p2pEthDepositor.makeBeaconDeposit(
+            address(elFeeDistributorInstance),
+            pubKeys,
+            signatures,
+            depositDataRoots
+        );
+
+        cheats.startPrank(operatorAddress);
+
+        p2pEthDepositor.makeBeaconDeposit(
+            address(elFeeDistributorInstance),
+            pubKeys,
+            signatures,
+            depositDataRoots
+        );
+
+        cheats.stopPrank();
     }
 
     function refund() private {
@@ -88,12 +131,14 @@ contract MainUseCase is Test {
         cheats.stopPrank();
     }
 
-    function addEthToElFeeDistributor() private {
-        console.log("addEthToElFeeDistributor");
+    function addEthToElFeeDistributor(uint256 callNumber) private {
+        console.log("addEthToElFeeDistributor #", callNumber);
 
         cheats.startPrank(clientDepositorAddress);
 
-        assertTrue(address(elFeeDistributorInstance) == address(0));
+        if (callNumber == 1) {
+            assertTrue(address(elFeeDistributorInstance) == address(0));
+        }
 
         elFeeDistributorInstance = ElOnlyFeeDistributor(payable(
             p2pEthDepositor.addEth{value: 1 ether}(

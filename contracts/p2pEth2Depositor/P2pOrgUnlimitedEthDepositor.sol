@@ -171,8 +171,10 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
 
         s_deposits[_feeDistributorInstance].amount -= amountToStake;
 
-        address eth2WithdrawalCredentialsAddress = IFeeDistributor(_feeDistributorInstance).eth2WithdrawalCredentialsAddress();
-        bytes memory withdrawalCredentials = abi.encode(hex'010000000000000000000000', eth2WithdrawalCredentialsAddress);
+        bytes memory withdrawalCredentials = abi.encodePacked(
+            hex'010000000000000000000000',
+            IFeeDistributor(_feeDistributorInstance).eth2WithdrawalCredentialsAddress()
+        );
 
         for (uint256 i = 0; i < validatorCount;) {
             // pubkey, withdrawal_credentials, signature lengths are already checked inside ETH DepositContract

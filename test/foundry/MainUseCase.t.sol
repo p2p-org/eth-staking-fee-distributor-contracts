@@ -16,8 +16,6 @@ import "../../contracts/oracle/Oracle.sol";
 import "../../contracts/structs/P2pStructs.sol";
 
 contract MainUseCase is Test {
-    Vm cheats = Vm(HEVM_ADDRESS);
-
     bytes pubKey;
     bytes signature;
     bytes32 depositDataRoot;
@@ -47,7 +45,7 @@ contract MainUseCase is Test {
     ElOnlyFeeDistributor elFeeDistributorInstance;
 
     function setUp() public {
-        cheats.createSelectFork("mainnet", 17434740);
+        vm.createSelectFork("mainnet", 17434740);
 
         pubKey = bytes(hex'87f08e27a19e0d15764838e3af5c33645545610f268c2dadba3c2c789e2579a5d5300a3d72c6fb5fce4e9aa1c2f32d40');
         signature = bytes(hex'816597afd6c13068692512ed57e7c6facde10be01b247c58d67f15e3716ec7eb9856d28e25e1375ab526b098fdd3094405435a9bf7bf95369697365536cb904f0ae4f8da07f830ae1892182e318588ce8dd6220be2145f6c29d28e0d57040d42');
@@ -59,14 +57,14 @@ contract MainUseCase is Test {
             depositDataRoots.push(depositDataRoot);
         }
 
-        cheats.startPrank(p2pDeployerAddress);
+        vm.startPrank(p2pDeployerAddress);
         oracle = new Oracle();
         factory = new FeeDistributorFactory(defaultClientBasisPoints);
         contractWcFeeDistributorTemplate = new ContractWcFeeDistributor(address(factory), serviceAddress);
         elOnlyFeeDistributorTemplate = new ElOnlyFeeDistributor(address(factory), serviceAddress);
         oracleFeeDistributorTemplate = new OracleFeeDistributor(address(oracle), address(factory), serviceAddress);
         p2pEthDepositor = new P2pOrgUnlimitedEthDepositor(true, address(factory));
-        cheats.stopPrank();
+        vm.stopPrank();
     }
 
     function testMainUseCase() public {
@@ -80,8 +78,13 @@ contract MainUseCase is Test {
         refund();
         addEthToElFeeDistributor({callNumber: 2});
         makeBeaconDeposit();
+        withdrawElFeeDistributor();
 
         console.log("MainUseCase finished");
+    }
+
+    function withdrawElFeeDistributor() private {
+
     }
 
     function makeBeaconDeposit() private {
@@ -95,7 +98,10 @@ contract MainUseCase is Test {
             depositDataRoots
         );
 
-        cheats.startPrank(operatorAddress);
+        vm.startPrank(operatorAddress);
+
+        assertEq(p2pEthDepositor.totalBalance(), clientDepositedEth);
+        assertEq(p2pEthDepositor.depositAmount(address(elFeeDistributorInstance)), clientDepositedEth);
 
         p2pEthDepositor.makeBeaconDeposit(
             address(elFeeDistributorInstance),
@@ -104,13 +110,17 @@ contract MainUseCase is Test {
             depositDataRoots
         );
 
-        cheats.stopPrank();
+        uint256 balanceAfter = clientDepositedEth - COLLATERAL * VALIDATORS_MAX_AMOUNT;
+        assertEq(p2pEthDepositor.totalBalance(), balanceAfter);
+        assertEq(p2pEthDepositor.depositAmount(address(elFeeDistributorInstance)), balanceAfter);
+
+        vm.stopPrank();
     }
 
     function refund() private {
         console.log("refund");
 
-        cheats.startPrank(clientWcAddress);
+        vm.startPrank(clientWcAddress);
 
         assertEq(p2pEthDepositor.totalBalance(), clientDepositedEth);
         assertEq(p2pEthDepositor.depositAmount(address(elFeeDistributorInstance)), clientDepositedEth);
@@ -128,13 +138,13 @@ contract MainUseCase is Test {
         assertEq(p2pEthDepositor.totalBalance(), 0);
         assertEq(p2pEthDepositor.depositAmount(address(elFeeDistributorInstance)), 0);
 
-        cheats.stopPrank();
+        vm.stopPrank();
     }
 
     function addEthToElFeeDistributor(uint256 callNumber) private {
         console.log("addEthToElFeeDistributor #", callNumber);
 
-        cheats.startPrank(clientDepositorAddress);
+        vm.startPrank(clientDepositorAddress);
 
         if (callNumber == 1) {
             assertTrue(address(elFeeDistributorInstance) == address(0));
@@ -171,19 +181,19 @@ contract MainUseCase is Test {
         assertEq(p2pEthDepositor.totalBalance(), clientDepositedEth);
         assertEq(newElFeeDistributorInstanceAddress, address(elFeeDistributorInstance));
 
-        cheats.stopPrank();
+        vm.stopPrank();
     }
 
     function setP2pEth2Depositor() private {
         console.log("setP2pEth2Depositor");
 
-        cheats.startPrank(extraSecureP2pAddress);
+        vm.startPrank(extraSecureP2pAddress);
 
         assertTrue(factory.p2pEth2Depositor() != address(p2pEthDepositor));
         factory.setP2pEth2Depositor(address(p2pEthDepositor));
         assertTrue(factory.p2pEth2Depositor() == address(p2pEthDepositor));
 
-        cheats.stopPrank();
+        vm.stopPrank();
     }
 
     function checkOwnership() private {
@@ -199,7 +209,7 @@ contract MainUseCase is Test {
     function setOperator() private {
         console.log("setOperator");
 
-        cheats.startPrank(p2pDeployerAddress);
+        vm.startPrank(p2pDeployerAddress);
 
         assertTrue(oracle.operator() != operatorAddress);
         oracle.changeOperator(operatorAddress);
@@ -209,31 +219,31 @@ contract MainUseCase is Test {
         factory.changeOperator(operatorAddress);
         assertEq(factory.operator(), operatorAddress);
 
-        cheats.stopPrank();
+        vm.stopPrank();
     }
 
     function setOwner() private {
         console.log("setOwner");
 
-        cheats.startPrank(p2pDeployerAddress);
+        vm.startPrank(p2pDeployerAddress);
         assertTrue(oracle.owner() != extraSecureP2pAddress);
         oracle.transferOwnership(extraSecureP2pAddress);
         assertTrue(oracle.owner() != extraSecureP2pAddress);
-        cheats.startPrank(extraSecureP2pAddress);
+        vm.startPrank(extraSecureP2pAddress);
         oracle.acceptOwnership();
         assertEq(oracle.owner(), extraSecureP2pAddress);
-        cheats.stopPrank();
+        vm.stopPrank();
 
-        cheats.startPrank(p2pDeployerAddress);
+        vm.startPrank(p2pDeployerAddress);
         assertTrue(factory.owner() != extraSecureP2pAddress);
         factory.transferOwnership(extraSecureP2pAddress);
         assertTrue(factory.owner() != extraSecureP2pAddress);
-        cheats.startPrank(extraSecureP2pAddress);
+        vm.startPrank(extraSecureP2pAddress);
         factory.acceptOwnership();
         assertEq(factory.owner(), extraSecureP2pAddress);
         assertEq(contractWcFeeDistributorTemplate.owner(), extraSecureP2pAddress);
         assertEq(elOnlyFeeDistributorTemplate.owner(), extraSecureP2pAddress);
         assertEq(oracleFeeDistributorTemplate.owner(), extraSecureP2pAddress);
-        cheats.stopPrank();
+        vm.stopPrank();
     }
 }

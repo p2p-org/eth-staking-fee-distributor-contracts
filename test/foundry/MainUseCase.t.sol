@@ -36,6 +36,8 @@ contract MainUseCase is Test {
     OracleFeeDistributor oracleFeeDistributorTemplate;
     Oracle oracle;
 
+    ElOnlyFeeDistributor elFeeDistributorInstance;
+
     function setUp() public {
         cheats.createSelectFork("mainnet", 17434740);
 
@@ -56,31 +58,60 @@ contract MainUseCase is Test {
         setOperator();
         setOwner();
         setP2pEth2Depositor();
-        addEth();
+        addEthToElFeeDistributor();
+        refund();
 
         console.log("MainUseCase finished");
     }
 
-    function addEth() private {
-        console.log("addEth");
+    function refund() private {
+        console.log("refund");
+
+        cheats.startPrank(clientWcAddress);
+
+        assertEq(p2pEthDepositor.totalBalance(), clientDepositedEth);
+        assertEq(p2pEthDepositor.depositAmount(address(elFeeDistributorInstance)), clientDepositedEth);
+
+        vm.expectRevert(abi.encodeWithSelector(P2pOrgUnlimitedEthDepositor__WaitForExpiration.selector, block.timestamp + TIMEOUT, block.timestamp));
+        p2pEthDepositor.refund(address(elFeeDistributorInstance));
+
+        vm.warp(block.timestamp + TIMEOUT + 1);
+
+        assertEq(p2pEthDepositor.totalBalance(), clientDepositedEth);
+        assertEq(p2pEthDepositor.depositAmount(address(elFeeDistributorInstance)), clientDepositedEth);
+
+        p2pEthDepositor.refund(address(elFeeDistributorInstance));
+
+        assertEq(p2pEthDepositor.totalBalance(), 0);
+        assertEq(p2pEthDepositor.depositAmount(address(elFeeDistributorInstance)), 0);
+
+        cheats.stopPrank();
+    }
+
+    function addEthToElFeeDistributor() private {
+        console.log("addEthToElFeeDistributor");
 
         cheats.startPrank(clientDepositorAddress);
 
-        p2pEthDepositor.addEth{value: 1 ether}(
-            address(elOnlyFeeDistributorTemplate),
-            FeeRecipient({
-                recipient: clientWcAddress,
-                basisPoints: defaultClientBasisPoints
-            }),
-            FeeRecipient({
-                recipient: payable(address(0)),
-                basisPoints: 0
-            })
-        );
+        assertTrue(address(elFeeDistributorInstance) == address(0));
 
+        elFeeDistributorInstance = ElOnlyFeeDistributor(payable(
+            p2pEthDepositor.addEth{value: 1 ether}(
+                address(elOnlyFeeDistributorTemplate),
+                FeeRecipient({
+                    recipient: clientWcAddress,
+                    basisPoints: defaultClientBasisPoints
+                }),
+                FeeRecipient({
+                    recipient: payable(address(0)),
+                    basisPoints: 0
+                })
+        )));
+
+        assertTrue(address(elFeeDistributorInstance) != address(0));
         assertEq(p2pEthDepositor.totalBalance(), 1 ether);
 
-        p2pEthDepositor.addEth{value: (clientDepositedEth - 1 ether)}(
+        address newElFeeDistributorInstanceAddress = p2pEthDepositor.addEth{value: (clientDepositedEth - 1 ether)}(
             address(elOnlyFeeDistributorTemplate),
             FeeRecipient({
                 recipient: clientWcAddress,
@@ -93,6 +124,9 @@ contract MainUseCase is Test {
         );
 
         assertEq(p2pEthDepositor.totalBalance(), clientDepositedEth);
+        assertEq(newElFeeDistributorInstanceAddress, address(elFeeDistributorInstance));
+
+        cheats.stopPrank();
     }
 
     function setP2pEth2Depositor() private {

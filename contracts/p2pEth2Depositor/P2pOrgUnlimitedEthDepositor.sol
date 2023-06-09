@@ -41,7 +41,7 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         address _referenceFeeDistributor,
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig
-    ) external payable {
+    ) external payable returns(address feeDistributorInstance) {
         if (msg.value == 0) {
             revert P2pOrgUnlimitedEthDepositor__NoZeroDeposits();
         }
@@ -50,7 +50,7 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
             revert P2pOrgUnlimitedEthDepositor__NotFeeDistributor(_referenceFeeDistributor);
         }
 
-        address feeDistributorInstance = i_feeDistributorFactory.predictFeeDistributorAddress(
+        feeDistributorInstance = i_feeDistributorFactory.predictFeeDistributorAddress(
             _referenceFeeDistributor,
             _clientConfig,
             _referrerConfig

@@ -84,7 +84,9 @@ contract MainUseCase is Test {
     }
 
     function withdrawElFeeDistributor() private {
+        vm.deal(address(elFeeDistributorInstance), 10 ether);
 
+        elFeeDistributorInstance.withdraw();
     }
 
     function makeBeaconDeposit() private {

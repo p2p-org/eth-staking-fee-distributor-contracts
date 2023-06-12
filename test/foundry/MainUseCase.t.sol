@@ -42,6 +42,7 @@ contract MainUseCase is Test {
     OracleFeeDistributor oracleFeeDistributorTemplate;
     Oracle oracle;
 
+    ContractWcFeeDistributor contractWcFeeDistributorInstance;
     ElOnlyFeeDistributor elFeeDistributorInstance;
     OracleFeeDistributor oracleFeeDistributorInstance;
 
@@ -81,6 +82,7 @@ contract MainUseCase is Test {
         makeBeaconDeposit();
         withdrawElFeeDistributor();
         addEthToOracleFeeDistributor();
+        addEthToContractWcFeeDistributor();
 
         console.log("MainUseCase finished");
     }
@@ -222,6 +224,36 @@ contract MainUseCase is Test {
         uint256 totalBalanceAfter = p2pEthDepositor.totalBalance();
 
         assertTrue(address(oracleFeeDistributorInstance) != address(0));
+        assertEq(totalBalanceAfter - totalBalanceBefore, clientDepositedEth);
+
+        vm.stopPrank();
+    }
+
+    function addEthToContractWcFeeDistributor() private {
+        console.log("addEthToContractWcFeeDistributor");
+
+        vm.startPrank(clientDepositorAddress);
+
+        assertTrue(address(contractWcFeeDistributorInstance) == address(0));
+
+        uint256 totalBalanceBefore = p2pEthDepositor.totalBalance();
+
+        contractWcFeeDistributorInstance = ContractWcFeeDistributor(payable(
+                p2pEthDepositor.addEth{value: (clientDepositedEth)}(
+                    address(contractWcFeeDistributorTemplate),
+                    FeeRecipient({
+                recipient: clientWcAddress,
+                basisPoints: defaultClientBasisPoints
+                }),
+                    FeeRecipient({
+                recipient: payable(address(0)),
+                basisPoints: 0
+                })
+                )));
+
+        uint256 totalBalanceAfter = p2pEthDepositor.totalBalance();
+
+        assertTrue(address(contractWcFeeDistributorInstance) != address(0));
         assertEq(totalBalanceAfter - totalBalanceBefore, clientDepositedEth);
 
         vm.stopPrank();

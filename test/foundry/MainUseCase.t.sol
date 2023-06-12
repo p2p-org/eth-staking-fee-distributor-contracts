@@ -86,7 +86,16 @@ contract MainUseCase is Test {
     function withdrawElFeeDistributor() private {
         vm.deal(address(elFeeDistributorInstance), 10 ether);
 
+        uint256 serviceBalanceBefore = serviceAddress.balance;
+        uint256 clientBalanceBefore = clientWcAddress.balance;
+
         elFeeDistributorInstance.withdraw();
+
+        uint256 serviceBalanceAfter = serviceAddress.balance;
+        uint256 clientBalanceAfter = clientWcAddress.balance;
+
+        assertEq(serviceBalanceAfter - serviceBalanceBefore, 1 ether);
+        assertEq(clientBalanceAfter - clientBalanceBefore, 9 ether);
     }
 
     function makeBeaconDeposit() private {

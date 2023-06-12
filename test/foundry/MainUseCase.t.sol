@@ -43,6 +43,7 @@ contract MainUseCase is Test {
     Oracle oracle;
 
     ElOnlyFeeDistributor elFeeDistributorInstance;
+    OracleFeeDistributor oracleFeeDistributorInstance;
 
     function setUp() public {
         vm.createSelectFork("mainnet", 17434740);
@@ -79,6 +80,7 @@ contract MainUseCase is Test {
         addEthToElFeeDistributor({callNumber: 2});
         makeBeaconDeposit();
         withdrawElFeeDistributor();
+        addEthToOracleFeeDistributor();
 
         console.log("MainUseCase finished");
     }
@@ -191,6 +193,36 @@ contract MainUseCase is Test {
 
         assertEq(p2pEthDepositor.totalBalance(), clientDepositedEth);
         assertEq(newElFeeDistributorInstanceAddress, address(elFeeDistributorInstance));
+
+        vm.stopPrank();
+    }
+
+    function addEthToOracleFeeDistributor() private {
+        console.log("addEthToOracleFeeDistributor");
+
+        vm.startPrank(clientDepositorAddress);
+
+        assertTrue(address(oracleFeeDistributorInstance) == address(0));
+
+        uint256 totalBalanceBefore = p2pEthDepositor.totalBalance();
+
+        oracleFeeDistributorInstance = OracleFeeDistributor(payable(
+        p2pEthDepositor.addEth{value: (clientDepositedEth)}(
+            address(oracleFeeDistributorTemplate),
+            FeeRecipient({
+                recipient: clientWcAddress,
+                basisPoints: defaultClientBasisPoints
+            }),
+            FeeRecipient({
+                recipient: payable(address(0)),
+                basisPoints: 0
+            })
+        )));
+
+        uint256 totalBalanceAfter = p2pEthDepositor.totalBalance();
+
+        assertTrue(address(oracleFeeDistributorInstance) != address(0));
+        assertEq(totalBalanceAfter - totalBalanceBefore, clientDepositedEth);
 
         vm.stopPrank();
     }

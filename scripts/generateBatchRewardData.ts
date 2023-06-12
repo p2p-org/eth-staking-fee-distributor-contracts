@@ -14,7 +14,7 @@ export async function generateBatchRewardData(feeDistributorFactoryAddress: stri
     return groupedSums;
 }
 
-function groupAndSum(
+export function groupAndSum(
     rows: {val_id: number, val_amount: number}[],
     idsAndCounts: {firstValidatorId: number, validatorCount: number}[]
 ) {
@@ -27,11 +27,18 @@ function groupAndSum(
     });
 }
 
-async function getRowsFromBigQuery(valIds: number[]) {
+export async function getRowsFromBigQuery(valIds: number[]) {
     const bigquery = new BigQuery()
 
     const query = `
-        SELECT val_id, sum(att_earned_reward - att_penalty) as val_amount 
+        SELECT val_id, sum(
+            COALESCE(att_earned_reward, 0) + 
+            COALESCE(propose_earned_reward, 0) + 
+            COALESCE(sync_earned_reward, 0) - 
+            COALESCE(att_penalty, 0) - 
+            COALESCE(propose_penalty, 0) - 
+            COALESCE(sync_penalty, 0)
+        ) as val_amount 
         FROM \`p2p-data-warehouse.raw_ethereum.validators_summary\`
         WHERE val_id IN (${valIds})
         GROUP BY val_id
@@ -45,10 +52,10 @@ async function getRowsFromBigQuery(valIds: number[]) {
     return rows
 }
 
-function range({firstValidatorId, validatorCount}: {firstValidatorId: number, validatorCount: number}) {
+export function range({firstValidatorId, validatorCount}: {firstValidatorId: number, validatorCount: number}) {
     return [...Array(validatorCount).keys()].map(i => i + firstValidatorId);
 }
 
-function flatten(array: number[][]) {
+export function flatten(array: number[][]) {
     return array.reduce((accumulator, currentValue) => accumulator.concat(currentValue), []);
 }

@@ -24,6 +24,10 @@ contract MainUseCase is Test {
     bytes[] signatures;
     bytes32[] depositDataRoots;
 
+    bytes[] pubKeysForContractWc;
+    bytes[] signaturesForContractWc;
+    bytes32[] depositDataRootsForContractWc;
+
     address payable serviceAddress = payable(0x6Bb8b45a1C6eA816B70d76f83f7dC4f0f87365Ff);
     uint96 defaultClientBasisPoints = 9000;
     uint256 clientDepositedEth = 32000 ether;
@@ -57,6 +61,11 @@ contract MainUseCase is Test {
             pubKeys.push(pubKey);
             signatures.push(signature);
             depositDataRoots.push(depositDataRoot);
+
+            pubKeysForContractWc.push(bytes(hex'8ac881a1fe216fa252f63ef3967484cbd89396de26d7908f82c3ac895d92fe44adaefbe914c6ca3d0f8eb0f37acf4771'));
+            signaturesForContractWc.push(bytes(hex'964b3a3913d001a524af456437f78b2eb5f7c2b30e7cee08cd3283019aefb1dee72ecca1a4d4da7c7602bc5ea5afe85510f7f45dab312c7243a61482908900b1ded150d64a3afdcab2a18f8b091f579aecded6a108e6060a62c636d8ea1dc36b'));
+            depositDataRootsForContractWc.push(bytes32(hex'a45088a6edc1d3731bfbe77069a15c6f82cafec3deca39e35b770a951173dd30'));
+            // address of contractWcFeeDistributorInstance == 0x1a11782051858a95266109daed1576ed28e48393
         }
 
         vm.startPrank(p2pDeployerAddress);
@@ -76,13 +85,18 @@ contract MainUseCase is Test {
         setOperator();
         setOwner();
         setP2pEth2Depositor();
+
         addEthToElFeeDistributor({callNumber: 1});
         refund();
         addEthToElFeeDistributor({callNumber: 2});
-        makeBeaconDeposit();
+        makeBeaconDepositForElFeeDistributor();
         withdrawElFeeDistributor();
+
         addEthToOracleFeeDistributor();
         addEthToContractWcFeeDistributor();
+
+        makeBeaconDepositForOracleFeeDistributor();
+        makeBeaconDepositForContractWcFeeDistributor();
 
         console.log("MainUseCase finished");
     }
@@ -102,8 +116,8 @@ contract MainUseCase is Test {
         assertEq(clientBalanceAfter - clientBalanceBefore, 9 ether);
     }
 
-    function makeBeaconDeposit() private {
-        console.log("makeBeaconDeposit");
+    function makeBeaconDepositForElFeeDistributor() private {
+        console.log("makeBeaconDepositForElFeeDistributor");
 
         vm.expectRevert(abi.encodeWithSelector(Access__AddressNeitherOperatorNorOwner.selector, address(this), operatorAddress, extraSecureP2pAddress));
         p2pEthDepositor.makeBeaconDeposit(
@@ -128,6 +142,52 @@ contract MainUseCase is Test {
         uint256 balanceAfter = clientDepositedEth - COLLATERAL * VALIDATORS_MAX_AMOUNT;
         assertEq(p2pEthDepositor.totalBalance(), balanceAfter);
         assertEq(p2pEthDepositor.depositAmount(address(elFeeDistributorInstance)), balanceAfter);
+
+        vm.stopPrank();
+    }
+
+    function makeBeaconDepositForOracleFeeDistributor() private {
+        console.log("makeBeaconDepositForOracleFeeDistributor");
+
+        vm.startPrank(operatorAddress);
+
+        uint256 balanceBefore = p2pEthDepositor.totalBalance();
+
+        assertEq(p2pEthDepositor.depositAmount(address(oracleFeeDistributorInstance)), clientDepositedEth);
+
+        p2pEthDepositor.makeBeaconDeposit(
+            address(oracleFeeDistributorInstance),
+            pubKeys,
+            signatures,
+            depositDataRoots
+        );
+
+        uint256 balanceAfter = balanceBefore - COLLATERAL * VALIDATORS_MAX_AMOUNT;
+        assertEq(p2pEthDepositor.totalBalance(), balanceAfter);
+        assertEq(p2pEthDepositor.depositAmount(address(oracleFeeDistributorInstance)), clientDepositedEth - COLLATERAL * VALIDATORS_MAX_AMOUNT);
+
+        vm.stopPrank();
+    }
+
+    function makeBeaconDepositForContractWcFeeDistributor() private {
+        console.log("makeBeaconDepositForContractWcFeeDistributor");
+
+        vm.startPrank(operatorAddress);
+
+        uint256 balanceBefore = p2pEthDepositor.totalBalance();
+
+        assertEq(p2pEthDepositor.depositAmount(address(contractWcFeeDistributorInstance)), clientDepositedEth);
+
+        p2pEthDepositor.makeBeaconDeposit(
+            address(contractWcFeeDistributorInstance),
+            pubKeysForContractWc,
+            signaturesForContractWc,
+            depositDataRootsForContractWc
+        );
+
+        uint256 balanceAfter = balanceBefore - COLLATERAL * VALIDATORS_MAX_AMOUNT;
+        assertEq(p2pEthDepositor.totalBalance(), balanceAfter);
+        assertEq(p2pEthDepositor.depositAmount(address(contractWcFeeDistributorInstance)), clientDepositedEth - COLLATERAL * VALIDATORS_MAX_AMOUNT);
 
         vm.stopPrank();
     }

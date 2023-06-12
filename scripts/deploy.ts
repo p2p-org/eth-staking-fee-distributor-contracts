@@ -90,5 +90,5 @@ main().catch((error) => {
 //
 // P2pEth2Depositor deployed at: 0x2E0743aAAB3118945564b715598B7DF10e083dC1
 //
-// FeeDistributor instance deployed at: 0xA9CaC9e4E1b530105603E7e9BA4AF210E5ce9683
+// FeeDistributor instance deployed at: 0xc4AeD615614f26c8df4eaAf4A1cAEA9184AeB3dE
 

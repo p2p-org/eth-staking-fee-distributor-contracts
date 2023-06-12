@@ -1,37 +1,76 @@
-import { flatten, getRowsFromBigQuery, groupAndSum, range } from "./generateBatchRewardData"
+import { flatten, getRowsFromBigQuery, range } from "./generateBatchRewardData"
 import { BigQuery } from "@google-cloud/bigquery"
 
 export async function getIitialClientOnlyClRewards() {
     const idsAndCounts = [
-        {firstValidatorId: 524511, validatorCount: 1},
-        {firstValidatorId: 458908, validatorCount: 1},
-        {firstValidatorId: 483996, validatorCount: 1},
-        {firstValidatorId: 551909, validatorCount: 5},
-        {firstValidatorId: 526709, validatorCount: 24},
+        {oracleId: 1, firstValidatorId: 524511, validatorCount: 1},
+        {oracleId: 1, firstValidatorId: 458908, validatorCount: 1},
+        {oracleId: 2, firstValidatorId: 483996, validatorCount: 1},
+        {oracleId: 2, firstValidatorId: 486009, validatorCount: 37},
+        {oracleId: 2, firstValidatorId: 486382, validatorCount: 40},
 
-        {firstValidatorId: 565823, validatorCount: 10},
-        {firstValidatorId: 557237, validatorCount: 21},
-        {firstValidatorId: 670938, validatorCount: 10},
-        {firstValidatorId: 521543, validatorCount: 1},
-        {firstValidatorId: 487215, validatorCount: 94},
+        {oracleId: 3, firstValidatorId: 546962, validatorCount: 1},
+        {oracleId: 4, firstValidatorId: 551909, validatorCount: 5},
+        {oracleId: 5, firstValidatorId: 526709, validatorCount: 24},
+        {oracleId: 6, firstValidatorId: 557237, validatorCount: 21},
+        {oracleId: 7, firstValidatorId: 521543, validatorCount: 1},
 
-        {firstValidatorId: 521576, validatorCount: 1},
-        {firstValidatorId: 497067, validatorCount: 4},
-        {firstValidatorId: 491223, validatorCount: 10},
-        {firstValidatorId: 564275, validatorCount: 1},
-        {firstValidatorId: 491490, validatorCount: 1},
+        {oracleId: 8, firstValidatorId: 487215, validatorCount: 94},
+        {oracleId: 9, firstValidatorId: 491223, validatorCount: 10},
+        {oracleId: 9, firstValidatorId: 497067, validatorCount: 4},
+        {oracleId: 9, firstValidatorId: 521576, validatorCount: 1},
+        {oracleId: 10, firstValidatorId: 491490, validatorCount: 1},
 
-        {firstValidatorId: 546657, validatorCount: 22},
-        {firstValidatorId: 543285, validatorCount: 10},
-        {firstValidatorId: 501859, validatorCount: 31},
-        {firstValidatorId: 485640, validatorCount: 7},
+        {oracleId: 11, firstValidatorId: 485587, validatorCount: 1},
+        {oracleId: 11, firstValidatorId: 543285, validatorCount: 10},
+        {oracleId: 11, firstValidatorId: 546657, validatorCount: 22},
+        {oracleId: 11, firstValidatorId: 630081, validatorCount: 32},
+        {oracleId: 12, firstValidatorId: 501859, validatorCount: 31},
+
+        {oracleId: 13, firstValidatorId: 485640, validatorCount: 7},
+        {oracleId: 14, firstValidatorId: 564275, validatorCount: 1},
     ]
-    const valIdsGrouped = idsAndCounts.map(range)
-    const valIds = flatten(valIdsGrouped)
-    const rows = await getRowsFromBigQuery(valIds)
+    const valIdsGrouped = idsAndCounts.map(rangeWithOracleIds)
+    const vals = flattenWithOracleIds(valIdsGrouped)
+    const rows = await getRowsFromBigQuery(vals.map(v => v.index))
 
-    const groupedSums = groupAndSum(rows, idsAndCounts);
-    return groupedSums;
+    const groupedSums = groupAndSumWithOracleIds(rows, idsAndCounts);
+    const reduced = groupAndSumOracleIdRanges(groupedSums)
+    return reduced;
+}
+
+function groupAndSumWithOracleIds(
+    rows: {val_id: number, val_amount: number}[],
+    idsAndCounts: {oracleId: number, firstValidatorId: number, validatorCount: number}[]
+) {
+    return idsAndCounts.map(({ oracleId, firstValidatorId, validatorCount }) => {
+        const rangeIds = rangeWithOracleIds({ oracleId, firstValidatorId, validatorCount });
+        const sum = rows
+            .filter(row => rangeIds.map(r => r.index).includes(row.val_id))
+            .reduce((accumulator, row) => accumulator + row.val_amount, 0);
+        return {oracleId, firstValidatorId, validatorCount, sum};
+    });
+}
+
+function groupAndSumOracleIdRanges(
+    sumsByRanges: {oracleId: number, firstValidatorId: number, validatorCount: number, sum: number}[]
+) {
+    return sumsByRanges.reduce((accumulator: {oracleId: number, validatorCount: number, sum: number}[],
+                                { oracleId, validatorCount, sum }) => {
+        // Check if an entry with the same oracleId already exists in the accumulator
+        const existingEntry = accumulator.find(entry => entry.oracleId === oracleId);
+
+        if (existingEntry) {
+            // If it does, simply add to the validatorCount and sum
+            existingEntry.validatorCount += validatorCount;
+            existingEntry.sum += sum;
+        } else {
+            // If it doesn't, add a new entry to the accumulator
+            accumulator.push({ oracleId, validatorCount, sum });
+        }
+
+        return accumulator;
+    }, []);
 }
 
 export async function getValidatorData() {
@@ -97,6 +136,15 @@ export function flattenWithFeeDividers(array: { index: number; feeDivider: strin
     return array.reduce((accumulator, currentValue) => accumulator.concat(currentValue), []);
 }
 
+export function rangeWithOracleIds({firstValidatorId, validatorCount, oracleId}:
+                                         {firstValidatorId: number, validatorCount: number, oracleId: number}) {
+    return [...Array(validatorCount).keys()].map(i => ({index: i + firstValidatorId, oracleId}));
+}
+
+export function flattenWithOracleIds(array: { index: number; oracleId: number }[][]) {
+    return array.reduce((accumulator, currentValue) => accumulator.concat(currentValue), []);
+}
+
 async function main() {
     const data = await getValidatorData();
     data.map(d => console.log(d.pubKey + ',' + d.feeDivider))
@@ -104,7 +152,7 @@ async function main() {
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-main().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-});
+// main().catch((error) => {
+//     console.error(error);
+//     process.exitCode = 1;
+// });

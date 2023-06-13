@@ -15,7 +15,7 @@ import "../../contracts/feeDistributor/OracleFeeDistributor.sol";
 import "../../contracts/oracle/Oracle.sol";
 import "../../contracts/structs/P2pStructs.sol";
 
-contract MainUseCase is Test {
+contract Integration is Test {
     bytes pubKey;
     bytes signature;
     bytes32 depositDataRoot;
@@ -112,6 +112,20 @@ contract MainUseCase is Test {
         console.log("MainUseCase finished");
     }
 
+    function testContractWcFeeDistributor() public {
+        console.log("testContractWcFeeDistributor started");
+
+        setOperator();
+        setOwner();
+        setP2pEth2Depositor();
+
+        addEthToContractWcFeeDistributor();
+        makeBeaconDepositForContractWcFeeDistributor();
+        withdrawContractWcFeeDistributorAfterVoluntaryExit();
+
+        console.log("testContractWcFeeDistributor finished");
+    }
+
     function withdrawOracleFeeDistributor() private {
         console.log("withdrawOracleFeeDistributor");
 
@@ -142,6 +156,33 @@ contract MainUseCase is Test {
 
         assertEq(serviceBalanceAfter - serviceBalanceBefore, totalRewards * (10000 - defaultClientBasisPoints) / 10000);
         assertEq(clientBalanceAfter - clientBalanceBefore, totalRewards * defaultClientBasisPoints / 10000 - clRewards);
+    }
+
+    function withdrawContractWcFeeDistributorAfterVoluntaryExit() private {
+        console.log("withdrawContractWcFeeDistributorAfterVoluntaryExit");
+
+        uint256 rewards = 10 ether;
+        uint256 collaterals = COLLATERAL * VALIDATORS_MAX_AMOUNT;
+
+        uint256 serviceBalanceBefore = serviceAddress.balance;
+        uint256 clientBalanceBefore = clientWcAddress.balance;
+
+        vm.expectRevert(abi.encodeWithSelector(FeeDistributor__CallerNotClient.selector, address(this), clientWcAddress));
+        contractWcFeeDistributorInstance.voluntaryExit(pubKeysForContractWc);
+
+        vm.startPrank(clientWcAddress);
+        contractWcFeeDistributorInstance.voluntaryExit(pubKeysForContractWc);
+        vm.stopPrank();
+
+        vm.deal(address(contractWcFeeDistributorInstance), rewards + collaterals);
+
+        contractWcFeeDistributorInstance.withdraw();
+
+        uint256 serviceBalanceAfter = serviceAddress.balance;
+        uint256 clientBalanceAfter = clientWcAddress.balance;
+
+        assertEq(serviceBalanceAfter - serviceBalanceBefore, rewards * (10000 - defaultClientBasisPoints) / 10000);
+        assertEq(clientBalanceAfter - clientBalanceBefore, rewards * defaultClientBasisPoints / 10000 + collaterals);
     }
 
     function withdrawContractWcFeeDistributor() private {

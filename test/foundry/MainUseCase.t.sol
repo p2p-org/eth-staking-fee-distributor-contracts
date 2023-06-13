@@ -95,6 +95,7 @@ contract MainUseCase is Test {
 
         addEthToElFeeDistributor({callNumber: 1});
         refund();
+
         addEthToElFeeDistributor({callNumber: 2});
         makeBeaconDepositForElFeeDistributor();
         withdrawElFeeDistributor();
@@ -106,6 +107,7 @@ contract MainUseCase is Test {
         makeBeaconDepositForContractWcFeeDistributor();
 
         withdrawOracleFeeDistributor();
+        withdrawContractWcFeeDistributor();
 
         console.log("MainUseCase finished");
     }
@@ -142,7 +144,26 @@ contract MainUseCase is Test {
         assertEq(clientBalanceAfter - clientBalanceBefore, totalRewards * defaultClientBasisPoints / 10000 - clRewards);
     }
 
+    function withdrawContractWcFeeDistributor() private {
+        console.log("withdrawContractWcFeeDistributor");
+
+        vm.deal(address(contractWcFeeDistributorInstance), 10 ether);
+
+        uint256 serviceBalanceBefore = serviceAddress.balance;
+        uint256 clientBalanceBefore = clientWcAddress.balance;
+
+        contractWcFeeDistributorInstance.withdraw();
+
+        uint256 serviceBalanceAfter = serviceAddress.balance;
+        uint256 clientBalanceAfter = clientWcAddress.balance;
+
+        assertEq(serviceBalanceAfter - serviceBalanceBefore, 1 ether);
+        assertEq(clientBalanceAfter - clientBalanceBefore, 9 ether);
+    }
+
     function withdrawElFeeDistributor() private {
+        console.log("withdrawElFeeDistributor");
+
         vm.deal(address(elFeeDistributorInstance), 10 ether);
 
         uint256 serviceBalanceBefore = serviceAddress.balance;

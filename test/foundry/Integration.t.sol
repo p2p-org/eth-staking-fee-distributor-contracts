@@ -14,6 +14,7 @@ import "../../contracts/feeDistributor/ElOnlyFeeDistributor.sol";
 import "../../contracts/feeDistributor/OracleFeeDistributor.sol";
 import "../../contracts/oracle/Oracle.sol";
 import "../../contracts/structs/P2pStructs.sol";
+import "../../contracts/mocks/MockClientFeeDistributor.sol";
 
 contract Integration is Test {
     bytes pubKey;
@@ -27,6 +28,10 @@ contract Integration is Test {
     bytes[] pubKeysForContractWc;
     bytes[] signaturesForContractWc;
     bytes32[] depositDataRootsForContractWc;
+
+    bytes[] pubKeysForZeroAddressWc;
+    bytes[] signaturesForZeroAddressWc;
+    bytes32[] depositDataRootsForZeroAddressWc;
 
     address payable constant serviceAddress = payable(0x6Bb8b45a1C6eA816B70d76f83f7dC4f0f87365Ff);
     uint96 constant defaultClientBasisPoints = 9000;
@@ -45,14 +50,17 @@ contract Integration is Test {
 
     P2pOrgUnlimitedEthDepositor p2pEthDepositor;
     FeeDistributorFactory factory;
+    Oracle oracle;
+
     ContractWcFeeDistributor contractWcFeeDistributorTemplate;
     ElOnlyFeeDistributor elOnlyFeeDistributorTemplate;
     OracleFeeDistributor oracleFeeDistributorTemplate;
-    Oracle oracle;
+    MockClientFeeDistributor customFeeDistributorTemplate;
 
     ContractWcFeeDistributor contractWcFeeDistributorInstance; // 0x1a11782051858a95266109daed1576ed28e48393
     ElOnlyFeeDistributor elFeeDistributorInstance; // 0x2ead271163a1b59346879452228250c1114de3b8
     OracleFeeDistributor oracleFeeDistributorInstance; // 0x4b08827f4a9a56bde2d93a28dcdd7db066ada23d
+    MockClientFeeDistributor customFeeDistributorInstance; // 0x2f3b0cde60f8885809b2f347b99d54315ae716a3
 
     function setUp() public {
         vm.createSelectFork("mainnet", 17434740);
@@ -73,6 +81,10 @@ contract Integration is Test {
             pubKeysForContractWc.push(bytes(hex'8ac881a1fe216fa252f63ef3967484cbd89396de26d7908f82c3ac895d92fe44adaefbe914c6ca3d0f8eb0f37acf4771'));
             signaturesForContractWc.push(bytes(hex'964b3a3913d001a524af456437f78b2eb5f7c2b30e7cee08cd3283019aefb1dee72ecca1a4d4da7c7602bc5ea5afe85510f7f45dab312c7243a61482908900b1ded150d64a3afdcab2a18f8b091f579aecded6a108e6060a62c636d8ea1dc36b'));
             depositDataRootsForContractWc.push(bytes32(hex'a45088a6edc1d3731bfbe77069a15c6f82cafec3deca39e35b770a951173dd30'));
+
+            pubKeysForZeroAddressWc.push(bytes(hex'b1c9ac4f20bca70faf03d1afa308912073753d3f7a54aa205604f411feacf26243bcf5119fcbf2ebde1b34327c80506b'));
+            signaturesForZeroAddressWc.push(bytes(hex'adfdd15ae10ecd6d53f5d66b6344542ee1195fa128bd20025136eb2e828fe787ec8244510561d833153dfa47367c32d601a9ddd31494daa8926cb596e5490df3dcfdc719e09c18d9fb3e2d059769433fa2b72de1b59e0416376b60edf2af7c8d'));
+            depositDataRootsForZeroAddressWc.push(bytes32(hex'11ac2aa82040395c3ee36e21486d58820dae708cf7359c06b44c8975f7b7cf98'));
         }
 
         vm.startPrank(p2pDeployerAddress);
@@ -83,15 +95,15 @@ contract Integration is Test {
         oracleFeeDistributorTemplate = new OracleFeeDistributor(address(oracle), address(factory), serviceAddress);
         p2pEthDepositor = new P2pOrgUnlimitedEthDepositor(true, address(factory));
         vm.stopPrank();
-    }
-
-    function testMainUseCase() public {
-        console.log("MainUseCase started");
 
         checkOwnership();
         setOperator();
         setOwner();
         setP2pEth2Depositor();
+    }
+
+    function testMainUseCase() public {
+        console.log("MainUseCase started");
 
         addEthToElFeeDistributor({callNumber: 1});
         refund();
@@ -112,18 +124,23 @@ contract Integration is Test {
         console.log("MainUseCase finished");
     }
 
-    function testContractWcFeeDistributor() public {
-        console.log("testContractWcFeeDistributor started");
-
-        setOperator();
-        setOwner();
-        setP2pEth2Depositor();
+    function testContractWcFeeDistributorVoluntaryExit() public {
+        console.log("testContractWcFeeDistributorVoluntaryExit started");
 
         addEthToContractWcFeeDistributor();
         makeBeaconDepositForContractWcFeeDistributor();
         withdrawContractWcFeeDistributorAfterVoluntaryExit();
 
-        console.log("testContractWcFeeDistributor finished");
+        console.log("testContractWcFeeDistributorVoluntaryExit finished");
+    }
+
+    function testCustomClientFeeDistributor() public {
+        console.log("testCustomClientFeeDistributor started");
+
+        addEthToCustomFeeDistributor();
+        makeBeaconDepositForCustomFeeDistributor();
+
+        console.log("testCustomClientFeeDistributor finished");
     }
 
     function withdrawOracleFeeDistributor() private {
@@ -295,6 +312,29 @@ contract Integration is Test {
         vm.stopPrank();
     }
 
+    function makeBeaconDepositForCustomFeeDistributor() private {
+        console.log("makeBeaconDepositForCustomFeeDistributor");
+
+        vm.startPrank(operatorAddress);
+
+        uint256 balanceBefore = p2pEthDepositor.totalBalance();
+
+        assertEq(p2pEthDepositor.depositAmount(address(customFeeDistributorInstance)), clientDepositedEth);
+
+        p2pEthDepositor.makeBeaconDeposit(
+            address(customFeeDistributorInstance),
+            pubKeysForZeroAddressWc,
+            signaturesForZeroAddressWc,
+            depositDataRootsForZeroAddressWc
+        );
+
+        uint256 balanceAfter = balanceBefore - COLLATERAL * VALIDATORS_MAX_AMOUNT;
+        assertEq(p2pEthDepositor.totalBalance(), balanceAfter);
+        assertEq(p2pEthDepositor.depositAmount(address(customFeeDistributorInstance)), clientDepositedEth - COLLATERAL * VALIDATORS_MAX_AMOUNT);
+
+        vm.stopPrank();
+    }
+
     function refund() private {
         console.log("refund");
 
@@ -417,6 +457,38 @@ contract Integration is Test {
         uint256 totalBalanceAfter = p2pEthDepositor.totalBalance();
 
         assertTrue(address(contractWcFeeDistributorInstance) != address(0));
+        assertEq(totalBalanceAfter - totalBalanceBefore, clientDepositedEth);
+
+        vm.stopPrank();
+    }
+
+    function addEthToCustomFeeDistributor() private {
+        console.log("addEthToCustomFeeDistributor");
+
+        vm.startPrank(clientDepositorAddress);
+
+        customFeeDistributorTemplate = new MockClientFeeDistributor();
+
+        assertTrue(address(customFeeDistributorInstance) == address(0));
+
+        uint256 totalBalanceBefore = p2pEthDepositor.totalBalance();
+
+        customFeeDistributorInstance = MockClientFeeDistributor(payable(
+                p2pEthDepositor.addEth{value: (clientDepositedEth)}(
+                    address(customFeeDistributorTemplate),
+                    FeeRecipient({
+                recipient: clientWcAddress,
+                basisPoints: defaultClientBasisPoints
+                }),
+                    FeeRecipient({
+                recipient: payable(address(0)),
+                basisPoints: 0
+                })
+                )));
+
+        uint256 totalBalanceAfter = p2pEthDepositor.totalBalance();
+
+        assertTrue(address(customFeeDistributorInstance) != address(0));
         assertEq(totalBalanceAfter - totalBalanceBefore, clientDepositedEth);
 
         vm.stopPrank();

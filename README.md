@@ -75,7 +75,7 @@ Now the per batch deposit copy of `FeeDistributor` contract will be receiving EL
 
 
 12. (Periodically, e.g. daily) P2P oracle service fetches the latest CL rewards sums for each validator batch (validator IDs from `firstValidatorId` to `_validatorCount`).
-This data is used as the `oracleData` argument for `./scripts/buildMerkleTreeForValidatorBatch.ts` function.
+This data is used as the `oracleData` argument for `./scripts/buildMerkleTreeForFeeDistributorAddress.ts` function.
 The result is a Merkle Tree.
 
 

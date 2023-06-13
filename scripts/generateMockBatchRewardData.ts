@@ -1,25 +1,21 @@
 export function generateMockBatchRewardData(
     batchCount: number, // number of batches
-    testFirstValidatorId: number,
-    testValidatorCount: number,
+    feeDistributorAddress: string,
     testAmount: number
-): number[][] {
+): string[][] {
     const values = [...Array(batchCount - 10).keys()].map(index => ([
-        index * 1000000, // FirstValidatorId
-        index * 1000000000 % testValidatorCount, // ValidatorCount
-        index * 1000000000 // Amount
+        feeDistributorAddress,
+        (index * 1000000000).toString() // Amount
     ]))
 
     values.push([
-        testFirstValidatorId,
-        testValidatorCount,
-        testAmount
+        feeDistributorAddress,
+        testAmount.toString()
     ])
 
     const restValues = [...Array(9).keys()].map(index => ([
-        (index + values.length) * 1000000, // FirstValidatorId
-        (index + values.length) * 1000000000 % testValidatorCount, // ValidatorCount
-        (index + values.length) * 1000000000 // Amount
+        "0x0Fd0489d5CcF0AcC0ccbE8a1F1e638E74CaB5BD7", // random address
+        ((index + values.length) * 1000000000).toString() // Amount
     ]))
 
     values.push(...restValues)

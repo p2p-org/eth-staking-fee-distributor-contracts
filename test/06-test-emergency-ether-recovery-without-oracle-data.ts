@@ -13,7 +13,7 @@ import {
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { generateMockDepositData } from "../scripts/generateMockDepositData"
 import { generateMockBatchRewardData } from "../scripts/generateMockBatchRewardData"
-import { buildMerkleTreeForValidatorBatch } from "../scripts/buildMerkleTreeForValidatorBatch"
+import { buildMerkleTreeForFeeDistributorAddress } from "../scripts/buildMerkleTreeForFeeDistributorAddress"
 import fs from "fs"
 import { obtainProof } from "../scripts/obtainProof"
 
@@ -152,7 +152,7 @@ describe("test emergencyEtherRecoveryWithoutOracleData", function () {
         const batchRewardData = generateMockBatchRewardData(BatchCount, firstValidatorIdNumber, validatorCountNumber, testAmountInGwei);
 
         // build Merkle Tree
-        const tree = buildMerkleTreeForValidatorBatch(batchRewardData)
+        const tree = buildMerkleTreeForFeeDistributorAddress(batchRewardData)
 
         // Send it to the Oracle contract
         await oracleSignedByDeployer.report(tree.root)

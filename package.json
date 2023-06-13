@@ -38,12 +38,10 @@
     "typechain": "yarn hardhat typechain",
     "size": "yarn run hardhat size-contracts",
     "deployToGoerli": "yarn hardhat run --network goerli scripts/deploy.ts",
-    "deployP2pMessageSender": "yarn hardhat run --network goerli scripts/deployP2pMessageSender.ts",
     "testLotsOfCalldata": "yarn hardhat run --network goerli scripts/testLotsOfCalldata.ts",
     "fetchFromBigQuery": "yarn hardhat run --network goerli scripts/fetchFromBigQuery.ts",
     "makeBatchDeposit": "yarn hardhat run --network goerli scripts/makeBatchDeposit.ts",
-    "getIitialClientOnlyClRewards": "yarn hardhat run --network goerli scripts/getIitialClientOnlyClRewards.ts",
-    "createFeeDistributorsForExistingClients": "yarn hardhat run --network mainnet scripts/createFeeDistributorsForExistingClients.ts",
+    "generateMockMerkleTree": "yarn hardhat run --network goerli scripts/generateMockMerkleTree.ts",
     "main": "yarn hardhat run --network goerli scripts/main.ts"
   },
   "dependencies": {

@@ -135,6 +135,14 @@ contract Integration is Test {
 
         addEthToContractWcFeeDistributor();
         makeBeaconDepositForContractWcFeeDistributor();
+
+        vm.expectRevert(abi.encodeWithSelector(FeeDistributor__CallerNotClient.selector, address(this), clientWcAddress));
+        contractWcFeeDistributorInstance.voluntaryExit(pubKeysForContractWc);
+
+        vm.startPrank(clientWcAddress);
+        contractWcFeeDistributorInstance.voluntaryExit(pubKeysForContractWc);
+        vm.stopPrank();
+
         withdrawContractWcFeeDistributorAfterVoluntaryExit();
 
         console.log("testContractWcFeeDistributorVoluntaryExit finished");
@@ -186,13 +194,10 @@ contract Integration is Test {
 
         assertEq(contractWcFeeDistributorInstance.depositedCount(), 0);
 
-        bytes[] memory pubkeys = new bytes[](1);
-        pubkeys[0] = pubKey;
-
         vm.expectRevert(ContractWcFeeDistributor__TooManyPubkeysPassed.selector);
-        contractWcFeeDistributorInstance.voluntaryExit(pubkeys);
+        contractWcFeeDistributorInstance.voluntaryExit(pubKeys);
 
-        uint32 depositedCount = 1;
+        uint32 depositedCount = uint32(VALIDATORS_MAX_AMOUNT);
 
         vm.expectRevert(abi.encodeWithSelector(FeeDistributorFactory__CallerNotAuthorized.selector, address(this)));
         contractWcFeeDistributorInstance.increaseDepositedCount(depositedCount);
@@ -205,13 +210,15 @@ contract Integration is Test {
         assertEq(contractWcFeeDistributorInstance.exitedCount(), 0);
 
         vm.expectRevert(abi.encodeWithSelector(FeeDistributor__CallerNotClient.selector, address(this), clientWcAddress));
-        contractWcFeeDistributorInstance.voluntaryExit(pubkeys);
+        contractWcFeeDistributorInstance.voluntaryExit(pubKeys);
 
         vm.startPrank(clientWcAddress);
-        contractWcFeeDistributorInstance.voluntaryExit(pubkeys);
+        contractWcFeeDistributorInstance.voluntaryExit(pubKeys);
         vm.stopPrank();
 
         assertEq(contractWcFeeDistributorInstance.exitedCount(), depositedCount);
+
+        withdrawContractWcFeeDistributorAfterVoluntaryExit();
 
         console.log("testContractWcFeeDistributorCreationWithoutDepositor finished");
     }
@@ -292,13 +299,6 @@ contract Integration is Test {
 
         uint256 serviceBalanceBefore = serviceAddress.balance;
         uint256 clientBalanceBefore = clientWcAddress.balance;
-
-        vm.expectRevert(abi.encodeWithSelector(FeeDistributor__CallerNotClient.selector, address(this), clientWcAddress));
-        contractWcFeeDistributorInstance.voluntaryExit(pubKeysForContractWc);
-
-        vm.startPrank(clientWcAddress);
-        contractWcFeeDistributorInstance.voluntaryExit(pubKeysForContractWc);
-        vm.stopPrank();
 
         vm.deal(address(contractWcFeeDistributorInstance), rewards + collaterals);
 

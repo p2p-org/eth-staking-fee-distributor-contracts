@@ -57,10 +57,16 @@ contract Integration is Test {
     OracleFeeDistributor oracleFeeDistributorTemplate;
     MockClientFeeDistributor customFeeDistributorTemplate;
 
-    ContractWcFeeDistributor contractWcFeeDistributorInstance; // 0x1a11782051858a95266109daed1576ed28e48393
-    ElOnlyFeeDistributor elFeeDistributorInstance; // 0x2ead271163a1b59346879452228250c1114de3b8
-    OracleFeeDistributor oracleFeeDistributorInstance; // 0x4b08827f4a9a56bde2d93a28dcdd7db066ada23d
-    MockClientFeeDistributor customFeeDistributorInstance; // 0x2f3b0cde60f8885809b2f347b99d54315ae716a3
+    // predictable due to CREATE2
+    address constant contractWcFeeDistributorInstanceAddress = 0x1A11782051858A95266109DaED1576eD28e48393;
+    address constant elFeeDistributorInstanceAddress = 0x2ead271163a1b59346879452228250c1114dE3b8;
+    address constant oracleFeeDistributorInstanceAddress = 0x4b08827F4a9a56bdE2D93a28DcDd7db066AdA23D;
+    address constant customFeeDistributorInstanceAddress = 0x2F3B0cde60F8885809B2F347b99d54315ae716A3;
+
+    ContractWcFeeDistributor contractWcFeeDistributorInstance;
+    ElOnlyFeeDistributor elFeeDistributorInstance;
+    OracleFeeDistributor oracleFeeDistributorInstance;
+    MockClientFeeDistributor customFeeDistributorInstance;
 
     function setUp() public {
         vm.createSelectFork("mainnet", 17434740);
@@ -118,7 +124,7 @@ contract Integration is Test {
         makeBeaconDepositForOracleFeeDistributor();
         makeBeaconDepositForContractWcFeeDistributor();
 
-        withdrawOracleFeeDistributor();
+        withdrawOracleFeeDistributor({clientOnlyClRewards: 0});
         withdrawContractWcFeeDistributor();
 
         console.log("MainUseCase finished");
@@ -143,7 +149,51 @@ contract Integration is Test {
         console.log("testCustomClientFeeDistributor finished");
     }
 
-    function withdrawOracleFeeDistributor() private {
+    function testOracleFeeDistributorCreationWithoutDepositor() public {
+        console.log("testOracleFeeDistributorCreationWithoutDepositor started");
+
+        address newFeeDistributorAddress = deployOracleFeeDistributorCreationWithoutDepositor();
+
+        assertEq(newFeeDistributorAddress, oracleFeeDistributorInstanceAddress);
+
+        oracleFeeDistributorInstance = OracleFeeDistributor(payable(newFeeDistributorAddress));
+
+        assertEq(oracleFeeDistributorInstance.clientOnlyClRewards(), 0);
+
+        uint256 clientOnlyClRewards = 15 ether;
+        vm.startPrank(operatorAddress);
+        oracleFeeDistributorInstance.setClientOnlyClRewards(clientOnlyClRewards);
+
+        vm.expectRevert(OracleFeeDistributor__CannotResetClientOnlyClRewards.selector);
+        oracleFeeDistributorInstance.setClientOnlyClRewards(42);
+        vm.stopPrank();
+
+        assertEq(oracleFeeDistributorInstance.clientOnlyClRewards(), clientOnlyClRewards);
+
+        withdrawOracleFeeDistributor({clientOnlyClRewards: clientOnlyClRewards});
+
+        console.log("testOracleFeeDistributorCreationWithoutDepositor finished");
+    }
+
+    function deployOracleFeeDistributorCreationWithoutDepositor() private returns(address newFeeDistributorAddress) {
+        vm.startPrank(operatorAddress);
+
+        newFeeDistributorAddress = factory.createFeeDistributor(
+            address(oracleFeeDistributorTemplate),
+            FeeRecipient({
+        recipient: clientWcAddress,
+        basisPoints: defaultClientBasisPoints
+        }),
+            FeeRecipient({
+        recipient: payable(address(0)),
+        basisPoints: 0
+        })
+        );
+
+        vm.stopPrank();
+    }
+
+    function withdrawOracleFeeDistributor(uint256 clientOnlyClRewards) private {
         console.log("withdrawOracleFeeDistributor");
 
         uint256 elRewards = 10 ether;
@@ -168,7 +218,7 @@ contract Integration is Test {
         uint256 serviceBalanceAfter = serviceAddress.balance;
         uint256 clientBalanceAfter = clientWcAddress.balance;
 
-        uint256 clRewards = amountInGweiFromOracle * 1 gwei;
+        uint256 clRewards = amountInGweiFromOracle * 1 gwei - clientOnlyClRewards;
         uint256 totalRewards = clRewards + elRewards;
 
         assertEq(serviceBalanceAfter - serviceBalanceBefore, totalRewards * (10000 - defaultClientBasisPoints) / 10000);
@@ -430,6 +480,9 @@ contract Integration is Test {
         assertEq(totalBalanceAfter - totalBalanceBefore, clientDepositedEth);
 
         vm.stopPrank();
+
+        vm.expectRevert("ERC1167: create2 failed");
+        deployOracleFeeDistributorCreationWithoutDepositor();
     }
 
     function addEthToContractWcFeeDistributor() private {

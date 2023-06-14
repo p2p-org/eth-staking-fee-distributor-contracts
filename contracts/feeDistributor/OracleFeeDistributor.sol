@@ -15,6 +15,7 @@ import "./BaseFeeDistributor.sol";
 
 error OracleFeeDistributor__NotOracle(address _passedAddress);
 error OracleFeeDistributor__WaitForEnoughRewardsToWithdraw();
+error OracleFeeDistributor__CannotResetClientOnlyClRewards();
 
 contract OracleFeeDistributor is BaseFeeDistributor {
 
@@ -32,6 +33,16 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         }
 
         i_oracle = IOracle(_oracle);
+    }
+
+    function setClientOnlyClRewards(uint256 _clientOnlyClRewards) external {
+        i_factory.checkOperatorOrOwner(msg.sender);
+
+        if (s_clientOnlyClRewards != 0) {
+            revert OracleFeeDistributor__CannotResetClientOnlyClRewards();
+        }
+
+        s_clientOnlyClRewards = _clientOnlyClRewards;
     }
 
     function withdraw(

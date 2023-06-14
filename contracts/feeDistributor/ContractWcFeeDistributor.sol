@@ -22,7 +22,7 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
     }
 
     function increaseDepositedCount(uint32 _validatorCountToAdd) external override {
-        i_factory.checkP2pEth2Depositor(msg.sender);
+        i_factory.check_Operator_Owner_P2pEth2Depositor(msg.sender);
 
         s_validatorData.depositedCount += _validatorCountToAdd;
     }
@@ -111,6 +111,18 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
                 emit EtherRecoveryFailed(_to, balance);
             }
         }
+    }
+
+    function depositedCount() external view returns (uint32) {
+        return s_validatorData.depositedCount;
+    }
+
+    function exitedCount() external view returns (uint32) {
+        return s_validatorData.exitedCount;
+    }
+
+    function collateralReturnedCount() external view returns (uint32) {
+        return s_validatorData.collateralReturnedCount;
     }
 
     function eth2WithdrawalCredentialsAddress() external override view returns (address) {

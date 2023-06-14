@@ -50,15 +50,7 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
         FeeRecipient memory _clientConfig,
         FeeRecipient calldata _referrerConfig
     ) external returns (address newFeeDistributorAddress) {
-        address currentOwner = owner();
-        address currentOperator = operator();
-
-        if (currentOperator != msg.sender
-            && currentOwner != msg.sender
-            && s_p2pEth2Depositor != msg.sender
-        ) {
-            revert FeeDistributorFactory__CallerNotAuthorized(msg.sender);
-        }
+        check_Operator_Owner_P2pEth2Depositor(msg.sender);
 
         if (_referenceFeeDistributor == address(0)) {
             revert FeeDistributorFactory__ReferenceFeeDistributorNotSet();
@@ -143,6 +135,18 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     function checkP2pEth2Depositor(address _address) external view {
         if (s_p2pEth2Depositor != _address) {
             revert FeeDistributorFactory__NotP2pEth2Depositor(_address);
+        }
+    }
+
+    function check_Operator_Owner_P2pEth2Depositor(address _address) public view {
+        address currentOwner = owner();
+        address currentOperator = operator();
+
+        if (currentOperator != _address
+            && currentOwner != _address
+            && s_p2pEth2Depositor != _address
+        ) {
+            revert FeeDistributorFactory__CallerNotAuthorized(_address);
         }
     }
 

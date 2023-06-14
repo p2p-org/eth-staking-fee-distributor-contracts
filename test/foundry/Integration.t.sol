@@ -175,11 +175,70 @@ contract Integration is Test {
         console.log("testOracleFeeDistributorCreationWithoutDepositor finished");
     }
 
+    function testContractWcFeeDistributorCreationWithoutDepositor() public {
+        console.log("testContractWcFeeDistributorCreationWithoutDepositor started");
+
+        address newFeeDistributorAddress = deployContractWcFeeDistributorCreationWithoutDepositor();
+
+        assertEq(newFeeDistributorAddress, contractWcFeeDistributorInstanceAddress);
+
+        contractWcFeeDistributorInstance = ContractWcFeeDistributor(payable(newFeeDistributorAddress));
+
+        assertEq(contractWcFeeDistributorInstance.depositedCount(), 0);
+
+        bytes[] memory pubkeys = new bytes[](1);
+        pubkeys[0] = pubKey;
+
+        vm.expectRevert(ContractWcFeeDistributor__TooManyPubkeysPassed.selector);
+        contractWcFeeDistributorInstance.voluntaryExit(pubkeys);
+
+        uint32 depositedCount = 1;
+
+        vm.expectRevert(abi.encodeWithSelector(FeeDistributorFactory__CallerNotAuthorized.selector, address(this)));
+        contractWcFeeDistributorInstance.increaseDepositedCount(depositedCount);
+
+        vm.startPrank(operatorAddress);
+        contractWcFeeDistributorInstance.increaseDepositedCount(depositedCount);
+        vm.stopPrank();
+
+        assertEq(contractWcFeeDistributorInstance.depositedCount(), depositedCount);
+        assertEq(contractWcFeeDistributorInstance.exitedCount(), 0);
+
+        vm.expectRevert(abi.encodeWithSelector(FeeDistributor__CallerNotClient.selector, address(this), clientWcAddress));
+        contractWcFeeDistributorInstance.voluntaryExit(pubkeys);
+
+        vm.startPrank(clientWcAddress);
+        contractWcFeeDistributorInstance.voluntaryExit(pubkeys);
+        vm.stopPrank();
+
+        assertEq(contractWcFeeDistributorInstance.exitedCount(), depositedCount);
+
+        console.log("testContractWcFeeDistributorCreationWithoutDepositor finished");
+    }
+
     function deployOracleFeeDistributorCreationWithoutDepositor() private returns(address newFeeDistributorAddress) {
         vm.startPrank(operatorAddress);
 
         newFeeDistributorAddress = factory.createFeeDistributor(
             address(oracleFeeDistributorTemplate),
+            FeeRecipient({
+        recipient: clientWcAddress,
+        basisPoints: defaultClientBasisPoints
+        }),
+            FeeRecipient({
+        recipient: payable(address(0)),
+        basisPoints: 0
+        })
+        );
+
+        vm.stopPrank();
+    }
+
+    function deployContractWcFeeDistributorCreationWithoutDepositor() private returns(address newFeeDistributorAddress) {
+        vm.startPrank(operatorAddress);
+
+        newFeeDistributorAddress = factory.createFeeDistributor(
+            address(contractWcFeeDistributorTemplate),
             FeeRecipient({
         recipient: clientWcAddress,
         basisPoints: defaultClientBasisPoints

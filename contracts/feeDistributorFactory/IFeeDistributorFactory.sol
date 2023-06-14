@@ -43,4 +43,6 @@ interface IFeeDistributorFactory is IOwnable, IERC165 {
     function checkOperatorOrOwner(address _address) external view;
 
     function checkP2pEth2Depositor(address _address) external view;
+
+    function check_Operator_Owner_P2pEth2Depositor(address _address) external view;
 }

@@ -9,18 +9,18 @@ import "../feeDistributor/IFeeDistributor.sol";
 import "../structs/P2pStructs.sol";
 
 interface IFeeDistributorFactory is IOwnable, IERC165 {
-    event FeeDistributorCreated(
+    event FeeDistributorFactory__FeeDistributorCreated(
         address indexed _newFeeDistributorAddress,
         address indexed _clientAddress,
         address indexed _referenceFeeDistributor,
         uint96 _clientBasisPoints
     );
 
-    event P2pEth2DepositorSet(
+    event FeeDistributorFactory__P2pEth2DepositorSet(
         address indexed _p2pEth2Depositor
     );
 
-    event DefaultClientBasisPointsSet(
+    event FeeDistributorFactory__DefaultClientBasisPointsSet(
         uint96 _defaultClientBasisPoints
     );
 

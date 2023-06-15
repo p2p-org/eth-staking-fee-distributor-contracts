@@ -58,7 +58,7 @@ contract ElOnlyFeeDistributor is BaseFeeDistributor {
         // Send ETH to client. Ignore the possible yet unlikely revert in the receive function.
         P2pAddressLib._sendValue(s_clientConfig.recipient, clientAmount);
 
-        emit Withdrawn(serviceAmount, clientAmount, referrerAmount);
+        emit FeeDistributor__Withdrawn(serviceAmount, clientAmount, referrerAmount);
     }
 
     function recoverEther(address payable _to) external onlyOwner {
@@ -71,9 +71,9 @@ contract ElOnlyFeeDistributor is BaseFeeDistributor {
             bool success = P2pAddressLib._sendValue(_to, balance);
 
             if (success) {
-                emit EtherRecovered(_to, balance);
+                emit FeeDistributor__EtherRecovered(_to, balance);
             } else {
-                emit EtherRecoveryFailed(_to, balance);
+                emit FeeDistributor__EtherRecoveryFailed(_to, balance);
             }
         }
     }

@@ -195,7 +195,7 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
 
         IFeeDistributor(_feeDistributorInstance).increaseDepositedCount(uint32(validatorCount));
 
-        emit P2pEth2DepositEvent(_feeDistributorInstance, validatorCount);
+        emit P2pOrgUnlimitedEthDepositor__Eth2Deposit(_feeDistributorInstance, validatorCount);
     }
 
     function totalBalance() external view returns (uint256) {

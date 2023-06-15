@@ -114,7 +114,7 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
         // set client config
         s_clientConfig = _clientConfig;
 
-        emit Initialized(
+        emit FeeDistributor__Initialized(
             _clientConfig.recipient,
             _clientConfig.basisPoints,
             _referrerConfig.recipient,
@@ -145,7 +145,7 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
     }
 
     function voluntaryExit(bytes[] calldata _pubkeys) public virtual onlyClient {
-        emit VoluntaryExit(_pubkeys);
+        emit FeeDistributor__VoluntaryExit(_pubkeys);
     }
 
     function factory() external view returns (address) {

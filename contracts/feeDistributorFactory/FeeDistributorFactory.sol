@@ -31,7 +31,7 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     constructor(uint96 _defaultClientBasisPoints) {
         s_defaultClientBasisPoints = _defaultClientBasisPoints;
 
-        emit DefaultClientBasisPointsSet(_defaultClientBasisPoints);
+        emit FeeDistributorFactory__DefaultClientBasisPointsSet(_defaultClientBasisPoints);
     }
 
     function setP2pEth2Depositor(address _p2pEth2Depositor) external onlyOwner {
@@ -40,13 +40,13 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
         }
 
         s_p2pEth2Depositor = _p2pEth2Depositor;
-        emit P2pEth2DepositorSet(_p2pEth2Depositor);
+        emit FeeDistributorFactory__P2pEth2DepositorSet(_p2pEth2Depositor);
     }
 
     function setDefaultClientBasisPoints(uint96 _defaultClientBasisPoints) external onlyOwner {
         s_defaultClientBasisPoints = _defaultClientBasisPoints;
 
-        emit DefaultClientBasisPointsSet(_defaultClientBasisPoints);
+        emit FeeDistributorFactory__DefaultClientBasisPointsSet(_defaultClientBasisPoints);
     }
 
     function createFeeDistributor(
@@ -87,7 +87,7 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
         s_allFeeDistributors.push(newFeeDistributorAddress);
 
         // emit event with the address of the newly created instance for the external listener
-        emit FeeDistributorCreated(
+        emit FeeDistributorFactory__FeeDistributorCreated(
             newFeeDistributorAddress,
             _clientConfig.recipient,
             _referenceFeeDistributor,

@@ -8,29 +8,29 @@ import "../structs/P2pStructs.sol";
 
 interface IFeeDistributor is IERC165 {
 
-    event Initialized(
+    event FeeDistributor__Initialized(
         address indexed _client,
         uint96 _clientBasisPoints,
         address indexed _referrer,
         uint96 _referrerBasisPoints
     );
 
-    event Withdrawn(
+    event FeeDistributor__Withdrawn(
         uint256 _serviceAmount,
         uint256 _clientAmount,
         uint256 _referrerAmount
     );
 
-    event VoluntaryExit(
+    event FeeDistributor__VoluntaryExit(
         bytes[] _pubkeys
     );
 
-    event EtherRecovered(
+    event FeeDistributor__EtherRecovered(
         address indexed _to,
         uint256 _amount
     );
 
-    event EtherRecoveryFailed(
+    event FeeDistributor__EtherRecoveryFailed(
         address indexed _to,
         uint256 _amount
     );

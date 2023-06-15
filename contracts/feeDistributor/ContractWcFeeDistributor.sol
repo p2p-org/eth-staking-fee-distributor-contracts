@@ -13,17 +13,17 @@ error ContractWcFeeDistributor__TooManyPubkeysPassed();
 
 contract ContractWcFeeDistributor is BaseFeeDistributor {
 
-    event DepositedCountIncreased(
+    event ContractWcFeeDistributor__DepositedCountIncreased(
         uint32 added,
         uint32 newDepositedCount
     );
 
-    event ExitedCountIncreased(
+    event ContractWcFeeDistributor__ExitedCountIncreased(
         uint32 added,
         uint32 newExitedCount
     );
 
-    event CollateralReturnedCountIncreased(
+    event ContractWcFeeDistributor__CollateralReturnedCountIncreased(
         uint32 added,
         uint32 newCollateralReturnedCount
     );
@@ -41,7 +41,10 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
 
         s_validatorData.depositedCount += _validatorCountToAdd;
 
-        emit DepositedCountIncreased(_validatorCountToAdd, s_validatorData.depositedCount);
+        emit ContractWcFeeDistributor__DepositedCountIncreased(
+            _validatorCountToAdd,
+            s_validatorData.depositedCount
+        );
     }
 
     function voluntaryExit(bytes[] calldata _pubkeys) public override { // onlyClient due to BaseFeeDistributor
@@ -54,7 +57,10 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
 
         s_validatorData.exitedCount += uint32(_pubkeys.length);
 
-        emit ExitedCountIncreased(uint32(_pubkeys.length), s_validatorData.exitedCount);
+        emit ContractWcFeeDistributor__ExitedCountIncreased(
+            uint32(_pubkeys.length),
+            s_validatorData.exitedCount
+        );
 
         super.voluntaryExit(_pubkeys);
     }
@@ -80,10 +86,16 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
 
             s_validatorData.collateralReturnedCount += collateralsCountToReturn;
 
-            emit CollateralReturnedCountIncreased(collateralsCountToReturn, s_validatorData.collateralReturnedCount);
+            emit ContractWcFeeDistributor__CollateralReturnedCountIncreased(
+                collateralsCountToReturn,
+                s_validatorData.collateralReturnedCount
+            );
 
             // Send collaterals to client
-            P2pAddressLib._sendValue(s_clientConfig.recipient, collateralsCountToReturn * COLLATERAL);
+            P2pAddressLib._sendValue(
+                s_clientConfig.recipient,
+                collateralsCountToReturn * COLLATERAL
+            );
 
             // Balance remainder to split
             balance = address(this).balance;
@@ -105,16 +117,29 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
             serviceAmount -= referrerAmount;
 
             // Send ETH to referrer. Ignore the possible yet unlikely revert in the receive function.
-            P2pAddressLib._sendValue(s_referrerConfig.recipient, referrerAmount);
+            P2pAddressLib._sendValue(
+                s_referrerConfig.recipient,
+                referrerAmount
+            );
         }
 
         // Send ETH to service. Ignore the possible yet unlikely revert in the receive function.
-        P2pAddressLib._sendValue(i_service, serviceAmount);
+        P2pAddressLib._sendValue(
+            i_service,
+            serviceAmount
+        );
 
         // Send ETH to client. Ignore the possible yet unlikely revert in the receive function.
-        P2pAddressLib._sendValue(s_clientConfig.recipient, clientAmount);
+        P2pAddressLib._sendValue(
+            s_clientConfig.recipient,
+            clientAmount
+        );
 
-        emit Withdrawn(serviceAmount, clientAmount, referrerAmount);
+        emit FeeDistributor__Withdrawn(
+            serviceAmount,
+            clientAmount,
+            referrerAmount
+        );
     }
 
     function recoverEther(address payable _to) external onlyOwner {
@@ -127,9 +152,9 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
             bool success = P2pAddressLib._sendValue(_to, balance);
 
             if (success) {
-                emit EtherRecovered(_to, balance);
+                emit FeeDistributor__EtherRecovered(_to, balance);
             } else {
-                emit EtherRecoveryFailed(_to, balance);
+                emit FeeDistributor__EtherRecoveryFailed(_to, balance);
             }
         }
     }

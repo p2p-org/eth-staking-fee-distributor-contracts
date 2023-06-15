@@ -30,7 +30,7 @@ contract Oracle is OwnableAssetRecoverer, OwnableWithOperator, ERC165, IOracle {
     function report(bytes32 _root) external onlyOperatorOrOwner {
         s_root = _root;
 
-        emit Reported(_root);
+        emit Oracle__Reported(_root);
     }
 
     /**

@@ -20,7 +20,7 @@ interface IP2pOrgUnlimitedEthDepositor is IERC165 {
         uint256 _amount
     );
 
-    event P2pEth2DepositEvent(
+    event P2pOrgUnlimitedEthDepositor__Eth2Deposit(
         address indexed _feeDistributorAddress,
         uint256 _validatorCount
     );

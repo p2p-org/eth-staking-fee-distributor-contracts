@@ -136,7 +136,11 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         // Send ETH to client. Ignore the possible yet unlikely revert in the receive function.
         P2pAddressLib._sendValue(s_clientConfig.recipient, clientAmount);
 
-        emit FeeDistributor__Withdrawn(serviceAmount, clientAmount, referrerAmount);
+        emit FeeDistributor__Withdrawn(
+            serviceAmount,
+            clientAmount,
+            referrerAmount
+        );
     }
 
     function recoverEther(
@@ -205,7 +209,11 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         // Send ETH to client. Ignore the possible yet unlikely revert in the receive function.
         P2pAddressLib._sendValue(s_clientConfig.recipient, clientAmount);
 
-        emit FeeDistributor__Withdrawn(serviceAmount, clientAmount, referrerAmount);
+        emit FeeDistributor__Withdrawn(
+            serviceAmount,
+            clientAmount,
+            referrerAmount
+        );
     }
 
     function clientOnlyClRewards() external view returns (uint256) {

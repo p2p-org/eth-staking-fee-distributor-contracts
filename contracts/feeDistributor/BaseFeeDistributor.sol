@@ -9,26 +9,9 @@ import "../@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "../feeDistributorFactory/IFeeDistributorFactory.sol";
 import "../assetRecovering/OwnableTokenRecoverer.sol";
 import "./IFeeDistributor.sol";
+import "./FeeDistributorErrors.sol";
 import "../structs/P2pStructs.sol";
 import "../lib/P2pAddressLib.sol";
-
-error FeeDistributor__NotFactory(address _passedAddress);
-error FeeDistributor__ZeroAddressService();
-error FeeDistributor__ClientAddressEqualsService(address _passedAddress);
-error FeeDistributor__ZeroAddressClient();
-error FeeDistributor__InvalidClientBasisPoints(uint96 _clientBasisPoints);
-error FeeDistributor__ClientPlusReferralBasisPointsExceed10000(uint96 _clientBasisPoints, uint96 _referralBasisPoints);
-error FeeDistributor__ReferrerAddressEqualsService(address _passedAddress);
-error FeeDistributor__ReferrerAddressEqualsClient(address _passedAddress);
-error FeeDistributor__NotFactoryCalled(address _msgSender, IFeeDistributorFactory _actualFactory);
-error FeeDistributor__ClientAlreadySet(address _existingClient);
-error FeeDistributor__ClientNotSet();
-error FeeDistributor__ReferrerBasisPointsMustBeZeroIfAddressIsZero(uint96 _referrerBasisPoints);
-error FeeDistributor__ServiceCannotReceiveEther(address _service);
-error FeeDistributor__ClientCannotReceiveEther(address _client);
-error FeeDistributor__ReferrerCannotReceiveEther(address _referrer);
-error FeeDistributor__NothingToWithdraw();
-error FeeDistributor__CallerNotClient(address _caller, address _client);
 
 abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
 
@@ -99,7 +82,10 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
                 revert FeeDistributor__ReferrerAddressEqualsClient(_referrerConfig.recipient);
             }
             if (_clientConfig.basisPoints + _referrerConfig.basisPoints > 10000) {
-                revert FeeDistributor__ClientPlusReferralBasisPointsExceed10000(_clientConfig.basisPoints, _referrerConfig.basisPoints);
+                revert FeeDistributor__ClientPlusReferralBasisPointsExceed10000(
+                    _clientConfig.basisPoints,
+                    _referrerConfig.basisPoints
+                );
             }
 
             // set referrer config

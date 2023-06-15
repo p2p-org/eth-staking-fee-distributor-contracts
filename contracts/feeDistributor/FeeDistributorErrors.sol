@@ -6,10 +6,18 @@ pragma solidity 0.8.10;
 import "../feeDistributorFactory/IFeeDistributorFactory.sol";
 
 error FeeDistributor__NotFactory(address _passedAddress);
+
+/// @notice TODO
 error FeeDistributor__ZeroAddressService();
+
+/// @notice TODO
+/// @param _passedAddress TODO
 error FeeDistributor__ClientAddressEqualsService(address _passedAddress);
+
 error FeeDistributor__ZeroAddressClient();
+
 error FeeDistributor__InvalidClientBasisPoints(uint96 _clientBasisPoints);
+
 error FeeDistributor__ClientPlusReferralBasisPointsExceed10000(uint96 _clientBasisPoints, uint96 _referralBasisPoints);
 error FeeDistributor__ReferrerAddressEqualsService(address _passedAddress);
 error FeeDistributor__ReferrerAddressEqualsClient(address _passedAddress);

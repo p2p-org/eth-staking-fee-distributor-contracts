@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 P2P Validator <info@p2p.org>
+// SPDX-FileCopyrightText: 2023 P2P Validator <info@p2p.org>
 // SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.10;
@@ -13,14 +13,22 @@ import "./FeeDistributorErrors.sol";
 import "../structs/P2pStructs.sol";
 import "../lib/P2pAddressLib.sol";
 
+/// @title Common logic for all FeeDistributor types
 abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
 
+    /// @notice FeeDistributorFactory address
     IFeeDistributorFactory internal immutable i_factory;
+
+    /// @notice P2P fee receipient address
     address payable internal immutable i_service;
 
+    /// @notice Client rewards receipient address and basis points
     FeeRecipient internal s_clientConfig;
+
+    /// @notice Referrer rewards receipient address and basis points
     FeeRecipient internal s_referrerConfig;
 
+    /// @notice If caller not client, revert
     modifier onlyClient() {
         address clientAddress = s_clientConfig.recipient;
 
@@ -30,6 +38,7 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
         _;
     }
 
+    /// @notice If caller not factory, revert
     modifier onlyFactory() {
         if (msg.sender != address(i_factory)) {
             revert FeeDistributor__NotFactoryCalled(msg.sender, i_factory);
@@ -37,6 +46,9 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
         _;
     }
 
+    /// @dev Set values that are constant, common for all the clients, known at the initial deploy time.
+    /// @param _factory address of FeeDistributorFactory
+    /// @param _service address of the service (P2P) fee recipient
     constructor(
         address _factory,
         address payable _service
@@ -57,6 +69,7 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
         }
     }
 
+    /// @inheritdoc IFeeDistributor
     function initialize(
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig
@@ -119,6 +132,7 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
         }
     }
 
+    /// @notice Accept ether from transactions
     receive() external payable {
         // only accept ether in an instance, not in a template
         if (s_clientConfig.recipient == address(0)) {
@@ -126,44 +140,55 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
         }
     }
 
+    /// @inheritdoc IFeeDistributor
     function increaseDepositedCount(uint32 _validatorCountToAdd) external virtual {
-        // Do nothing by defaulf. Can be overridden.
+        // Do nothing by default. Can be overridden.
     }
 
+    /// @inheritdoc IFeeDistributor
     function voluntaryExit(bytes[] calldata _pubkeys) public virtual onlyClient {
         emit FeeDistributor__VoluntaryExit(_pubkeys);
     }
 
+    /// @inheritdoc IFeeDistributor
     function factory() external view returns (address) {
         return address(i_factory);
     }
 
+    /// @inheritdoc IFeeDistributor
     function service() external view returns (address) {
         return i_service;
     }
 
+    /// @inheritdoc IFeeDistributor
     function client() external view returns (address) {
         return s_clientConfig.recipient;
     }
 
+    /// @inheritdoc IFeeDistributor
     function clientBasisPoints() external view returns (uint256) {
         return s_clientConfig.basisPoints;
     }
 
+    /// @inheritdoc IFeeDistributor
     function referrer() external view returns (address) {
         return s_referrerConfig.recipient;
     }
 
+    /// @inheritdoc IFeeDistributor
     function referrerBasisPoints() external view returns (uint256) {
         return s_referrerConfig.basisPoints;
     }
 
+    /// @inheritdoc IFeeDistributor
     function eth2WithdrawalCredentialsAddress() external virtual view returns (address);
 
+    /// @inheritdoc ERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
         return interfaceId == type(IFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
     }
 
+    /// @inheritdoc IOwnable
     function owner() public view override returns (address) {
         return i_factory.owner();
     }

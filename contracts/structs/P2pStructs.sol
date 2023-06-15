@@ -5,6 +5,8 @@ pragma solidity 0.8.10;
 
 import "../feeDistributor/IFeeDistributor.sol";
 
+/// @member basisPoints TODO
+/// @member recipient TODO
 struct FeeRecipient {
     uint96 basisPoints;
     address payable recipient;

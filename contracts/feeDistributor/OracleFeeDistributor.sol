@@ -19,6 +19,10 @@ error OracleFeeDistributor__CannotResetClientOnlyClRewards();
 
 contract OracleFeeDistributor is BaseFeeDistributor {
 
+    event ClientOnlyClRewardsSet(
+        uint256 _clientOnlyClRewards
+    );
+
     IOracle private immutable i_oracle;
 
     uint256 s_clientOnlyClRewards;
@@ -43,6 +47,8 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         }
 
         s_clientOnlyClRewards = _clientOnlyClRewards;
+
+        emit ClientOnlyClRewardsSet(_clientOnlyClRewards);
     }
 
     function withdraw(
@@ -107,6 +113,8 @@ contract OracleFeeDistributor is BaseFeeDistributor {
 
         // client gets the rest from CL as not split anymore amount
         s_clientOnlyClRewards += (totalAmountToSplit - balance);
+
+        emit ClientOnlyClRewardsSet(s_clientOnlyClRewards);
 
         // how much should referrer get
         uint256 referrerAmount;
@@ -174,6 +182,8 @@ contract OracleFeeDistributor is BaseFeeDistributor {
 
         // client gets the rest from CL as not split anymore amount
         s_clientOnlyClRewards += (totalAmountToSplit - balance);
+
+        emit ClientOnlyClRewardsSet(s_clientOnlyClRewards);
 
         // how much should referrer get
         uint256 referrerAmount;

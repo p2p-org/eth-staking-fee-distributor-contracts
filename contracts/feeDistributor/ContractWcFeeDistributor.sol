@@ -13,6 +13,21 @@ error ContractWcFeeDistributor__TooManyPubkeysPassed();
 
 contract ContractWcFeeDistributor is BaseFeeDistributor {
 
+    event DepositedCountIncreased(
+        uint32 added,
+        uint32 newDepositedCount
+    );
+
+    event ExitedCountIncreased(
+        uint32 added,
+        uint32 newExitedCount
+    );
+
+    event CollateralReturnedCountIncreased(
+        uint32 added,
+        uint32 newCollateralReturnedCount
+    );
+
     ValidatorData private s_validatorData;
 
     constructor(
@@ -25,6 +40,8 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
         i_factory.check_Operator_Owner_P2pEth2Depositor(msg.sender);
 
         s_validatorData.depositedCount += _validatorCountToAdd;
+
+        emit DepositedCountIncreased(_validatorCountToAdd, s_validatorData.depositedCount);
     }
 
     function voluntaryExit(bytes[] calldata _pubkeys) public override { // onlyClient due to BaseFeeDistributor
@@ -36,6 +53,8 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
         }
 
         s_validatorData.exitedCount += uint32(_pubkeys.length);
+
+        emit ExitedCountIncreased(uint32(_pubkeys.length), s_validatorData.exitedCount);
 
         super.voluntaryExit(_pubkeys);
     }
@@ -60,6 +79,8 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
             uint32 collateralsCountToReturn = uint32(balance / COLLATERAL);
 
             s_validatorData.collateralReturnedCount += collateralsCountToReturn;
+
+            emit CollateralReturnedCountIncreased(collateralsCountToReturn, s_validatorData.collateralReturnedCount);
 
             // Send collaterals to client
             P2pAddressLib._sendValue(s_clientConfig.recipient, collateralsCountToReturn * COLLATERAL);

@@ -15,6 +15,7 @@ interface IP2pOrgUnlimitedEthDepositor is IERC165 {
     );
 
     event P2pOrgUnlimitedEthDepositor__Refund(
+        address indexed _feeDistributorInstance,
         address indexed _client,
         uint256 _amount
     );

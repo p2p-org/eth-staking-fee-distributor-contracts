@@ -16,7 +16,13 @@ interface IFeeDistributorFactory is IOwnable, IERC165 {
         uint96 _clientBasisPoints
     );
 
-    event P2pEth2DepositorSet(address indexed _p2pEth2Depositor);
+    event P2pEth2DepositorSet(
+        address indexed _p2pEth2Depositor
+    );
+
+    event DefaultClientBasisPointsSet(
+        uint96 _defaultClientBasisPoints
+    );
 
     function createFeeDistributor(
         address _referenceFeeDistributor,

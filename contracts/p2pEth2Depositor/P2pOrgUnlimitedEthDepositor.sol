@@ -109,7 +109,7 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
             revert P2pOrgUnlimitedEthDepositor__FailedToSendEth(client, amount);
         }
 
-        emit P2pOrgUnlimitedEthDepositor__Refund(client, amount);
+        emit P2pOrgUnlimitedEthDepositor__Refund(_feeDistributorInstance, client, amount);
     }
 
     // Can be very gas expensive.

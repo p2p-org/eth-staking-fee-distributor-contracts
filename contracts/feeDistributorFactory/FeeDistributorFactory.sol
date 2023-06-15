@@ -30,6 +30,8 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
 
     constructor(uint96 _defaultClientBasisPoints) {
         s_defaultClientBasisPoints = _defaultClientBasisPoints;
+
+        emit DefaultClientBasisPointsSet(_defaultClientBasisPoints);
     }
 
     function setP2pEth2Depositor(address _p2pEth2Depositor) external onlyOwner {
@@ -43,6 +45,8 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
 
     function setDefaultClientBasisPoints(uint96 _defaultClientBasisPoints) external onlyOwner {
         s_defaultClientBasisPoints = _defaultClientBasisPoints;
+
+        emit DefaultClientBasisPointsSet(_defaultClientBasisPoints);
     }
 
     function createFeeDistributor(

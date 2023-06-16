@@ -32,7 +32,7 @@ interface IP2pOrgUnlimitedEthDepositor is IERC165 {
     );
 
     /// @notice Emits when P2P has made ETH2 deposits with client funds and withdrawal credentials
-    /// @param _feeDistributorInstance address of FeeDistributor instance that was associated with the client deposit
+    /// @param _feeDistributorAddress address of FeeDistributor instance that was associated with the client deposit
     /// @param _validatorCount number of validators that has been created
     event P2pOrgUnlimitedEthDepositor__Eth2Deposit(
         address indexed _feeDistributorAddress,
@@ -44,12 +44,17 @@ interface IP2pOrgUnlimitedEthDepositor is IERC165 {
     /// @param _referenceFeeDistributor address of FeeDistributor template that determines the terms of staking service
     /// @param _clientConfig address and basis points (percent * 100) of the client
     /// @param _referrerConfig address and basis points (percent * 100) of the referrer.
-    /// @return feeDistributorInstance user FeeDistributor instance corresponding to the passed template
+    /// @return feeDistributorInstance client FeeDistributor instance corresponding to the passed template
     function addEth(
         address _referenceFeeDistributor,
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig
     ) external payable returns(address feeDistributorInstance);
+
+    /// @notice refund the unused for staking ETH after the expiration timestamp.
+    /// If not called, all multiples of 32 ETH will be used for staking eventually.
+    /// @param _feeDistributorInstance client FeeDistributor instance that has non-zero ETH amount (can be checked by `depositAmount`)
+    function refund(address _feeDistributorInstance) external;
 
     /// @notice Send ETH to ETH2 DepositContract on behalf of the client
     /// Callable by P2P
@@ -69,12 +74,12 @@ interface IP2pOrgUnlimitedEthDepositor is IERC165 {
     function totalBalance() external view returns (uint256);
 
     /// @notice Returns the amount of ETH in wei that is associated with a client FeeDistributor instance
-    /// @param address of client FeeDistributor instance
+    /// @param _feeDistributorInstance address of client FeeDistributor instance
     /// @return uint112 amount of ETH in wei
     function depositAmount(address _feeDistributorInstance) external view returns (uint112);
 
     /// @notice Returns the block timestamp after which the client will be able to get a refund
-    /// @param address of client FeeDistributor instance
+    /// @param _feeDistributorInstance address of client FeeDistributor instance
     /// @return uint40 block timestamp
     function depositExpiration(address _feeDistributorInstance) external view returns (uint40);
 }

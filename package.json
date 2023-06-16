@@ -25,7 +25,8 @@
     "solidity-coverage": "0.7.18",
     "ts-node": "10.9.1",
     "typechain": "8.1.0",
-    "typescript": "4.8.4"
+    "typescript": "4.8.4",
+    "cross-env": "7.0.3"
   },
   "scripts": {
     "test:hh": "hardhat test",
@@ -42,9 +43,10 @@
     "fetchFromBigQuery": "yarn hardhat run --network goerli scripts/fetchFromBigQuery.ts",
     "makeBatchDeposit": "yarn hardhat run --network goerli scripts/makeBatchDeposit.ts",
     "generateMockMerkleTree": "yarn hardhat run --network goerli scripts/generateMockMerkleTree.ts",
-    "main": "yarn hardhat run --network goerli scripts/main.ts"
+    "main": "yarn hardhat run --network goerli scripts/main.ts",
+    "deployWithForge": "forge script script/Deploy.s.sol:Deploy --rpc-url $GOERLI_RPC_URL --private-key $PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY -vvvv"
   },
   "dependencies": {
-    "@google-cloud/bigquery": "^6.2.0"
+    "@google-cloud/bigquery": "6.2.0"
   }
 }

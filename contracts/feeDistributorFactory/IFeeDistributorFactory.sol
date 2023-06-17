@@ -77,6 +77,10 @@ interface IFeeDistributorFactory is IOwnable, IERC165 {
     /// @return address of P2pEth2Depositor
     function p2pEth2Depositor() external view returns (address);
 
+    /// @notice Returns default client basis points
+    /// @return default client basis points
+    function defaultClientBasisPoints() external view returns (uint96);
+
     /// @notice Returns the current operator
     /// @return address of the current operator
     function operator() external view returns (address);

@@ -265,6 +265,12 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         return s_clientOnlyClRewards;
     }
 
+    /// @notice Returns the oracle address
+    /// @return address oracle address
+    function oracle() external view returns (address) {
+        return address(i_oracle);
+    }
+
     /// @inheritdoc IFeeDistributor
     /// @dev client address
     function eth2WithdrawalCredentialsAddress() external override view returns (address) {

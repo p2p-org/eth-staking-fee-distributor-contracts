@@ -35,7 +35,7 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     /// @notice Default Client Basis Points
     /// @dev Used when no client config provided.
     /// Default Referrer Basis Points is zero.
-    uint96 s_defaultClientBasisPoints;
+    uint96 private s_defaultClientBasisPoints;
 
     /// @notice The address of P2pEth2Depositor
     address private s_p2pEth2Depositor;
@@ -147,6 +147,11 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     /// @inheritdoc IFeeDistributorFactory
     function p2pEth2Depositor() external view returns (address) {
         return s_p2pEth2Depositor;
+    }
+
+    /// @inheritdoc IFeeDistributorFactory
+    function defaultClientBasisPoints() external view returns (uint96) {
+        return s_defaultClientBasisPoints;
     }
 
     /// @inheritdoc ERC165

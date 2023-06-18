@@ -1,7 +1,6 @@
 module.exports = [
     false,
-    "0x0000000000000000000000000000000000000000",
-    "0x7A4204cf477e01BF9E34BdA6592BD4392a787Cb7"
+    "0xd01bF2297a153cE00B64972ffB6e7B767Bf0b285"
 ];
 
 // needed for Etherscan verification

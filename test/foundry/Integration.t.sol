@@ -15,8 +15,12 @@ import "../../contracts/feeDistributor/OracleFeeDistributor.sol";
 import "../../contracts/oracle/Oracle.sol";
 import "../../contracts/structs/P2pStructs.sol";
 import "../../contracts/mocks/MockClientFeeDistributor.sol";
+import "../../contracts/erc4337/interfaces/IEntryPoint.sol";
+import "../../contracts/erc4337/interfaces/UserOperation.sol";
 
 contract Integration is Test {
+    using ECDSA for bytes32;
+
     bytes pubKey;
     bytes signature;
     bytes32 depositDataRoot;
@@ -41,13 +45,16 @@ contract Integration is Test {
     bytes32[] merkleProof;
     uint256 constant amountInGweiFromOracle = 20000000000;
 
+    uint256 operatorPrivateKey = 42; // needed for signature
     address constant clientDepositorAddress = 0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8;
     address payable constant clientWcAddress = payable(0xB3E84B6C6409826DC45432B655D8C9489A14A0D7);
     address constant p2pDeployerAddress = 0x5a52E96BAcdaBb82fd05763E25335261B270Efcb;
-    address constant operatorAddress = 0xDc251802dCAF9a44409a254c04Fc19d22EDa36e2;
+    address operatorAddress;
     address constant extraSecureP2pAddress = 0xb0d0f9e74e15345D9E618C6f4Ca1C9Cb061C613A;
     address constant beaconDepositContractAddress = 0x00000000219ab540356cBB839Cbe05303d7705Fa;
+    address payable constant entryPointAddress = payable(0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789);
 
+    IEntryPoint entryPoint;
     P2pOrgUnlimitedEthDepositor p2pEthDepositor;
     FeeDistributorFactory factory;
     Oracle oracle;
@@ -70,6 +77,10 @@ contract Integration is Test {
 
     function setUp() public {
         vm.createSelectFork("mainnet", 17434740);
+
+        entryPoint = IEntryPoint(entryPointAddress);
+        operatorAddress = vm.addr(operatorPrivateKey);
+        vm.deal(operatorAddress, 42 ether);
 
         merkleRoot = bytes32(hex'86832f5c3d135fccdea12889e7c4f7820727285c5b8d18a29c5589d203cfd8a4');
         merkleProof.push(hex'889ef4a2d6b0f2788dc17d863eb2448ab11ede0cc997e21ea48120b6426418ed');
@@ -128,6 +139,63 @@ contract Integration is Test {
         withdrawContractWcFeeDistributor();
 
         console.log("MainUseCase finished");
+    }
+
+    function testErc4337WithdrawContractWcFeeDistributor() public {
+        console.log("testErc4337WithdrawContractWcFeeDistributor started");
+
+        addEthToContractWcFeeDistributor();
+        makeBeaconDepositForContractWcFeeDistributor();
+
+        uint256 rewards = 1 ether;
+
+        vm.deal(address(contractWcFeeDistributorInstance), rewards);
+
+        UserOperation memory userOp = getUserOperationWithoutSignature();
+        UserOperation[] memory ops = getOps(userOp);
+        address payable beneficiary = payable(address(100500)); // Bundler
+
+        uint256 beneficiaryBalanceBefore = beneficiary.balance;
+        uint256 serviceBalanceBefore = serviceAddress.balance;
+        uint256 clientBalanceBefore = clientWcAddress.balance;
+
+        entryPoint.handleOps(ops, beneficiary);
+
+        uint256 beneficiaryBalanceAfter = beneficiary.balance;
+        uint256 serviceBalanceAfter = serviceAddress.balance;
+        uint256 clientBalanceAfter = clientWcAddress.balance;
+
+        assertGt((serviceBalanceAfter - serviceBalanceBefore), rewards * (10000 - defaultClientBasisPoints) / 10000 * 98 / 100); // >98%
+        assertGt((clientBalanceAfter - clientBalanceBefore), rewards * defaultClientBasisPoints / 10000 * 98 / 100); // >98%
+        assertLt((beneficiaryBalanceAfter - beneficiaryBalanceBefore), rewards * defaultClientBasisPoints / 10000 * 2 / 100);
+
+        console.log("testErc4337WithdrawContractWcFeeDistributor finished");
+    }
+
+    function getOps(UserOperation memory userOpWithoutSignature) private returns(UserOperation[] memory) {
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOpWithoutSignature);
+        bytes32 hash = userOpHash.toEthSignedMessageHash();
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(operatorPrivateKey, hash);
+        userOpWithoutSignature.signature = abi.encodePacked(r, s, v);
+        UserOperation[] memory ops = new UserOperation[](1);
+        ops[0] = userOpWithoutSignature;
+        return ops;
+    }
+
+    function getUserOperationWithoutSignature() private view returns(UserOperation memory) {
+        return UserOperation({
+            sender: address(contractWcFeeDistributorInstance),
+            nonce: 0,
+            initCode: bytes(""),
+            callData: abi.encodeWithSelector(contractWcFeeDistributorInstance.withdrawSig()),
+            callGasLimit: 100000,
+            verificationGasLimit: 100000,
+            preVerificationGas: 100000,
+            maxFeePerGas: 50 gwei,
+            maxPriorityFeePerGas: 0,
+            paymasterAndData: bytes(""),
+            signature: bytes("")
+        });
     }
 
     function testContractWcFeeDistributorVoluntaryExit() public {

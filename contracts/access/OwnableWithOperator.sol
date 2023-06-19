@@ -4,6 +4,7 @@
 pragma solidity 0.8.10;
 
 import "./Ownable2Step.sol";
+import "./IOwnableWithOperator.sol";
 
 /**
 * @notice newOperator is the zero address
@@ -28,7 +29,7 @@ error Access__AddressNeitherOperatorNorOwner(address _address, address _operator
 /**
  * @dev Ownable with an additional role of operator
  */
-abstract contract OwnableWithOperator is Ownable2Step {
+abstract contract OwnableWithOperator is Ownable2Step, IOwnableWithOperator {
     address private s_operator;
 
     /**

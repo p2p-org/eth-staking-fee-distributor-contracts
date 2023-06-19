@@ -12,9 +12,10 @@ import "./IFeeDistributor.sol";
 import "./FeeDistributorErrors.sol";
 import "../structs/P2pStructs.sol";
 import "../lib/P2pAddressLib.sol";
+import "./Erc4337Account.sol";
 
 /// @title Common logic for all FeeDistributor types
-abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
+abstract contract BaseFeeDistributor is Erc4337Account, OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
 
     /// @notice FeeDistributorFactory address
     IFeeDistributorFactory internal immutable i_factory;
@@ -161,7 +162,7 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
     }
 
     /// @inheritdoc IFeeDistributor
-    function client() external view returns (address) {
+    function client() public view override(Erc4337Account, IFeeDistributor) returns (address) {
         return s_clientConfig.recipient;
     }
 
@@ -189,7 +190,12 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
     }
 
     /// @inheritdoc IOwnable
-    function owner() public view override returns (address) {
+    function owner() public view override(Erc4337Account, OwnableBase) returns (address) {
         return i_factory.owner();
+    }
+
+    /// @inheritdoc IOwnableWithOperator
+    function operator() public view override(Erc4337Account) returns (address) {
+        return i_factory.operator();
     }
 }

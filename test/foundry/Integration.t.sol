@@ -46,6 +46,7 @@ contract Integration is Test {
     uint256 constant amountInGweiFromOracle = 20000000000;
 
     uint256 operatorPrivateKey = 42; // needed for signature
+    address payable bundler = payable(address(100500));
     address constant clientDepositorAddress = 0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8;
     address payable constant clientWcAddress = payable(0xB3E84B6C6409826DC45432B655D8C9489A14A0D7);
     address constant p2pDeployerAddress = 0x5a52E96BAcdaBb82fd05763E25335261B270Efcb;
@@ -151,17 +152,16 @@ contract Integration is Test {
 
         vm.deal(address(contractWcFeeDistributorInstance), rewards);
 
-        UserOperation memory userOp = getUserOperationWithoutSignature();
+        UserOperation memory userOp = getUserOperationWithoutSignature(Erc4337Account(contractWcFeeDistributorInstance));
         UserOperation[] memory ops = getOps(userOp);
-        address payable beneficiary = payable(address(100500)); // Bundler
 
-        uint256 beneficiaryBalanceBefore = beneficiary.balance;
+        uint256 beneficiaryBalanceBefore = bundler.balance;
         uint256 serviceBalanceBefore = serviceAddress.balance;
         uint256 clientBalanceBefore = clientWcAddress.balance;
 
-        entryPoint.handleOps(ops, beneficiary);
+        entryPoint.handleOps(ops, bundler);
 
-        uint256 beneficiaryBalanceAfter = beneficiary.balance;
+        uint256 beneficiaryBalanceAfter = bundler.balance;
         uint256 serviceBalanceAfter = serviceAddress.balance;
         uint256 clientBalanceAfter = clientWcAddress.balance;
 
@@ -170,6 +170,76 @@ contract Integration is Test {
         assertLt((beneficiaryBalanceAfter - beneficiaryBalanceBefore), rewards * defaultClientBasisPoints / 10000 * 2 / 100);
 
         console.log("testErc4337WithdrawContractWcFeeDistributor finished");
+    }
+
+    function testErc4337WithdrawElOnlyFeeDistributor() public {
+        console.log("testErc4337WithdrawElOnlyFeeDistributor started");
+
+        addEthToElFeeDistributor(1);
+        makeBeaconDepositForElFeeDistributor();
+
+        uint256 rewards = 1 ether;
+
+        vm.deal(address(elFeeDistributorInstance), rewards);
+
+        UserOperation memory userOp = getUserOperationWithoutSignature(Erc4337Account(elFeeDistributorInstance));
+        UserOperation[] memory ops = getOps(userOp);
+
+        uint256 beneficiaryBalanceBefore = bundler.balance;
+        uint256 serviceBalanceBefore = serviceAddress.balance;
+        uint256 clientBalanceBefore = clientWcAddress.balance;
+
+        entryPoint.handleOps(ops, bundler);
+
+        uint256 beneficiaryBalanceAfter = bundler.balance;
+        uint256 serviceBalanceAfter = serviceAddress.balance;
+        uint256 clientBalanceAfter = clientWcAddress.balance;
+
+        assertGt((serviceBalanceAfter - serviceBalanceBefore), rewards * (10000 - defaultClientBasisPoints) / 10000 * 98 / 100); // >98%
+        assertGt((clientBalanceAfter - clientBalanceBefore), rewards * defaultClientBasisPoints / 10000 * 98 / 100); // >98%
+        assertLt((beneficiaryBalanceAfter - beneficiaryBalanceBefore), rewards * defaultClientBasisPoints / 10000 * 2 / 100);
+
+        console.log("testErc4337WithdrawElOnlyFeeDistributor finished");
+    }
+
+    function testErc4337WithdrawOracleFeeDistributor() public {
+        console.log("testErc4337WithdrawOracleFeeDistributor started");
+
+        addEthToOracleFeeDistributor();
+        makeBeaconDepositForOracleFeeDistributor();
+
+        uint256 elRewards = 10 ether;
+        vm.deal(address(oracleFeeDistributorInstance), elRewards);
+
+        vm.startPrank(operatorAddress);
+        oracle.report(merkleRoot);
+        vm.stopPrank();
+
+        UserOperation memory userOp = getUserOperationWithoutSignatureForOracleFeeDistributor(
+            oracleFeeDistributorInstance,
+            merkleProof,
+            amountInGweiFromOracle
+        );
+        UserOperation[] memory ops = getOps(userOp);
+
+        uint256 serviceBalanceBefore = serviceAddress.balance;
+        uint256 clientBalanceBefore = clientWcAddress.balance;
+        uint256 beneficiaryBalanceBefore = bundler.balance;
+
+        entryPoint.handleOps(ops, bundler);
+
+        uint256 serviceBalanceAfter = serviceAddress.balance;
+        uint256 clientBalanceAfter = clientWcAddress.balance;
+        uint256 beneficiaryBalanceAfter = bundler.balance;
+
+        uint256 clRewards = amountInGweiFromOracle * 1 gwei;
+        uint256 totalRewards = clRewards + elRewards;
+
+        assertGt(serviceBalanceAfter - serviceBalanceBefore, totalRewards * (10000 - defaultClientBasisPoints) / 10000 * 98 / 100); // >98%
+        assertGt(clientBalanceAfter - clientBalanceBefore, (totalRewards * defaultClientBasisPoints / 10000 - clRewards) * 98 / 100); // >98%
+        assertLt((beneficiaryBalanceAfter - beneficiaryBalanceBefore), totalRewards * defaultClientBasisPoints / 10000 * 2 / 100);
+
+        console.log("testErc4337WithdrawOracleFeeDistributor finished");
     }
 
     function getOps(UserOperation memory userOpWithoutSignature) private returns(UserOperation[] memory) {
@@ -182,12 +252,12 @@ contract Integration is Test {
         return ops;
     }
 
-    function getUserOperationWithoutSignature() private view returns(UserOperation memory) {
+    function getUserOperationWithoutSignature(Erc4337Account sender) private pure returns(UserOperation memory) {
         return UserOperation({
-            sender: address(contractWcFeeDistributorInstance),
+            sender: address(sender),
             nonce: 0,
             initCode: bytes(""),
-            callData: abi.encodeWithSelector(contractWcFeeDistributorInstance.withdrawSig()),
+            callData: abi.encodeWithSelector(sender.withdrawSig()),
             callGasLimit: 100000,
             verificationGasLimit: 100000,
             preVerificationGas: 100000,
@@ -195,6 +265,26 @@ contract Integration is Test {
             maxPriorityFeePerGas: 0,
             paymasterAndData: bytes(""),
             signature: bytes("")
+        });
+    }
+
+    function getUserOperationWithoutSignatureForOracleFeeDistributor(
+        OracleFeeDistributor sender,
+        bytes32[] memory _proof,
+        uint256 _amountInGwei
+    ) private pure returns(UserOperation memory) {
+        return UserOperation({
+        sender: address(sender),
+        nonce: 0,
+        initCode: bytes(""),
+        callData: abi.encodeWithSelector(sender.withdrawSig(), _proof, _amountInGwei),
+        callGasLimit: 100000,
+        verificationGasLimit: 100000,
+        preVerificationGas: 100000,
+        maxFeePerGas: 50 gwei,
+        maxPriorityFeePerGas: 0,
+        paymasterAndData: bytes(""),
+        signature: bytes("")
         });
     }
 

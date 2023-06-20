@@ -120,7 +120,7 @@ contract Integration is Test {
         setP2pEth2Depositor();
     }
 
-    function testMainUseCase() public {
+    function test_Main_Use_Case() public {
         console.log("MainUseCase started");
 
         addEthToElFeeDistributor({callNumber: 1});
@@ -142,7 +142,7 @@ contract Integration is Test {
         console.log("MainUseCase finished");
     }
 
-    function testErc4337WithdrawContractWcFeeDistributor() public {
+    function test_ERC_4337_Withdraw_ContractWcFeeDistributor() public {
         console.log("testErc4337WithdrawContractWcFeeDistributor started");
 
         addEthToContractWcFeeDistributor();
@@ -172,7 +172,7 @@ contract Integration is Test {
         console.log("testErc4337WithdrawContractWcFeeDistributor finished");
     }
 
-    function testErc4337WithdrawElOnlyFeeDistributor() public {
+    function test_ERC_4337_Withdraw_ElOnlyFeeDistributor() public {
         console.log("testErc4337WithdrawElOnlyFeeDistributor started");
 
         addEthToElFeeDistributor(1);
@@ -202,7 +202,7 @@ contract Integration is Test {
         console.log("testErc4337WithdrawElOnlyFeeDistributor finished");
     }
 
-    function testErc4337WithdrawOracleFeeDistributor() public {
+    function test_ERC_4337_Withdraw_OracleFeeDistributor() public {
         console.log("testErc4337WithdrawOracleFeeDistributor started");
 
         addEthToOracleFeeDistributor();
@@ -288,7 +288,7 @@ contract Integration is Test {
         });
     }
 
-    function testContractWcFeeDistributorVoluntaryExit() public {
+    function test_ContractWcFeeDistributor_Voluntary_Exit() public {
         console.log("testContractWcFeeDistributorVoluntaryExit started");
 
         addEthToContractWcFeeDistributor();
@@ -306,7 +306,7 @@ contract Integration is Test {
         console.log("testContractWcFeeDistributorVoluntaryExit finished");
     }
 
-    function testCustomClientFeeDistributor() public {
+    function test_Custom_Client_FeeDistributor() public {
         console.log("testCustomClientFeeDistributor started");
 
         addEthToCustomFeeDistributor();
@@ -315,7 +315,7 @@ contract Integration is Test {
         console.log("testCustomClientFeeDistributor finished");
     }
 
-    function testOracleFeeDistributorCreationWithoutDepositor() public {
+    function test_OracleFeeDistributor_Creation_Without_Depositor() public {
         console.log("testOracleFeeDistributorCreationWithoutDepositor started");
 
         address newFeeDistributorAddress = deployOracleFeeDistributorCreationWithoutDepositor();
@@ -341,7 +341,7 @@ contract Integration is Test {
         console.log("testOracleFeeDistributorCreationWithoutDepositor finished");
     }
 
-    function testContractWcFeeDistributorCreationWithoutDepositor() public {
+    function test_ContractWcFeeDistributor_Creation_Without_Depositor() public {
         console.log("testContractWcFeeDistributorCreationWithoutDepositor started");
 
         address newFeeDistributorAddress = deployContractWcFeeDistributorCreationWithoutDepositor();

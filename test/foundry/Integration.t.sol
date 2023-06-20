@@ -15,7 +15,7 @@ import "../../contracts/feeDistributor/OracleFeeDistributor.sol";
 import "../../contracts/oracle/Oracle.sol";
 import "../../contracts/structs/P2pStructs.sol";
 import "../../contracts/mocks/MockClientFeeDistributor.sol";
-import "../../contracts/erc4337/interfaces/IEntryPoint.sol";
+import "../../contracts/mocks/IEntryPoint.sol";
 import "../../contracts/erc4337/interfaces/UserOperation.sol";
 
 contract Integration is Test {

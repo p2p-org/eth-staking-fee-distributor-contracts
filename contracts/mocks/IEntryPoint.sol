@@ -9,10 +9,10 @@ pragma solidity 0.8.10;
 /* solhint-disable no-inline-assembly */
 /* solhint-disable reason-string */
 
-import "./UserOperation.sol";
+import "../erc4337/interfaces/UserOperation.sol";
 import "./IStakeManager.sol";
-import "./IAggregator.sol";
 import "./INonceManager.sol";
+import "./IAggregator.sol";
 
 interface IEntryPoint is IStakeManager, INonceManager {
 

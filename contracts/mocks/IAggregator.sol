@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.10;
 
-import "./UserOperation.sol";
+import "../erc4337/interfaces/UserOperation.sol";
 
 /**
  * Aggregated Signatures validator.

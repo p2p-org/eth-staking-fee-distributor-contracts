@@ -16,7 +16,7 @@ import "../../contracts/oracle/Oracle.sol";
 import "../../contracts/structs/P2pStructs.sol";
 import "../../contracts/mocks/MockClientFeeDistributor.sol";
 import "../../contracts/mocks/IEntryPoint.sol";
-import "../../contracts/erc4337/interfaces/UserOperation.sol";
+import "../../contracts/erc4337/UserOperation.sol";
 
 contract Integration is Test {
     using ECDSA for bytes32;

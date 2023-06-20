@@ -4,8 +4,8 @@
 pragma solidity 0.8.10;
 
 import "../@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "../erc4337/interfaces/IAccount.sol";
-import "../erc4337/interfaces/UserOperation.sol";
+import "../erc4337/IAccount.sol";
+import "../erc4337/UserOperation.sol";
 import "../access/IOwnableWithOperator.sol";
 
 /// @notice passed address should be a valid ERC-4337 entryPoint

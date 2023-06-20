@@ -8,6 +8,7 @@ import "../@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "../@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "../feeDistributorFactory/IFeeDistributorFactory.sol";
 import "../assetRecovering/OwnableTokenRecoverer.sol";
+import "../access/OwnableWithOperator.sol";
 import "./IFeeDistributor.sol";
 import "./FeeDistributorErrors.sol";
 import "../structs/P2pStructs.sol";
@@ -15,7 +16,7 @@ import "../lib/P2pAddressLib.sol";
 import "./Erc4337Account.sol";
 
 /// @title Common logic for all FeeDistributor types
-abstract contract BaseFeeDistributor is Erc4337Account, OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
+abstract contract BaseFeeDistributor is Erc4337Account, OwnableTokenRecoverer, OwnableWithOperator, ReentrancyGuard, ERC165, IFeeDistributor {
 
     /// @notice FeeDistributorFactory address
     IFeeDistributorFactory internal immutable i_factory;
@@ -190,12 +191,12 @@ abstract contract BaseFeeDistributor is Erc4337Account, OwnableTokenRecoverer, R
     }
 
     /// @inheritdoc IOwnable
-    function owner() public view override(Erc4337Account, OwnableBase) returns (address) {
+    function owner() public view override(Erc4337Account, OwnableBase, Ownable) returns (address) {
         return i_factory.owner();
     }
 
     /// @inheritdoc IOwnableWithOperator
-    function operator() public view override(Erc4337Account) returns (address) {
-        return i_factory.operator();
+    function operator() public view override(Erc4337Account, OwnableWithOperator) returns (address) {
+        return super.operator();
     }
 }

@@ -61,7 +61,7 @@ abstract contract Erc4337Account is IAccount, IOwnableWithOperator {
         address signer = hash.recover(_userOp.signature);
 
         if (
-            signer == owner() || signer == operator() || signer == client()
+            signer == operator() || signer == client()
         ) {
             validationData = 0;
         } else {

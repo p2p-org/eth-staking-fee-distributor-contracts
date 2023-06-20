@@ -148,6 +148,10 @@ contract Integration is Test {
         addEthToContractWcFeeDistributor();
         makeBeaconDepositForContractWcFeeDistributor();
 
+        vm.startPrank(extraSecureP2pAddress);
+        contractWcFeeDistributorInstance.changeOperator(operatorAddress);
+        vm.stopPrank();
+
         uint256 rewards = 1 ether;
 
         vm.deal(address(contractWcFeeDistributorInstance), rewards);
@@ -178,6 +182,10 @@ contract Integration is Test {
         addEthToElFeeDistributor(1);
         makeBeaconDepositForElFeeDistributor();
 
+        vm.startPrank(extraSecureP2pAddress);
+        elFeeDistributorInstance.changeOperator(operatorAddress);
+        vm.stopPrank();
+
         uint256 rewards = 1 ether;
 
         vm.deal(address(elFeeDistributorInstance), rewards);
@@ -207,6 +215,10 @@ contract Integration is Test {
 
         addEthToOracleFeeDistributor();
         makeBeaconDepositForOracleFeeDistributor();
+
+        vm.startPrank(extraSecureP2pAddress);
+        oracleFeeDistributorInstance.changeOperator(operatorAddress);
+        vm.stopPrank();
 
         uint256 elRewards = 10 ether;
         vm.deal(address(oracleFeeDistributorInstance), elRewards);

@@ -8,10 +8,6 @@ import "../erc4337/interfaces/IAccount.sol";
 import "../erc4337/interfaces/UserOperation.sol";
 import "../access/IOwnableWithOperator.sol";
 
-/// @notice signer should be either of: 1) owner 2) operator 3) client
-/// @param _signer address of the signer.
-error Erc4337Account__InvalidSigner(address _signer);
-
 /// @notice passed address should be a valid ERC-4337 entryPoint
 /// @param _passedAddress passed address
 error Erc4337Account__NotEntryPoint(address _passedAddress);
@@ -26,73 +22,69 @@ error Erc4337Account__OnlyWithdrawIsAllowed();
 abstract contract Erc4337Account is IAccount, IOwnableWithOperator {
     using ECDSA for bytes32;
 
-    /// @notice return value in case of signature failure, with no time-range.
-    /// @dev equivalent to _packValidationData(true,0,0);
-    uint256 private constant SIG_VALIDATION_FAILED = 1;
-
     /// @notice withdraw without agruments
     bytes4 private constant defaultWithdrawSelector = bytes4(keccak256("withdraw()"));
 
     /// @notice Singleton ERC-4337 entryPoint 0.6.0 used by this account
     address payable constant entryPoint = payable(0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789);
 
-    /// @notice Validate user's signature and nonce.
+    /// @inheritdoc IAccount
     function validateUserOp(
         UserOperation calldata userOp,
         bytes32 userOpHash,
         uint256 missingAccountFunds
-    ) external virtual override returns (uint256 validationData) {
+    ) external override returns (uint256 validationData) {
         if (msg.sender != entryPoint) {
             revert Erc4337Account__NotEntryPoint(msg.sender);
         }
 
         validationData = _validateSignature(userOp, userOpHash);
+
+        bytes4 selector = _getFunctionSelector(userOp.callData);
+        if (selector != withdrawSelector()) {
+            revert Erc4337Account__OnlyWithdrawIsAllowed();
+        }
+
         _payPrefund(missingAccountFunds);
     }
 
     /// @notice Validates the signature of a user operation.
+    /// @param _userOp the operation that is about to be executed.
+    /// @param _userOpHash hash of the user's request data. can be used as the basis for signature.
+    /// @return validationData 0 for valid signature, 1 to mark signature failure
     function _validateSignature(
-        UserOperation calldata userOp,
-        bytes32 userOpHash
-    ) private view returns (uint256)
+        UserOperation calldata _userOp,
+        bytes32 _userOpHash
+    ) private view returns (uint256 validationData)
     {
-        bytes32 hash = userOpHash.toEthSignedMessageHash();
-        address signer = hash.recover(userOp.signature);
+        bytes32 hash = _userOpHash.toEthSignedMessageHash();
+        address signer = hash.recover(_userOp.signature);
 
-        if (!isValidSigner(signer, userOp)) return SIG_VALIDATION_FAILED;
-        return 0;
+        if (
+            signer == owner() || signer == operator() || signer == client()
+        ) {
+            validationData = 0;
+        } else {
+            validationData = 1;
+        }
     }
 
-    /// @notice Returns whether a signer is authorized to perform transactions using the wallet.
-    function isValidSigner(address _signer, UserOperation calldata _userOp) public view virtual returns (bool) {
-        if (!(
-            _signer == owner() || _signer == operator() || _signer == client()
-        )) {
-            revert Erc4337Account__InvalidSigner(_signer);
-        }
-
-        bytes4 sig = getFunctionSignature(_userOp.callData);
-
-        if (sig != withdrawSig()) {
-            revert Erc4337Account__OnlyWithdrawIsAllowed();
-        }
-
-        return true;
-    }
-
-    function getFunctionSignature(bytes calldata data) internal pure returns (bytes4 functionSelector) {
-        if (data.length < 4) {
+    /// @notice Returns function selector (first 4 bytes of data)
+    /// @param _data calldata (encoded signature + agruments)
+    /// @return functionSelector function selector
+    function _getFunctionSelector(bytes calldata _data) private pure returns (bytes4 functionSelector) {
+        if (_data.length < 4) {
             revert Erc4337Account__DataTooShort();
         }
-        return bytes4(data[:4]);
+        return bytes4(_data[:4]);
     }
 
     /// @notice sends to the entrypoint (msg.sender) the missing funds for this transaction.
-    /// @param missingAccountFunds the minimum value this method should send the entrypoint.
+    /// @param _missingAccountFunds the minimum value this method should send the entrypoint.
     /// this value MAY be zero, in case there is enough deposit, or the userOp has a paymaster.
-    function _payPrefund(uint256 missingAccountFunds) private {
-        if (missingAccountFunds != 0) {
-            (bool success, ) = payable(msg.sender).call{ value: missingAccountFunds, gas: type(uint256).max }("");
+    function _payPrefund(uint256 _missingAccountFunds) private {
+        if (_missingAccountFunds != 0) {
+            (bool success, ) = payable(msg.sender).call{ value: _missingAccountFunds, gas: type(uint256).max }("");
             (success);
             //ignore failure (its EntryPoint's job to verify, not account.)
         }
@@ -108,10 +100,11 @@ abstract contract Erc4337Account is IAccount, IOwnableWithOperator {
     /// @inheritdoc IOwnableWithOperator
     function operator() public view virtual returns (address);
 
-    /// @notice withdraw function signature
+    /// @notice withdraw function selector
     /// @dev since withdraw function in derived contracts can have arguments, its
     /// signature can vary and can be overridden in derived contracts
-    function withdrawSig() public pure virtual returns (bytes4) {
+    /// @return bytes4 withdraw function selector
+    function withdrawSelector() public pure virtual returns (bytes4) {
         return defaultWithdrawSelector;
     }
 }

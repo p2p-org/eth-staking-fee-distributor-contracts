@@ -13,17 +13,20 @@ async function main() {
         const signer = new ethers.Wallet(process.env.PRIVATE_KEY || 'NO_KEY', provider);
         console.log('signer address: ', signer.address)
 
+        const entryPointContract = new ethers.Contract(entryPointAddress, entryPointAbi, provider)
+
+        const feeDistributorContract = new ethers.Contract(feeDistributorAddress, feeDistributorAbi, provider)
+        const calldata = await feeDistributorContract.withdrawSelector()
+        console.log('selector: ', calldata)
+
         const sender = feeDistributorAddress;
-        const nonce = '0';
+        const nonce = (await entryPointContract.getNonce(feeDistributorAddress, 0)).toNumber();
+
         const callGasLimit = '100000';
         const verificationGasLimit = '100000';
         const preVerificationGas = '100000';
         const maxFeePerGas = '500000000000';
         const maxPriorityFeePerGas = '1000000000';
-
-        const feeDistributorContract = new ethers.Contract(feeDistributorAddress, feeDistributorAbi, provider)
-        const calldata = await feeDistributorContract.withdrawSelector()
-        console.log('selector: ', calldata)
 
         const userOp = {
             sender,
@@ -39,7 +42,6 @@ async function main() {
             signature: "0x"
         }
 
-        const entryPointContract = new ethers.Contract(entryPointAddress, entryPointAbi, provider)
         const userOpHash = await entryPointContract.getUserOpHash(userOp)
         console.log("userOpHash :",userOpHash);
 
@@ -89,4 +91,6 @@ main().catch((error) => {
 });
 
 // userOpHash : 0x9ead2e27413bbc0ccd37f7616895a41d5fa90b2aae0d32491706140d57636521
+// userOpHash : 0x88a7108e7ecfe99411f02182eee144570a2aacd1698e573b14e81dd2bd566cb3
+// userOpHash : 0x6ee1843bb4458f833600b29dbf9bc94069c2ddaf6a2007b085129cce934fe12c
 

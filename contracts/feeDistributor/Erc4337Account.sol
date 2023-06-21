@@ -26,7 +26,7 @@ error Erc4337Account__NotAllowedToWithdrawFromEntryPoint();
 abstract contract Erc4337Account is IAccount, IOwnableWithOperator {
     using ECDSA for bytes32;
 
-    /// @notice withdraw without agruments
+    /// @notice withdraw without arguments
     bytes4 private constant defaultWithdrawSelector = bytes4(keccak256("withdraw()"));
 
     /// @notice Singleton ERC-4337 entryPoint 0.6.0 used by this account
@@ -86,7 +86,7 @@ abstract contract Erc4337Account is IAccount, IOwnableWithOperator {
     }
 
     /// @notice Returns function selector (first 4 bytes of data)
-    /// @param _data calldata (encoded signature + agruments)
+    /// @param _data calldata (encoded signature + arguments)
     /// @return functionSelector function selector
     function _getFunctionSelector(bytes calldata _data) private pure returns (bytes4 functionSelector) {
         if (_data.length < 4) {

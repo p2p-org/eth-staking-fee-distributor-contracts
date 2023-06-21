@@ -24,11 +24,11 @@ async function main() {
         const {name: chainName, chainId} = await ethers.provider.getNetwork()
         console.log('Started on: ' + chainName)
 
-        const feeDistributorFactorySignedByDeployer = await new FeeDistributorFactory__factory(deployerSigner).attach('0xFb67d31772336bDEAE46D8B402C8A330abEa0326')
-        const oracleSignedByDeployer = await new Oracle__factory(deployerSigner).attach('0x257640704D813cCF3679f752a7bE6D27Fa9c01b0')
+        const feeDistributorFactorySignedByDeployer = await new FeeDistributorFactory__factory(deployerSigner).attach('0x8C87EFBA90414687A66C8B2E7D21039E81d55456')
+        const oracleSignedByDeployer = await new Oracle__factory(deployerSigner).attach('0x6aA04FA882E4Cd26F0354B07Ee1884Fe156f78B2')
         const ContractWcFeeDistributor = await new ContractWcFeeDistributor__factory(deployerSigner).attach('0x54eE9634Cf0cD008Cf37A4119103249D953CE089')
         const ElOnlyFeeDistributor = await new ElOnlyFeeDistributor__factory(deployerSigner).attach('0x34b6255FCCb74D921285Ea9cf7DEd498bceca278')
-        const OracleFeeDistributor = await new OracleFeeDistributor__factory(deployerSigner).attach('0x69f41965567D204E07b7D9B1aE659680312b9308')
+        const OracleFeeDistributor = await new OracleFeeDistributor__factory(deployerSigner).attach('0xAD91441aB557b5eC5d9f29DB64522Eb918B4f32b')
         const p2pEth2DepositorSignedByDeployer = await new P2pOrgUnlimitedEthDepositor__factory(deployerSigner).attach('0x9d7008090DCf7cC0004b9A0A0aceebA83d93d8Bb')
 
         // await p2pEth2DepositorSignedByDeployer.addEth(
@@ -53,15 +53,27 @@ async function main() {
         //         }
         // )
 
-        feeDistributorFactorySignedByDeployer.createFeeDistributor(
-            ElOnlyFeeDistributor.address,
-            { recipient: deployer, basisPoints: 9500 },
-            { recipient: ethers.constants.AddressZero, basisPoints: 0 },
-            {
-                maxFeePerGas: 50000000000,
-                maxPriorityFeePerGas: 1000000000
-            }
-        )
+        // feeDistributorFactorySignedByDeployer.createFeeDistributor(
+        //     ElOnlyFeeDistributor.address,
+        //     { recipient: deployer, basisPoints: 9500 },
+        //     { recipient: ethers.constants.AddressZero, basisPoints: 0 },
+        //     {
+        //         maxFeePerGas: 50000000000,
+        //         maxPriorityFeePerGas: 1000000000
+        //     }
+        // )
+
+        // feeDistributorFactorySignedByDeployer.createFeeDistributor(
+        //     OracleFeeDistributor.address,
+        //     { recipient: deployer, basisPoints: 9500 },
+        //     { recipient: ethers.constants.AddressZero, basisPoints: 0 },
+        //     {
+        //         maxFeePerGas: 50000000000,
+        //         maxPriorityFeePerGas: 1000000000
+        //     }
+        // )
+
+        // await oracleSignedByDeployer.report('0x8ffa3563dd3de06e70d7dae30a456ec5737fa982193862a05e1eaf4fef6beb63');
 
         console.log('Done.')
     } catch (err) {
@@ -75,4 +87,11 @@ main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });
+
+// Root: 0x8ffa3563dd3de06e70d7dae30a456ec5737fa982193862a05e1eaf4fef6beb63
+// Proof:
+// [
+//     '0x482c22dca1afb1a7d8bf4c86db6a875ab302ad9e7ebc3baca15ca60207c3c5e0',
+//     '0xa2d2d9599717e5e4d3e14d43cfd1d2cdf6befc8d91af26a12c7bad79e308050f'
+// ]
 

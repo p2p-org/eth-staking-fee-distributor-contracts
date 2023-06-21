@@ -42,6 +42,7 @@
     "deployToGoerli": "yarn hardhat run --network goerli scripts/deploy.ts",
     "testErc4337OnGoerli": "yarn hardhat run --network goerli scripts/testErc4337OnGoerli.ts",
     "sendErc4337UserOperation": "yarn hardhat run --network goerli scripts/sendErc4337UserOperation.ts",
+    "sendErc4337UserOperationForOracleFeeDistributor": "yarn hardhat run --network goerli scripts/sendErc4337UserOperationForOracleFeeDistributor.ts",
     "testLotsOfCalldata": "yarn hardhat run --network goerli scripts/testLotsOfCalldata.ts",
     "fetchFromBigQuery": "yarn hardhat run --network goerli scripts/fetchFromBigQuery.ts",
     "makeBatchDeposit": "yarn hardhat run --network goerli scripts/makeBatchDeposit.ts",

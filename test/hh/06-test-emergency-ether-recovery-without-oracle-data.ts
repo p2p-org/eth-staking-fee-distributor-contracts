@@ -1,21 +1,19 @@
 import { expect } from "chai"
 import {ethers, getNamedAccounts} from "hardhat"
 import {
-    FeeDistributor__factory,
     FeeDistributorFactory__factory,
     FeeDistributorFactory,
-    MockAlteringReceive__factory,
     Oracle__factory,
     Oracle,
-    P2pEth2Depositor__factory,
-    P2pEth2Depositor
-} from "../typechain-types"
+    P2pOrgUnlimitedEthDepositor__factory,
+    P2pOrgUnlimitedEthDepositor
+} from "../../typechain-types"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { generateMockDepositData } from "../scripts/generateMockDepositData"
-import { generateMockBatchRewardData } from "../scripts/generateMockBatchRewardData"
-import { buildMerkleTreeForFeeDistributorAddress } from "../scripts/buildMerkleTreeForFeeDistributorAddress"
+import { generateMockDepositData } from "../../scripts/generateMockDepositData"
+import { generateMockBatchRewardData } from "../../scripts/generateMockBatchRewardData"
+import { buildMerkleTreeForFeeDistributorAddress } from "../../scripts/buildMerkleTreeForFeeDistributorAddress"
 import fs from "fs"
-import { obtainProof } from "../scripts/obtainProof"
+import { obtainProof } from "../../scripts/obtainProof"
 
 describe("test emergencyEtherRecoveryWithoutOracleData", function () {
 
@@ -35,14 +33,14 @@ describe("test emergencyEtherRecoveryWithoutOracleData", function () {
     let clientAddressSigner: SignerWithAddress
     let clientDepositorSigner: SignerWithAddress
 
-    let deployerFactory: FeeDistributor__factory
-    let ownerFactory: FeeDistributor__factory
-    let operatorFactory: FeeDistributor__factory
-    let clientFactory: FeeDistributor__factory
+    let deployerFactory: OracleFeeDistributor__factory
+    let ownerFactory: OracleFeeDistributor__factory
+    let operatorFactory: OracleFeeDistributor__factory
+    let clientFactory: OracleFeeDistributor__factory
 
     let feeDistributorFactorySignedByDeployer: FeeDistributorFactory
     let oracleSignedByDeployer: Oracle
-    let p2pEth2DepositorSignedByClientDepositor: P2pEth2Depositor
+    let P2pOrgUnlimitedEthDepositorSignedByClientDepositor: P2pOrgUnlimitedEthDepositor
 
     let deployer: string
     let owner: string
@@ -69,10 +67,10 @@ describe("test emergencyEtherRecoveryWithoutOracleData", function () {
         clientAddressSigner = await ethers.getSigner(clientAddress)
         clientDepositorSigner = await ethers.getSigner(clientDepositor)
 
-        deployerFactory = new FeeDistributor__factory(deployerSigner)
-        ownerFactory = new FeeDistributor__factory(ownerSigner)
-        operatorFactory = new FeeDistributor__factory(operatorSigner)
-        clientFactory = new FeeDistributor__factory(clientAddressSigner)
+        deployerFactory = new OracleFeeDistributor__factory(deployerSigner)
+        ownerFactory = new OracleFeeDistributor__factory(ownerSigner)
+        operatorFactory = new OracleFeeDistributor__factory(operatorSigner)
+        clientFactory = new OracleFeeDistributor__factory(clientAddressSigner)
 
         // deploy factory contract
         feeDistributorFactorySignedByDeployer = await new FeeDistributorFactory__factory(deployerSigner).deploy(
@@ -82,18 +80,18 @@ describe("test emergencyEtherRecoveryWithoutOracleData", function () {
         // deploy oracle contract
         oracleSignedByDeployer = await new Oracle__factory(deployerSigner).deploy()
 
-        // deploy P2pEth2Depositor contract
-        const p2pEth2DepositorSignedByDeployer = await new P2pEth2Depositor__factory(deployerSigner).deploy(
+        // deploy P2pOrgUnlimitedEthDepositor contract
+        const P2pOrgUnlimitedEthDepositorSignedByDeployer = await new P2pOrgUnlimitedEthDepositor__factory(deployerSigner).deploy(
             true,
             ethers.constants.AddressZero,
             feeDistributorFactorySignedByDeployer.address
         )
 
-        // set P2pEth2Depositor to FeeDistributorFactory
-        await feeDistributorFactorySignedByDeployer.setP2pEth2Depositor(p2pEth2DepositorSignedByDeployer.address)
+        // set P2pOrgUnlimitedEthDepositor to FeeDistributorFactory
+        await feeDistributorFactorySignedByDeployer.setP2pEthDepositor(P2pOrgUnlimitedEthDepositorSignedByDeployer.address)
 
-        p2pEth2DepositorSignedByClientDepositor = P2pEth2Depositor__factory.connect(
-            p2pEth2DepositorSignedByDeployer.address,
+        P2pOrgUnlimitedEthDepositorSignedByClientDepositor = P2pOrgUnlimitedEthDepositor__factory.connect(
+            P2pOrgUnlimitedEthDepositorSignedByDeployer.address,
             clientDepositorSigner
         )
     })
@@ -112,7 +110,7 @@ describe("test emergencyEtherRecoveryWithoutOracleData", function () {
 
         const batchDepositData = generateMockDepositData(depositCount)
 
-        const depositTx = await p2pEth2DepositorSignedByClientDepositor.deposit(
+        const depositTx = await P2pOrgUnlimitedEthDepositorSignedByClientDepositor.deposit(
             batchDepositData.map(d => d.pubkey),
             batchDepositData[0].withdrawal_credentials,
             batchDepositData.map(d => d.signature),
@@ -125,7 +123,7 @@ describe("test emergencyEtherRecoveryWithoutOracleData", function () {
             }
         );
 
-        await expect(depositTx).to.emit(p2pEth2DepositorSignedByClientDepositor, 'P2pEth2DepositEvent')
+        await expect(depositTx).to.emit(P2pOrgUnlimitedEthDepositorSignedByClientDepositor, 'P2pEth2DepositEvent')
 
         const depositTxReceipt = await depositTx.wait();
 

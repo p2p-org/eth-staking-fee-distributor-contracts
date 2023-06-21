@@ -2,7 +2,7 @@ import { expect } from "chai"
 import {ethers, getNamedAccounts} from "hardhat"
 import {
     Oracle__factory, Oracle
-} from "../typechain-types"
+} from "../../typechain-types"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 describe("Merkle Tree Tests", function () {

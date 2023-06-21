@@ -1,8 +1,8 @@
 import { expect } from "chai"
 import {ethers, getNamedAccounts} from "hardhat"
 import {
-    P2pEth2Depositor__factory
-} from "../typechain-types"
+    P2pOrgUnlimitedEthDepositor__factory
+} from "../../typechain-types"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 const clientBasisPoints = 9000;
@@ -11,17 +11,17 @@ const clientAddress = '0x388C818CA8B9251b393131C08a736A67ccB19297'
 const referrerAddress = '0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5'
 const BatchCount = 400
 
-describe("TestP2pEth2Depositor", function () {
+describe("TestP2pOrgUnlimitedEthDepositor", function () {
 
     let deployer: string
     let deployerSigner: SignerWithAddress
-    let factory: P2pEth2Depositor__factory
+    let factory: P2pOrgUnlimitedEthDepositor__factory
 
     before(async () => {
         const namedAccounts = await getNamedAccounts()
         deployer = namedAccounts.deployer
         deployerSigner = await ethers.getSigner(deployer)
-        factory = new P2pEth2Depositor__factory(deployerSigner)
+        factory = new P2pOrgUnlimitedEthDepositor__factory(deployerSigner)
     })
 
     const depositData = [{

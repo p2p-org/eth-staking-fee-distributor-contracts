@@ -1,28 +1,27 @@
 import { expect } from "chai"
 import {ethers, getNamedAccounts} from "hardhat"
 import {
-    FeeDistributor__factory,
     FeeDistributorFactory__factory,
     FeeDistributorFactory,
     MockAlteringReceive__factory,
     Oracle__factory,
     Oracle,
-    P2pEth2Depositor__factory,
-    P2pEth2Depositor
-} from "../typechain-types"
+    P2pOrgUnlimitedEthDepositor__factory,
+    P2pOrgUnlimitedEthDepositor
+} from "../../typechain-types"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { generateMockDepositData } from "../scripts/generateMockDepositData"
-import { generateMockBatchRewardData } from "../scripts/generateMockBatchRewardData"
-import { buildMerkleTreeForFeeDistributorAddress } from "../scripts/buildMerkleTreeForFeeDistributorAddress"
+import { generateMockDepositData } from "../../scripts/generateMockDepositData"
+import { generateMockBatchRewardData } from "../../scripts/generateMockBatchRewardData"
+import { buildMerkleTreeForFeeDistributorAddress } from "../../scripts/buildMerkleTreeForFeeDistributorAddress"
 import fs from "fs"
-import { obtainProof } from "../scripts/obtainProof"
+import { obtainProof } from "../../scripts/obtainProof"
 
-describe("Integration with Low CL rewards", function () {
+describe("Integration with High CL rewards", function () {
 
     const BatchCount = 13
-    const testAmountInGwei = 8000000
+    const testAmountInGwei = 8000000000000
     const depositCount = 100
-    const eth2DepositContractDepositCount = 571930
+    const eth2DepositContractDepositCount = 572230
     const defaultClientBasisPoints = 9000;
     const clientBasisPoints = 9000;
     const referrerBasisPoints = 400;
@@ -35,14 +34,14 @@ describe("Integration with Low CL rewards", function () {
     let nobodySigner: SignerWithAddress
     let clientDepositorSigner: SignerWithAddress
 
-    let deployerFactory: FeeDistributor__factory
-    let ownerFactory: FeeDistributor__factory
-    let operatorFactory: FeeDistributor__factory
-    let nobodyFactory: FeeDistributor__factory
+    let deployerFactory: OracleFeeDistributor__factory
+    let ownerFactory: OracleFeeDistributor__factory
+    let operatorFactory: OracleFeeDistributor__factory
+    let nobodyFactory: OracleFeeDistributor__factory
 
     let feeDistributorFactorySignedByDeployer: FeeDistributorFactory
     let oracleSignedByDeployer: Oracle
-    let p2pEth2DepositorSignedByClientDepositor: P2pEth2Depositor
+    let P2pOrgUnlimitedEthDepositorSignedByClientDepositor: P2pOrgUnlimitedEthDepositor
 
     let deployer: string
     let owner: string
@@ -69,10 +68,10 @@ describe("Integration with Low CL rewards", function () {
         nobodySigner = await ethers.getSigner(nobody)
         clientDepositorSigner = await ethers.getSigner(clientDepositor)
 
-        deployerFactory = new FeeDistributor__factory(deployerSigner)
-        ownerFactory = new FeeDistributor__factory(ownerSigner)
-        operatorFactory = new FeeDistributor__factory(operatorSigner)
-        nobodyFactory = new FeeDistributor__factory(nobodySigner)
+        deployerFactory = new OracleFeeDistributor__factory(deployerSigner)
+        ownerFactory = new OracleFeeDistributor__factory(ownerSigner)
+        operatorFactory = new OracleFeeDistributor__factory(operatorSigner)
+        nobodyFactory = new OracleFeeDistributor__factory(nobodySigner)
 
         // deploy factory contract
         feeDistributorFactorySignedByDeployer = await new FeeDistributorFactory__factory(deployerSigner).deploy(
@@ -82,18 +81,18 @@ describe("Integration with Low CL rewards", function () {
         // deploy oracle contract
         oracleSignedByDeployer = await new Oracle__factory(deployerSigner).deploy()
 
-        // deploy P2pEth2Depositor contract
-        const p2pEth2DepositorSignedByDeployer = await new P2pEth2Depositor__factory(deployerSigner).deploy(
+        // deploy P2pOrgUnlimitedEthDepositor contract
+        const P2pOrgUnlimitedEthDepositorSignedByDeployer = await new P2pOrgUnlimitedEthDepositor__factory(deployerSigner).deploy(
             true,
             ethers.constants.AddressZero,
             feeDistributorFactorySignedByDeployer.address
         )
 
-        // set P2pEth2Depositor to FeeDistributorFactory
-        await feeDistributorFactorySignedByDeployer.setP2pEth2Depositor(p2pEth2DepositorSignedByDeployer.address)
+        // set P2pOrgUnlimitedEthDepositor to FeeDistributorFactory
+        await feeDistributorFactorySignedByDeployer.setP2pEthDepositor(P2pOrgUnlimitedEthDepositorSignedByDeployer.address)
 
-        p2pEth2DepositorSignedByClientDepositor = P2pEth2Depositor__factory.connect(
-            p2pEth2DepositorSignedByDeployer.address,
+        P2pOrgUnlimitedEthDepositorSignedByClientDepositor = P2pOrgUnlimitedEthDepositor__factory.connect(
+            P2pOrgUnlimitedEthDepositorSignedByDeployer.address,
             clientDepositorSigner
         )
     })
@@ -112,7 +111,7 @@ describe("Integration with Low CL rewards", function () {
 
         const batchDepositData = generateMockDepositData(depositCount)
 
-        const depositTx = await p2pEth2DepositorSignedByClientDepositor.deposit(
+        const depositTx = await P2pOrgUnlimitedEthDepositorSignedByClientDepositor.deposit(
             batchDepositData.map(d => d.pubkey),
             batchDepositData[0].withdrawal_credentials,
             batchDepositData.map(d => d.signature),
@@ -125,7 +124,7 @@ describe("Integration with Low CL rewards", function () {
             }
         );
 
-        await expect(depositTx).to.emit(p2pEth2DepositorSignedByClientDepositor, 'P2pEth2DepositEvent')
+        await expect(depositTx).to.emit(P2pOrgUnlimitedEthDepositorSignedByClientDepositor, 'P2pEth2DepositEvent')
 
         const depositTxReceipt = await depositTx.wait();
 
@@ -204,14 +203,15 @@ describe("Integration with Low CL rewards", function () {
 
         // make sure P2P (service) got its share
         expect(serviceAddressBalance.sub(serviceAddressBalanceBefore)).to.equal(
-            totalRewards.mul(serviceBasisPoints)
-                .div(10000))
+            elRewards.div(2)
+                .mul(serviceBasisPoints)
+                .div(serviceBasisPoints + referrerBasisPoints)
+        )
 
         // make sure client got its share
         expect(clientAddressBalance.sub(clientAddressBalanceBefore)).to.equal(
-            feeDistributorBalanceBefore
-                .sub(totalRewards.mul(serviceBasisPoints).div(10000))
-                .sub(totalRewards.mul(referrerBasisPoints).div(10000)))
+            elRewards.div(2)
+        )
     })
 
     it("recoverEther should simply withdraw in a normal case", async function () {
@@ -228,7 +228,7 @@ describe("Integration with Low CL rewards", function () {
 
         const batchDepositData = generateMockDepositData(depositCount)
 
-        const depositTx = await p2pEth2DepositorSignedByClientDepositor.deposit(
+        const depositTx = await P2pOrgUnlimitedEthDepositorSignedByClientDepositor.deposit(
             batchDepositData.map(d => d.pubkey),
             batchDepositData[0].withdrawal_credentials,
             batchDepositData.map(d => d.signature),
@@ -241,7 +241,7 @@ describe("Integration with Low CL rewards", function () {
             }
         );
 
-        await expect(depositTx).to.emit(p2pEth2DepositorSignedByClientDepositor, 'P2pEth2DepositEvent')
+        await expect(depositTx).to.emit(P2pOrgUnlimitedEthDepositorSignedByClientDepositor, 'P2pEth2DepositEvent')
 
         const depositTxReceipt = await depositTx.wait();
 
@@ -322,14 +322,15 @@ describe("Integration with Low CL rewards", function () {
 
         // make sure P2P (service) got its share
         expect(serviceAddressBalance.sub(serviceAddressBalanceBefore)).to.equal(
-            totalRewards.mul(serviceBasisPoints)
-                .div(10000))
+            elRewards.div(2)
+                .mul(serviceBasisPoints)
+                .div(serviceBasisPoints + referrerBasisPoints)
+        )
 
         // make sure client got its share
         expect(clientAddressBalance.sub(clientAddressBalanceBefore)).to.equal(
-            feeDistributorBalanceBefore
-                .sub(totalRewards.mul(serviceBasisPoints).div(10000))
-                .sub(totalRewards.mul(referrerBasisPoints).div(10000)))
+            elRewards.div(2)
+        )
 
         // no recovery should happen if the normal withdraw completed successfully
         const EtherRecoveredEvent = recoverEtherTxReceipt?.events?.find(event => event.event === 'EtherRecovered')
@@ -356,7 +357,7 @@ describe("Integration with Low CL rewards", function () {
 
         const batchDepositData = generateMockDepositData(depositCount)
 
-        const depositTx = await p2pEth2DepositorSignedByClientDepositor.deposit(
+        const depositTx = await P2pOrgUnlimitedEthDepositorSignedByClientDepositor.deposit(
             batchDepositData.map(d => d.pubkey),
             batchDepositData[0].withdrawal_credentials,
             batchDepositData.map(d => d.signature),
@@ -369,7 +370,7 @@ describe("Integration with Low CL rewards", function () {
             }
         );
 
-        await expect(depositTx).to.emit(p2pEth2DepositorSignedByClientDepositor, 'P2pEth2DepositEvent')
+        await expect(depositTx).to.emit(P2pOrgUnlimitedEthDepositorSignedByClientDepositor, 'P2pEth2DepositEvent')
 
         const depositTxReceipt = await depositTx.wait();
 
@@ -444,9 +445,16 @@ describe("Integration with Low CL rewards", function () {
         const clientAddressBalance = await ethers.provider.getBalance(clientAddress)
 
         // make sure P2P (service) got its share
-        expect(serviceAddressBalance.sub(serviceAddressBalanceBefore)).to.equal(totalRewards.mul(serviceBasisPoints).div(10000))
+        expect(serviceAddressBalance.sub(serviceAddressBalanceBefore)).to.equal(
+            elRewards.div(2)
+                .mul(serviceBasisPoints)
+                .div(serviceBasisPoints + referrerBasisPoints)
+        )
+
         // client did not get its share due to the revert
-        expect(clientAddressBalance.sub(clientAddressBalanceBefore)).to.equal(0)
+        expect(clientAddressBalance.sub(clientAddressBalanceBefore)).to.equal(
+            0
+        )
 
         const serviceAddressBalanceBeforeRecoverEther = await ethers.provider.getBalance(serviceAddress)
         const clientAddressBalanceBeforeRecoverEther = await ethers.provider.getBalance(clientAddress)
@@ -462,11 +470,16 @@ describe("Integration with Low CL rewards", function () {
         const clientAddressBalanceAfterRecoverEther = await ethers.provider.getBalance(clientAddress)
 
         // make sure P2P (service) got its share
-        expect(serviceAddressBalanceAfterRecoverEther.sub(serviceAddressBalanceBeforeRecoverEther))
-            .to.equal(remainingEtherBefore.mul(serviceBasisPoints).div(10000))
+        expect(serviceAddressBalanceAfterRecoverEther.sub(serviceAddressBalanceBeforeRecoverEther)).to.equal(
+            remainingEtherBefore.div(2)
+                .mul(serviceBasisPoints)
+                .div(serviceBasisPoints + referrerBasisPoints)
+        )
+
         // client did not get its share due to the revert
-        expect(clientAddressBalanceAfterRecoverEther.sub(clientAddressBalanceBeforeRecoverEther))
-            .to.equal(0)
+        expect(clientAddressBalanceAfterRecoverEther.sub(clientAddressBalanceBeforeRecoverEther)).to.equal(
+            0
+        )
 
         // recovery should happen
         const EtherRecoveredEvent = recoverEtherTxReceipt?.events?.find(event => event.event === 'EtherRecovered')
@@ -477,7 +490,7 @@ describe("Integration with Low CL rewards", function () {
         const recoverDestinationEtherAfter = await ethers.provider.getBalance(clientDepositor)
 
         expect(recoverDestinationEtherAfter.sub(recoverDestinationEtherBefore))
-            .to.equal(remainingEtherBefore.mul(clientBasisPoints).div(10000))
+            .to.equal(remainingEtherBefore.div(2))
 
         const remainingEtherAfter = await ethers.provider.getBalance(_newFeeDistributorAddress)
         expect(remainingEtherAfter).to.equal(0)

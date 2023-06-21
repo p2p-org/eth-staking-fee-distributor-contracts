@@ -1,10 +1,9 @@
 import { expect } from "chai"
 import {ethers, getNamedAccounts} from "hardhat"
 import {
-    FeeDistributor__factory,
     FeeDistributorFactory__factory,
     FeeDistributorFactory, IERC20__factory, IERC721__factory, IERC1155__factory, Oracle, Oracle__factory
-} from "../typechain-types"
+} from "../../typechain-types"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 describe("FeeDistributorFactory", function () {
@@ -69,7 +68,7 @@ describe("FeeDistributorFactory", function () {
             `FeeDistributorFactory__NotFeeDistributor`
         )
 
-        const factory = new FeeDistributor__factory(ownerSigner)
+        const factory = new OracleFeeDistributor__factory(ownerSigner)
         const feeDistributor = await factory.deploy(
             oracleSignedByDeployer.address,
             deployerFactory.address,
@@ -99,7 +98,7 @@ describe("FeeDistributorFactory", function () {
             `FeeDistributorFactory__NotFeeDistributor`
         )
 
-        const factory = new FeeDistributor__factory(ownerSigner)
+        const factory = new OracleFeeDistributor__factory(ownerSigner)
         const feeDistributor = await factory.deploy(
             oracleSignedByDeployer.address,
             deployerFactory.address,
@@ -162,7 +161,7 @@ describe("FeeDistributorFactory", function () {
             {clientOnlyClRewards: 0, firstValidatorId: 100500, validatorCount: 42},
         )).to.emit(
             factorySignedByOperator,
-            "FeeDistributorCreated"
+            "FeeDistributorFactory__FeeDistributorCreated"
         )
 
         await expect(factorySignedByOwner.createFeeDistributor(
@@ -171,7 +170,7 @@ describe("FeeDistributorFactory", function () {
             {clientOnlyClRewards: 0, firstValidatorId: 100500, validatorCount: 42},
         )).to.emit(
             factorySignedByOperator,
-            "FeeDistributorCreated"
+            "FeeDistributorFactory__FeeDistributorCreated"
         )
     })
 

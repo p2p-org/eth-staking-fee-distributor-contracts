@@ -24,12 +24,12 @@ async function main() {
         const {name: chainName, chainId} = await ethers.provider.getNetwork()
         console.log('Started on: ' + chainName)
 
-        const feeDistributorFactorySignedByDeployer = await new FeeDistributorFactory__factory(deployerSigner).attach('0x500c53e354679189a0Ca8A0Eb9c0B7ca3cbB644D')
-        const oracleSignedByDeployer = await new Oracle__factory(deployerSigner).attach('0x9341D2d74dF2187C77347061355BF5507A413938')
-        const ContractWcFeeDistributor = await new ContractWcFeeDistributor__factory(deployerSigner).attach('0xA1e3cD1ae497088c30Cd332097B2F6fAd2997A47')
-        const ElOnlyFeeDistributor = await new ElOnlyFeeDistributor__factory(deployerSigner).attach('0x44Cd8e2c24d3E11F0838a8Ea942C2D0da5BeD6C0')
-        const OracleFeeDistributor = await new OracleFeeDistributor__factory(deployerSigner).attach('0x598351d47a7523c57B64ca9D1819A10c4DC07829')
-        const p2pEth2DepositorSignedByDeployer = await new P2pOrgUnlimitedEthDepositor__factory(deployerSigner).attach('0x0B90cE94e127147F94fE5De2756d4fB2eC18dea6')
+        const feeDistributorFactorySignedByDeployer = await new FeeDistributorFactory__factory(deployerSigner).attach('0xFb67d31772336bDEAE46D8B402C8A330abEa0326')
+        const oracleSignedByDeployer = await new Oracle__factory(deployerSigner).attach('0x257640704D813cCF3679f752a7bE6D27Fa9c01b0')
+        const ContractWcFeeDistributor = await new ContractWcFeeDistributor__factory(deployerSigner).attach('0x54eE9634Cf0cD008Cf37A4119103249D953CE089')
+        const ElOnlyFeeDistributor = await new ElOnlyFeeDistributor__factory(deployerSigner).attach('0x34b6255FCCb74D921285Ea9cf7DEd498bceca278')
+        const OracleFeeDistributor = await new OracleFeeDistributor__factory(deployerSigner).attach('0x69f41965567D204E07b7D9B1aE659680312b9308')
+        const p2pEth2DepositorSignedByDeployer = await new P2pOrgUnlimitedEthDepositor__factory(deployerSigner).attach('0x9d7008090DCf7cC0004b9A0A0aceebA83d93d8Bb')
 
         // await p2pEth2DepositorSignedByDeployer.addEth(
         //     ElOnlyFeeDistributor.address,
@@ -42,15 +42,25 @@ async function main() {
         //     }
         // )
 
-        p2pEth2DepositorSignedByDeployer.makeBeaconDeposit(
-            elOnlyFeeDistributorAddress,
-            [depositData.pubkey],
-            [depositData.signature],
-            [depositData.deposit_data_root],
-                {
-                    maxFeePerGas: 50000000000,
-                    maxPriorityFeePerGas: 1000000000
-                }
+        // p2pEth2DepositorSignedByDeployer.makeBeaconDeposit(
+        //     elOnlyFeeDistributorAddress,
+        //     [depositData.pubkey],
+        //     [depositData.signature],
+        //     [depositData.deposit_data_root],
+        //         {
+        //             maxFeePerGas: 50000000000,
+        //             maxPriorityFeePerGas: 1000000000
+        //         }
+        // )
+
+        feeDistributorFactorySignedByDeployer.createFeeDistributor(
+            ElOnlyFeeDistributor.address,
+            { recipient: deployer, basisPoints: 9500 },
+            { recipient: ethers.constants.AddressZero, basisPoints: 0 },
+            {
+                maxFeePerGas: 50000000000,
+                maxPriorityFeePerGas: 1000000000
+            }
         )
 
         console.log('Done.')

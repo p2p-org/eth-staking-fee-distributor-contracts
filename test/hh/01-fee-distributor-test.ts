@@ -16,7 +16,6 @@ describe("FeeDistributor", function () {
 
     const defaultClientBasisPoints =  9000;
     const clientBasisPoints =  7000;
-    const referrerBasisPoints =  1000;
 
     const clientAddress = "0x0000000000000000000000000000000000C0FFEE"
 

@@ -15,7 +15,6 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 describe("FeeDistributorFactory", function () {
     const defaultClientBasisPoints =  9000;
     const clientBasisPoints = 7000
-    const referrerBasisPoints = 1000
 
     let deployer: string
     let owner: string
@@ -56,23 +55,6 @@ describe("FeeDistributorFactory", function () {
 
         // deploy oracle contract
         oracleSignedByDeployer = await new Oracle__factory(deployerSigner).deploy()
-    })
-
-    it("setReferenceInstance can only be called by owner and with valid FeeDistributor", async function () {
-        const deployerFactory = await deployerFactoryFactory.deploy(defaultClientBasisPoints, {gasLimit: 30000000})
-
-        const factorySignedByOwner = ownerFactoryFactory.attach(deployerFactory.address)
-
-        await deployerFactory.transferOwnership(owner)
-        await factorySignedByOwner.acceptOwnership()
-
-        const factory = new OracleFeeDistributor__factory(ownerSigner)
-        const feeDistributor = await factory.deploy(
-            oracleSignedByDeployer.address,
-            deployerFactory.address,
-            serviceAddress,
-            {gasLimit: 30000000}
-        )
     })
 
     it("createFeeDistributor can only be called by operator or owner", async function () {

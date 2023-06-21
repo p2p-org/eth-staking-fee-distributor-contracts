@@ -1,4 +1,3 @@
-import { expect } from "chai"
 import {ethers, getNamedAccounts} from "hardhat"
 import {
     Oracle__factory, Oracle

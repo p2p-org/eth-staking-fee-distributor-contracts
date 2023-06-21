@@ -43,11 +43,7 @@
     "testErc4337OnGoerli": "yarn hardhat run --network goerli scripts/testErc4337OnGoerli.ts",
     "sendErc4337UserOperation": "yarn hardhat run --network goerli scripts/sendErc4337UserOperation.ts",
     "sendErc4337UserOperationForOracleFeeDistributor": "yarn hardhat run --network goerli scripts/sendErc4337UserOperationForOracleFeeDistributor.ts",
-    "testLotsOfCalldata": "yarn hardhat run --network goerli scripts/testLotsOfCalldata.ts",
-    "fetchFromBigQuery": "yarn hardhat run --network goerli scripts/fetchFromBigQuery.ts",
-    "makeBatchDeposit": "yarn hardhat run --network goerli scripts/makeBatchDeposit.ts",
     "generateMockMerkleTree": "yarn hardhat run --network goerli scripts/generateMockMerkleTree.ts",
-    "main": "yarn hardhat run --network goerli scripts/main.ts",
     "deployWithForge": "forge script script/Deploy.s.sol:Deploy --rpc-url $GOERLI_RPC_URL --private-key $PRIVATE_KEY --broadcast --chain goerli --json --verify --etherscan-api-key $ETHERSCAN_API_KEY -vvvv"
   },
   "dependencies": {

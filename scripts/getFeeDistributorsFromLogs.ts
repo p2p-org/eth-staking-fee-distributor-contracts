@@ -7,11 +7,9 @@ export async function getFeeDistributorsFromLogs(feeDistributorFactoryAddress: s
         ethers.provider
     )
 
-    const filter = factory.filters.FeeDistributorCreated(null, null)
+    const filter = factory.filters.FeeDistributorFactory__FeeDistributorCreated(null, null)
 
     let result = await factory.queryFilter(filter, 0, "latest");
 
-    const feeDistributors = result.map(event => event.args._newFeeDistributorAddress)
-
-    return feeDistributors
+    return result.map(event => event.args._newFeeDistributorAddress)
 }

@@ -5,6 +5,7 @@ pragma solidity 0.8.10;
 
 import "../@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "../erc4337/IAccount.sol";
+import "../erc4337/IEntryPointStakeManager.sol";
 import "../erc4337/UserOperation.sol";
 import "../access/IOwnableWithOperator.sol";
 
@@ -17,6 +18,9 @@ error Erc4337Account__DataTooShort();
 
 /// @notice only withdraw function is allowed to be called via ERC-4337 UserOperation
 error Erc4337Account__OnlyWithdrawIsAllowed();
+
+/// @notice only client, owner, and operator are allowed to withdraw from EntryPoint
+error Erc4337Account__NotAllowedToWithdrawFromEntryPoint();
 
 /// @title gasless withdraw for FeeDistributors via ERC-4337
 abstract contract Erc4337Account is IAccount, IOwnableWithOperator {
@@ -46,6 +50,18 @@ abstract contract Erc4337Account is IAccount, IOwnableWithOperator {
         }
 
         _payPrefund(missingAccountFunds);
+    }
+
+    /// @notice Withdraw this contract's balance from EntryPoint back to this contract
+    function withdrawFromEntryPoint() external {
+        if (!(
+            msg.sender == owner() || msg.sender == operator() || msg.sender == client()
+        )) {
+            revert Erc4337Account__NotAllowedToWithdrawFromEntryPoint();
+        }
+
+        uint256 balance = IEntryPointStakeManager(entryPoint).balanceOf(address(this));
+        IEntryPointStakeManager(entryPoint).withdrawTo(payable(address(this)), balance);
     }
 
     /// @notice Validates the signature of a user operation.

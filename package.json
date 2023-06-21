@@ -12,7 +12,9 @@
     "@types/chai": "4.3.0",
     "@types/mocha": "9.1.0",
     "@types/node": "17.0.13",
+    "axios": "^1.4.0",
     "chai": "4.3.4",
+    "cross-env": "7.0.3",
     "dotenv": "14.2.0",
     "ethereum-waffle": "3.4.4",
     "ethers": "5.7.1",
@@ -38,15 +40,13 @@
     "typechain": "yarn hardhat typechain",
     "size": "yarn run hardhat size-contracts",
     "deployToGoerli": "yarn hardhat run --network goerli scripts/deploy.ts",
-    "deployP2pMessageSender": "yarn hardhat run --network goerli scripts/deployP2pMessageSender.ts",
-    "testLotsOfCalldata": "yarn hardhat run --network goerli scripts/testLotsOfCalldata.ts",
-    "fetchFromBigQuery": "yarn hardhat run --network goerli scripts/fetchFromBigQuery.ts",
-    "makeBatchDeposit": "yarn hardhat run --network goerli scripts/makeBatchDeposit.ts",
-    "getIitialClientOnlyClRewards": "yarn hardhat run --network goerli scripts/getIitialClientOnlyClRewards.ts",
-    "createFeeDistributorsForExistingClients": "yarn hardhat run --network mainnet scripts/createFeeDistributorsForExistingClients.ts",
-    "main": "yarn hardhat run --network goerli scripts/main.ts"
+    "testErc4337OnGoerli": "yarn hardhat run --network goerli scripts/testErc4337OnGoerli.ts",
+    "sendErc4337UserOperation": "yarn hardhat run --network goerli scripts/sendErc4337UserOperation.ts",
+    "sendErc4337UserOperationForOracleFeeDistributor": "yarn hardhat run --network goerli scripts/sendErc4337UserOperationForOracleFeeDistributor.ts",
+    "generateMockMerkleTree": "yarn hardhat run --network goerli scripts/generateMockMerkleTree.ts",
+    "deployWithForge": "forge script script/Deploy.s.sol:Deploy --rpc-url $GOERLI_RPC_URL --private-key $PRIVATE_KEY --broadcast --chain goerli --json --verify --etherscan-api-key $ETHERSCAN_API_KEY -vvvv"
   },
   "dependencies": {
-    "@google-cloud/bigquery": "^6.2.0"
+    "@google-cloud/bigquery": "6.2.0"
   }
 }

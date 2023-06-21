@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 P2P Validator <info@p2p.org>
+// SPDX-FileCopyrightText: 2023 P2P Validator <info@p2p.org>
 // SPDX-License-Identifier: MIT
 
 pragma solidity 0.8.10;
@@ -8,36 +8,29 @@ import "../@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "../@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "../feeDistributorFactory/IFeeDistributorFactory.sol";
 import "../assetRecovering/OwnableTokenRecoverer.sol";
+import "../access/OwnableWithOperator.sol";
 import "./IFeeDistributor.sol";
+import "./FeeDistributorErrors.sol";
 import "../structs/P2pStructs.sol";
 import "../lib/P2pAddressLib.sol";
+import "./Erc4337Account.sol";
 
-error FeeDistributor__NotFactory(address _passedAddress);
-error FeeDistributor__ZeroAddressService();
-error FeeDistributor__ClientAddressEqualsService(address _passedAddress);
-error FeeDistributor__ZeroAddressClient();
-error FeeDistributor__InvalidClientBasisPoints(uint96 _clientBasisPoints);
-error FeeDistributor__ClientPlusReferralBasisPointsExceed10000(uint96 _clientBasisPoints, uint96 _referralBasisPoints);
-error FeeDistributor__ReferrerAddressEqualsService(address _passedAddress);
-error FeeDistributor__ReferrerAddressEqualsClient(address _passedAddress);
-error FeeDistributor__NotFactoryCalled(address _msgSender, IFeeDistributorFactory _actualFactory);
-error FeeDistributor__ClientAlreadySet(address _existingClient);
-error FeeDistributor__ClientNotSet();
-error FeeDistributor__ReferrerBasisPointsMustBeZeroIfAddressIsZero(uint96 _referrerBasisPoints);
-error FeeDistributor__ServiceCannotReceiveEther(address _service);
-error FeeDistributor__ClientCannotReceiveEther(address _client);
-error FeeDistributor__ReferrerCannotReceiveEther(address _referrer);
-error FeeDistributor__NothingToWithdraw();
-error FeeDistributor__CallerNotClient(address _caller, address _client);
+/// @title Common logic for all FeeDistributor types
+abstract contract BaseFeeDistributor is Erc4337Account, OwnableTokenRecoverer, OwnableWithOperator, ReentrancyGuard, ERC165, IFeeDistributor {
 
-abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, ERC165, IFeeDistributor {
-
+    /// @notice FeeDistributorFactory address
     IFeeDistributorFactory internal immutable i_factory;
+
+    /// @notice P2P fee recipient address
     address payable internal immutable i_service;
 
+    /// @notice Client rewards recipient address and basis points
     FeeRecipient internal s_clientConfig;
+
+    /// @notice Referrer rewards recipient address and basis points
     FeeRecipient internal s_referrerConfig;
 
+    /// @notice If caller not client, revert
     modifier onlyClient() {
         address clientAddress = s_clientConfig.recipient;
 
@@ -47,6 +40,7 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
         _;
     }
 
+    /// @notice If caller not factory, revert
     modifier onlyFactory() {
         if (msg.sender != address(i_factory)) {
             revert FeeDistributor__NotFactoryCalled(msg.sender, i_factory);
@@ -54,6 +48,9 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
         _;
     }
 
+    /// @dev Set values that are constant, common for all the clients, known at the initial deploy time.
+    /// @param _factory address of FeeDistributorFactory
+    /// @param _service address of the service (P2P) fee recipient
     constructor(
         address _factory,
         address payable _service
@@ -74,6 +71,7 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
         }
     }
 
+    /// @inheritdoc IFeeDistributor
     function initialize(
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig
@@ -99,7 +97,10 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
                 revert FeeDistributor__ReferrerAddressEqualsClient(_referrerConfig.recipient);
             }
             if (_clientConfig.basisPoints + _referrerConfig.basisPoints > 10000) {
-                revert FeeDistributor__ClientPlusReferralBasisPointsExceed10000(_clientConfig.basisPoints, _referrerConfig.basisPoints);
+                revert FeeDistributor__ClientPlusReferralBasisPointsExceed10000(
+                    _clientConfig.basisPoints,
+                    _referrerConfig.basisPoints
+                );
             }
 
             // set referrer config
@@ -114,7 +115,7 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
         // set client config
         s_clientConfig = _clientConfig;
 
-        emit Initialized(
+        emit FeeDistributor__Initialized(
             _clientConfig.recipient,
             _clientConfig.basisPoints,
             _referrerConfig.recipient,
@@ -133,6 +134,7 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
         }
     }
 
+    /// @notice Accept ether from transactions
     receive() external payable {
         // only accept ether in an instance, not in a template
         if (s_clientConfig.recipient == address(0)) {
@@ -140,45 +142,61 @@ abstract contract BaseFeeDistributor is OwnableTokenRecoverer, ReentrancyGuard, 
         }
     }
 
+    /// @inheritdoc IFeeDistributor
     function increaseDepositedCount(uint32 _validatorCountToAdd) external virtual {
-        // Do nothing by defaulf. Can be overridden.
+        // Do nothing by default. Can be overridden.
     }
 
+    /// @inheritdoc IFeeDistributor
     function voluntaryExit(bytes[] calldata _pubkeys) public virtual onlyClient {
-        emit VoluntaryExit(_pubkeys);
+        emit FeeDistributor__VoluntaryExit(_pubkeys);
     }
 
+    /// @inheritdoc IFeeDistributor
     function factory() external view returns (address) {
         return address(i_factory);
     }
 
+    /// @inheritdoc IFeeDistributor
     function service() external view returns (address) {
         return i_service;
     }
 
-    function client() external view returns (address) {
+    /// @inheritdoc IFeeDistributor
+    function client() public view override(Erc4337Account, IFeeDistributor) returns (address) {
         return s_clientConfig.recipient;
     }
 
+    /// @inheritdoc IFeeDistributor
     function clientBasisPoints() external view returns (uint256) {
         return s_clientConfig.basisPoints;
     }
 
+    /// @inheritdoc IFeeDistributor
     function referrer() external view returns (address) {
         return s_referrerConfig.recipient;
     }
 
+    /// @inheritdoc IFeeDistributor
     function referrerBasisPoints() external view returns (uint256) {
         return s_referrerConfig.basisPoints;
     }
 
+    /// @inheritdoc IFeeDistributor
     function eth2WithdrawalCredentialsAddress() external virtual view returns (address);
 
+    /// @inheritdoc ERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
         return interfaceId == type(IFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
     }
 
-    function owner() public view override returns (address) {
+    /// @inheritdoc IOwnable
+    function owner() public view override(Erc4337Account, OwnableBase, Ownable) returns (address) {
         return i_factory.owner();
+    }
+
+    /// @inheritdoc IOwnableWithOperator
+    function operator() public view override(Erc4337Account, OwnableWithOperator) returns (address) {
+        return super.operator();
     }
 }

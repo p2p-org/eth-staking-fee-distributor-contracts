@@ -1,16 +1,20 @@
 import { expect } from "chai"
 import {ethers, getNamedAccounts} from "hardhat"
 import {
-    FeeDistributor__factory,
     FeeDistributorFactory__factory,
-    FeeDistributorFactory, IERC20__factory, IERC721__factory, IERC1155__factory, Oracle, Oracle__factory
-} from "../typechain-types"
+    FeeDistributorFactory,
+    IERC20__factory,
+    IERC721__factory,
+    IERC1155__factory,
+    Oracle,
+    Oracle__factory,
+    OracleFeeDistributor__factory
+} from "../../typechain-types"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 describe("FeeDistributorFactory", function () {
     const defaultClientBasisPoints =  9000;
     const clientBasisPoints = 7000
-    const referrerBasisPoints = 1000
 
     let deployer: string
     let owner: string
@@ -53,71 +57,28 @@ describe("FeeDistributorFactory", function () {
         oracleSignedByDeployer = await new Oracle__factory(deployerSigner).deploy()
     })
 
-    it("setReferenceInstance can only be called by owner and with valid FeeDistributor", async function () {
+    it("createFeeDistributor can only be called by operator or owner", async function () {
         const deployerFactory = await deployerFactoryFactory.deploy(defaultClientBasisPoints, {gasLimit: 30000000})
 
         const factorySignedByOwner = ownerFactoryFactory.attach(deployerFactory.address)
 
-        await expect(factorySignedByOwner.setReferenceInstance(nobody)).to.be.revertedWith(
-            `OwnableBase__CallerNotOwner`
-        )
-
         await deployerFactory.transferOwnership(owner)
         await factorySignedByOwner.acceptOwnership()
 
-        await expect(factorySignedByOwner.setReferenceInstance(nobody)).to.be.revertedWith(
-            `FeeDistributorFactory__NotFeeDistributor`
-        )
-
-        const factory = new FeeDistributor__factory(ownerSigner)
+        const factory = new OracleFeeDistributor__factory(ownerSigner)
         const feeDistributor = await factory.deploy(
             oracleSignedByDeployer.address,
             deployerFactory.address,
             serviceAddress,
             {gasLimit: 30000000}
-        )
-
-        await expect(factorySignedByOwner.setReferenceInstance(feeDistributor.address)).to.emit(
-            factorySignedByOwner,
-            "ReferenceInstanceSet"
-        )
-    })
-
-    it("createFeeDistributor can only be called by operator or owner and after setReferenceInstance", async function () {
-        const deployerFactory = await deployerFactoryFactory.deploy(defaultClientBasisPoints, {gasLimit: 30000000})
-
-        const factorySignedByOwner = ownerFactoryFactory.attach(deployerFactory.address)
-
-        await expect(factorySignedByOwner.setReferenceInstance(nobody)).to.be.revertedWith(
-            `OwnableBase__CallerNotOwner`
-        )
-
-        await deployerFactory.transferOwnership(owner)
-        await factorySignedByOwner.acceptOwnership()
-
-        await expect(factorySignedByOwner.setReferenceInstance(nobody)).to.be.revertedWith(
-            `FeeDistributorFactory__NotFeeDistributor`
-        )
-
-        const factory = new FeeDistributor__factory(ownerSigner)
-        const feeDistributor = await factory.deploy(
-            oracleSignedByDeployer.address,
-            deployerFactory.address,
-            serviceAddress,
-            {gasLimit: 30000000}
-        )
-
-        await expect(factorySignedByOwner.setReferenceInstance(feeDistributor.address)).to.emit(
-            factorySignedByOwner,
-            "ReferenceInstanceSet"
         )
 
         const factorySignedByOperator = operatorFactoryFactory.attach(deployerFactory.address)
 
         await expect(factorySignedByOperator.createFeeDistributor(
-            {recipient: ethers.constants.AddressZero, basisPoints: clientBasisPoints},
+            feeDistributor.address,
+            {recipient: ethers.constants.AddressZero, basisPoints: clientBasisPoints + 1},
             {recipient: ethers.constants.AddressZero, basisPoints: 0},
-        {clientOnlyClRewards: 0, firstValidatorId: 100500, validatorCount: 42},
         )).to.be.revertedWith(
             `FeeDistributorFactory__CallerNotAuthorized`
         )
@@ -133,45 +94,45 @@ describe("FeeDistributorFactory", function () {
         )
 
         await expect(factorySignedByOperator.createFeeDistributor(
-            {recipient: ethers.constants.AddressZero, basisPoints: clientBasisPoints},
+            feeDistributor.address,
+            {recipient: ethers.constants.AddressZero, basisPoints: clientBasisPoints + 2},
             {recipient: ethers.constants.AddressZero, basisPoints: 0},
-            {clientOnlyClRewards: 0, firstValidatorId: 100500, validatorCount: 42},
         )).to.be.revertedWith(
             `FeeDistributor__ZeroAddressClient`
         )
 
         await expect(factorySignedByOperator.createFeeDistributor(
-            {recipient: serviceAddress, basisPoints: clientBasisPoints},
+            feeDistributor.address,
+            {recipient: serviceAddress, basisPoints: clientBasisPoints - 1},
             {recipient: ethers.constants.AddressZero, basisPoints: 0},
-            {clientOnlyClRewards: 0, firstValidatorId: 100500, validatorCount: 42},
         )).to.be.revertedWith(
             `FeeDistributor__ClientAddressEqualsService`
         )
 
         await expect(factorySignedByOperator.createFeeDistributor(
-            {recipient: deployerFactory.address, basisPoints: clientBasisPoints},
+            feeDistributor.address,
+            {recipient: deployerFactory.address, basisPoints: clientBasisPoints + 3},
             {recipient: ethers.constants.AddressZero, basisPoints: 0},
-            {clientOnlyClRewards: 0, firstValidatorId: 100500, validatorCount: 42},
         )).to.be.revertedWith(
             `FeeDistributor__ClientCannotReceiveEther`
         )
 
         await expect(factorySignedByOperator.createFeeDistributor(
-            {recipient: nobody, basisPoints: clientBasisPoints},
+            feeDistributor.address,
+            {recipient: nobody, basisPoints: clientBasisPoints + 4},
             {recipient: ethers.constants.AddressZero, basisPoints: 0},
-            {clientOnlyClRewards: 0, firstValidatorId: 100500, validatorCount: 42},
         )).to.emit(
             factorySignedByOperator,
-            "FeeDistributorCreated"
+            "FeeDistributorFactory__FeeDistributorCreated"
         )
 
         await expect(factorySignedByOwner.createFeeDistributor(
-            {recipient: nobody, basisPoints: clientBasisPoints},
+            feeDistributor.address,
+            {recipient: nobody, basisPoints: clientBasisPoints + 5},
             {recipient: ethers.constants.AddressZero, basisPoints: 0},
-            {clientOnlyClRewards: 0, firstValidatorId: 100500, validatorCount: 42},
         )).to.emit(
             factorySignedByOperator,
-            "FeeDistributorCreated"
+            "FeeDistributorFactory__FeeDistributorCreated"
         )
     })
 

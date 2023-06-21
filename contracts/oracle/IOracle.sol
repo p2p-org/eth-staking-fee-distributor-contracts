@@ -16,7 +16,7 @@ interface IOracle is IOwnable, IERC165 {
     * @notice Emits when a new oracle report (Merkle root) recorded
     * @param _root Merkle root
     */
-    event Reported(bytes32 indexed _root);
+    event Oracle__Reported(bytes32 indexed _root);
 
     // Functions
 

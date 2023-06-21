@@ -13,15 +13,37 @@ import "../oracle/IOracle.sol";
 import "../structs/P2pStructs.sol";
 import "./BaseFeeDistributor.sol";
 
+/// @notice Should be a Oracle contract
+/// @param _passedAddress passed address that does not support IOracle interface
 error OracleFeeDistributor__NotOracle(address _passedAddress);
+
+/// @notice cannot withdraw until rewards (CL+EL) are enough to be split
 error OracleFeeDistributor__WaitForEnoughRewardsToWithdraw();
 
+/// @notice clientOnlyClRewards can only be set once
+error OracleFeeDistributor__CannotResetClientOnlyClRewards();
+
+/// @title FeeDistributor accepting EL rewards only but splitting them with consideration of CL rewards
+/// @dev CL rewards are received by the client directly since client's address is ETH2 withdrawal credentials
 contract OracleFeeDistributor is BaseFeeDistributor {
 
+    /// @notice Emits when clientOnlyClRewards has been updated
+    /// @param _clientOnlyClRewards new value of clientOnlyClRewards
+    event OracleFeeDistributor__ClientOnlyClRewardsUpdated(
+        uint256 _clientOnlyClRewards
+    );
+
+    /// @notice address of Oracle
     IOracle private immutable i_oracle;
 
+    /// @notice amount of CL rewards (in Wei) that should belong to the client only
+    /// and should not be considered for splitting between the service and the referrer
     uint256 s_clientOnlyClRewards;
 
+    /// @dev Set values that are constant, common for all the clients, known at the initial deploy time.
+    /// @param _oracle address of Oracle
+    /// @param _factory address of FeeDistributorFactory
+    /// @param _service address of the service (P2P) fee recipient
     constructor(
         address _oracle,
         address _factory,
@@ -34,6 +56,37 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         i_oracle = IOracle(_oracle);
     }
 
+    /// @notice Set clientOnlyClRewards to a new value
+    /// @param _clientOnlyClRewards new value of clientOnlyClRewards
+    /// @dev may be needed when attaching this FeeDistributor to an existing validator.
+    /// If previously earned rewards need not be split, they should be declared as client only.
+    function setClientOnlyClRewards(uint256 _clientOnlyClRewards) external {
+        i_factory.checkOperatorOrOwner(msg.sender);
+
+        if (s_clientOnlyClRewards != 0) {
+            revert OracleFeeDistributor__CannotResetClientOnlyClRewards();
+        }
+
+        s_clientOnlyClRewards = _clientOnlyClRewards;
+
+        emit OracleFeeDistributor__ClientOnlyClRewardsUpdated(_clientOnlyClRewards);
+    }
+
+    /// @notice Withdraw the whole balance of the contract according to the pre-defined basis points.
+    /// @dev In case someone (either service, or client, or referrer) fails to accept ether,
+    /// the owner will be able to recover some of their share.
+    /// This scenario is very unlikely. It can only happen if that someone is a contract
+    /// whose receive function changed its behavior since FeeDistributor's initialization.
+    /// It can never happen unless the receiving party themselves wants it to happen.
+    /// We strongly recommend against intentional reverts in the receive function
+    /// because the remaining parties might call `withdraw` again multiple times without waiting
+    /// for the owner to recover ether for the reverting party.
+    /// In fact, as a punishment for the reverting party, before the recovering,
+    /// 1 more regular `withdraw` will happen, rewarding the non-reverting parties again.
+    /// `recoverEther` function is just an emergency backup plan and does not replace `withdraw`.
+    ///
+    /// @param _proof Merkle proof (the leaf's sibling, and each non-leaf hash that could not otherwise be calculated without additional leaf nodes)
+    /// @param _amountInGwei total CL rewards earned by all validators in GWei (see _validatorCount)
     function withdraw(
         bytes32[] calldata _proof,
         uint256 _amountInGwei
@@ -97,6 +150,8 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         // client gets the rest from CL as not split anymore amount
         s_clientOnlyClRewards += (totalAmountToSplit - balance);
 
+        emit OracleFeeDistributor__ClientOnlyClRewardsUpdated(s_clientOnlyClRewards);
+
         // how much should referrer get
         uint256 referrerAmount;
 
@@ -117,9 +172,18 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         // Send ETH to client. Ignore the possible yet unlikely revert in the receive function.
         P2pAddressLib._sendValue(s_clientConfig.recipient, clientAmount);
 
-        emit Withdrawn(serviceAmount, clientAmount, referrerAmount);
+        emit FeeDistributor__Withdrawn(
+            serviceAmount,
+            clientAmount,
+            referrerAmount
+        );
     }
 
+    /// @notice Recover ether in a rare case when either service, or client, or referrer
+    /// refuse to accept ether.
+    /// @param _to receiver address
+    /// @param _proof Merkle proof (the leaf's sibling, and each non-leaf hash that could not otherwise be calculated without additional leaf nodes)
+    /// @param _amountInGwei total CL rewards earned by all validators in GWei (see _validatorCount)
     function recoverEther(
         address payable _to,
         bytes32[] calldata _proof,
@@ -134,13 +198,14 @@ contract OracleFeeDistributor is BaseFeeDistributor {
             bool success = P2pAddressLib._sendValue(_to, balance);
 
             if (success) {
-                emit EtherRecovered(_to, balance);
+                emit FeeDistributor__EtherRecovered(_to, balance);
             } else {
-                emit EtherRecoveryFailed(_to, balance);
+                emit FeeDistributor__EtherRecoveryFailed(_to, balance);
             }
         }
     }
 
+    /// @notice SHOULD NEVER BE CALLED NORMALLY!!!! Recover ether if oracle data (Merkle proof) is not available for some reason.
     function emergencyEtherRecoveryWithoutOracleData() external onlyClient nonReentrant {
         // get the contract's balance
         uint256 balance = address(this).balance;
@@ -164,6 +229,8 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         // client gets the rest from CL as not split anymore amount
         s_clientOnlyClRewards += (totalAmountToSplit - balance);
 
+        emit OracleFeeDistributor__ClientOnlyClRewardsUpdated(s_clientOnlyClRewards);
+
         // how much should referrer get
         uint256 referrerAmount;
 
@@ -184,13 +251,33 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         // Send ETH to client. Ignore the possible yet unlikely revert in the receive function.
         P2pAddressLib._sendValue(s_clientConfig.recipient, clientAmount);
 
-        emit Withdrawn(serviceAmount, clientAmount, referrerAmount);
+        emit FeeDistributor__Withdrawn(
+            serviceAmount,
+            clientAmount,
+            referrerAmount
+        );
     }
 
+    /// @notice amount of CL rewards (in Wei) that should belong to the client only
+    /// and should not be considered for splitting between the service and the referrer
+    /// @return uint256 amount of client only CL rewards
     function clientOnlyClRewards() external view returns (uint256) {
         return s_clientOnlyClRewards;
     }
 
+    /// @notice Returns the oracle address
+    /// @return address oracle address
+    function oracle() external view returns (address) {
+        return address(i_oracle);
+    }
+
+    /// @inheritdoc Erc4337Account
+    function withdrawSelector() public pure override returns (bytes4) {
+        return OracleFeeDistributor.withdraw.selector;
+    }
+
+    /// @inheritdoc IFeeDistributor
+    /// @dev client address
     function eth2WithdrawalCredentialsAddress() external override view returns (address) {
         return s_clientConfig.recipient;
     }

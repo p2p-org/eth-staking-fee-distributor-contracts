@@ -14,13 +14,26 @@ import "./IP2pOrgUnlimitedEthDepositor.sol";
 import "../feeDistributorFactory/IFeeDistributorFactory.sol";
 import "../structs/P2pStructs.sol";
 
+/// @title Single entrypoint contract for P2P Validator ETH staking deposits
+/// @dev All client sent ETH is temporarily held in this contract until P2P picks it up
+/// to further forward to the Beacon (aka ETH2) DepositContract.
+/// There are no other ways for any ETH to go from this contract other than to:
+/// 1) Beacon DepositContract with client defined withdrawal credentials
+/// 2) Client defined withdrawal credentials address itself
 contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
 
+    /// @notice Beacon DepositContract address
     IDepositContract public immutable i_depositContract;
+
+    /// @notice FeeDistributorFactory address
     IFeeDistributorFactory public immutable i_feeDistributorFactory;
 
+    /// @notice client FeeDistributor instance -> (amount, expiration)
     mapping(address => ClientDeposit) private s_deposits;
 
+    /// @dev Set values known at the initial deploy time.
+    /// @param _mainnet Mainnet=true Goerli=false
+    /// @param _feeDistributorFactory address of FeeDistributorFactory
     constructor(bool _mainnet, address _feeDistributorFactory) {
         if (!ERC165Checker.supportsInterface(_feeDistributorFactory, type(IFeeDistributorFactory).interfaceId)) {
             revert P2pOrgUnlimitedEthDepositor__NotFactory(_feeDistributorFactory);
@@ -33,10 +46,12 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
             : IDepositContract(0xff50ed3d0ec03aC01D4C79aAd74928BFF48a7b2b); // real Goerli DepositContract
     }
 
+    /// @notice ETH should only be sent to this contract along with the `addEth` function
     receive() external payable {
         revert P2pOrgUnlimitedEthDepositor__DoNotSendEthDirectlyHere();
     }
 
+    /// @inheritdoc IP2pOrgUnlimitedEthDepositor
     function addEth(
         address _referenceFeeDistributor,
         FeeRecipient calldata _clientConfig,
@@ -78,7 +93,7 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
             reservedForFutureUse: 0
         });
 
-        emit P2pOrgUnlimitedEthDepositor__Deposit(
+        emit P2pOrgUnlimitedEthDepositor__ClientEthAdded(
             msg.sender,
             feeDistributorInstance,
             amount,
@@ -86,6 +101,7 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         );
     }
 
+    /// @inheritdoc IP2pOrgUnlimitedEthDepositor
     function refund(address _feeDistributorInstance) public {
         address client = IFeeDistributor(_feeDistributorInstance).client();
         if (msg.sender != client) {
@@ -109,12 +125,12 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
             revert P2pOrgUnlimitedEthDepositor__FailedToSendEth(client, amount);
         }
 
-        emit P2pOrgUnlimitedEthDepositor__Refund(client, amount);
+        emit P2pOrgUnlimitedEthDepositor__Refund(_feeDistributorInstance, client, amount);
     }
 
-    // Can be very gas expensive.
-    // Better use refundAll(address[])
-    // Only callable by client
+    /// @notice Can be very gas expensive.
+    /// Better use `refundAll(address[])`
+    /// Only callable by client
     function refundAll() external {
         address[] memory allClientFeeDistributors = i_feeDistributorFactory.allClientFeeDistributors(msg.sender);
 
@@ -129,8 +145,9 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         }
     }
 
-    // Cheaper, requires calling feeDistributorFactory's allClientFeeDistributors externally first
-    // Only callable by client
+    /// @notice Cheaper, requires calling feeDistributorFactory's allClientFeeDistributors externally first
+    /// Only callable by client
+    /// @param _allClientFeeDistributors array of all client FeeDistributor instances whose associated ETH amounts should be refunded
     function refundAll(address[] calldata _allClientFeeDistributors) external {
         for (uint256 i = 0; i < _allClientFeeDistributors.length;) {
             refund(_allClientFeeDistributors[i]);
@@ -143,6 +160,7 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         }
     }
 
+    /// @inheritdoc IP2pOrgUnlimitedEthDepositor
     function makeBeaconDeposit(
         address _feeDistributorInstance,
         bytes[] calldata _pubkeys,
@@ -195,21 +213,25 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
 
         IFeeDistributor(_feeDistributorInstance).increaseDepositedCount(uint32(validatorCount));
 
-        emit P2pEth2DepositEvent(_feeDistributorInstance, validatorCount);
+        emit P2pOrgUnlimitedEthDepositor__Eth2Deposit(_feeDistributorInstance, validatorCount);
     }
 
+    /// @inheritdoc IP2pOrgUnlimitedEthDepositor
     function totalBalance() external view returns (uint256) {
         return address(this).balance;
     }
 
+    /// @inheritdoc IP2pOrgUnlimitedEthDepositor
     function depositAmount(address _feeDistributorInstance) external view returns (uint112) {
         return s_deposits[_feeDistributorInstance].amount;
     }
 
+    /// @inheritdoc IP2pOrgUnlimitedEthDepositor
     function depositExpiration(address _feeDistributorInstance) external view returns (uint40) {
         return s_deposits[_feeDistributorInstance].expiration;
     }
 
+    /// @inheritdoc ERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
         return interfaceId == type(IP2pOrgUnlimitedEthDepositor).interfaceId || super.supportsInterface(interfaceId);
     }

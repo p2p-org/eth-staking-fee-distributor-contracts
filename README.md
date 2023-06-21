@@ -33,7 +33,7 @@ Initially, the plan is to use `9000` as the default value.
 4. The deployer calls `setP2pEth2Depositor` on `FeeDistributorFactory` with the address of the `P2pOrgUnlimitedEthDepositor` contract from Step 3.
 
 
-5. Anyone (deployer, does not matter who) deploys reference implementations of FeeDistributor contracts. Curently, there are 3 of them:
+5. Anyone (deployer, does not matter who) deploys reference implementations of FeeDistributor contracts. Currently, there are 3 of them:
    - `ElOnlyFeeDistributor`
      arguments:
        - address of `FeeDistributorFactory` from Step 1.
@@ -53,7 +53,7 @@ Initially, the plan is to use `9000` as the default value.
 
 
 7. The owner calls `changeOperator` on `FeeDistributorFactory` with the address of the operator. 
-The operator is an Ethereum account who can call `createFeeDistributor` for each new client/FeeDistributor type/FeeDistributor persentages.
+The operator is an Ethereum account who can call `createFeeDistributor` for each new client/FeeDistributor type/FeeDistributor percentages.
 The operator can be a hot wallet, less secure than the owner. 
 Since the primary way to create `FeeDistributor` instances is `P2pOrgUnlimitedEthDepositor`'s `addEth`, 
 the operator is needed only for creating alternative `FeeDistributor` instances when either client or referrer configs need to be updated.
@@ -120,7 +120,7 @@ The result will be sending the whole current contract's balance to
 **FeeDistributorFactory** deploys new `FeeDistributor` instances based on provided `FeeDistributor` template (reference instance) that determines the type and values:
   - `_clientConfig`: address and basis points (percent * 100) of the client
   - `_referrerConfig`: address and basis points (percent * 100) of the referrer
-that determine percentages of rewards that will go to the client, the sevice, and the referrer (terms of service).
+that determine percentages of rewards that will go to the client, the service, and the referrer (terms of service).
 
 Its `createFeeDistributor` function can be called by either `P2pOrgUnlimitedEthDepositor` contract during `addEth` transaction
 or the P2P operator if the validators already exist.

@@ -21,13 +21,13 @@ abstract contract BaseFeeDistributor is Erc4337Account, OwnableTokenRecoverer, O
     /// @notice FeeDistributorFactory address
     IFeeDistributorFactory internal immutable i_factory;
 
-    /// @notice P2P fee receipient address
+    /// @notice P2P fee recipient address
     address payable internal immutable i_service;
 
-    /// @notice Client rewards receipient address and basis points
+    /// @notice Client rewards recipient address and basis points
     FeeRecipient internal s_clientConfig;
 
-    /// @notice Referrer rewards receipient address and basis points
+    /// @notice Referrer rewards recipient address and basis points
     FeeRecipient internal s_referrerConfig;
 
     /// @notice If caller not client, revert

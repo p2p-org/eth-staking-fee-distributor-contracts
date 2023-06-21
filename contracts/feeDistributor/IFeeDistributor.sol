@@ -102,7 +102,7 @@ interface IFeeDistributor is IERC165 {
     function referrerBasisPoints() external view returns (uint256);
 
     /// @notice Returns the address for ETH2 0x01 withdrawal credentials associated with this FeeDistributor
-    /// @dev Return FeeDistributor's own address if FeeDistributor should be CL rewards receipient
+    /// @dev Return FeeDistributor's own address if FeeDistributor should be CL rewards recipient
     /// Otherwise, return the client address
     /// @return address address for ETH2 0x01 withdrawal credentials
     function eth2WithdrawalCredentialsAddress() external view returns (address);

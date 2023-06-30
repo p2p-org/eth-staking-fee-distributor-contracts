@@ -1,14 +1,24 @@
-import { OracleFeeDistributor__factory } from "../typechain-types"
 import { ethers, getNamedAccounts } from "hardhat"
 
-export async function withdrawOne(feeDistributorAddress: string, proof: string[], amountInGwei: number) {
+const withdrawAbi = [
+    {
+        "inputs": [],
+        "name": "withdraw",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    }
+]
+
+export async function withdrawOne(feeDistributorAddress: string) {
     const { deployer } = await getNamedAccounts()
     const deployerSigner = await ethers.getSigner(deployer)
 
-    const feeDistributor = OracleFeeDistributor__factory.connect(
+    const feeDistributor = new ethers.Contract(
         feeDistributorAddress,
+        withdrawAbi,
         deployerSigner
     )
 
-    await feeDistributor.withdraw(proof, amountInGwei)
+    await feeDistributor.withdraw()
 }

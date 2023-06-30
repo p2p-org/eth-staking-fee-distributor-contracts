@@ -22,16 +22,29 @@ const withdrawSelectorAbi = [
 export async function withdrawAll(feeDistributorFactoryAddress: string) {
     const feeDistributorsAddresses = await getFeeDistributorsFromLogs(feeDistributorFactoryAddress)
 
-    const oracleFeeDistributorsAddresses = feeDistributorsAddresses.filter(async fd => {
+    // const oracleFeeDistributorsAddresses = feeDistributorsAddresses.filter(async fd => {
+    //     const feeDistributor = new ethers.Contract(
+    //         fd,
+    //         withdrawSelectorAbi,
+    //         ethers.provider
+    //     )
+    //     const withdrawSelector = await feeDistributor.withdrawSelector()
+    //
+    //     return withdrawSelector === '0xdd83edc3' // OracleFeeDistributor selector
+    // })
+
+    const oracleFeeDistributorsAddresses = (await Promise.all(feeDistributorsAddresses.map(async(fd) => {
         const feeDistributor = new ethers.Contract(
             fd,
             withdrawSelectorAbi,
             ethers.provider
         )
         const withdrawSelector = await feeDistributor.withdrawSelector()
-
-        return withdrawSelector === '0xdd83edc3' // OracleFeeDistributor selector
-    })
+        return {
+            value: fd,
+            include: withdrawSelector === '0xdd83edc3' // OracleFeeDistributor selector
+        }
+    }))).filter(v => v.include).map(data => data.value);
 
     const withdrawOraclePromises = oracleFeeDistributorsAddresses.map(withdrawOneOracle)
 

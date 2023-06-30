@@ -14,7 +14,7 @@ async function main() {
     })
     const rewardData = await Promise.all(rewardDataPromises)
     const tree = buildMerkleTreeForFeeDistributorAddress(rewardData)
-    await makeOracleReport('0x5aBFeC1E3781f0a16241a82AA767041B7bd63F42', tree.root)
+    await makeOracleReport('0xe3c1E6958da770fBb492f8b6B85ea00ABb81E8f9', tree.root)
     // // Send tree.json file to the website and to the withdrawer
     fs.writeFileSync("tree.json", JSON.stringify(tree.dump()));
 

@@ -90,6 +90,7 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         s_deposits[feeDistributorInstance] = ClientDeposit({
             amount: amount,
             expiration: expiration,
+            status: ClientDepositStatus.EthAdded,
             reservedForFutureUse: 0
         });
 
@@ -99,6 +100,16 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
             amount,
             expiration
         );
+    }
+
+    /// @inheritdoc IP2pOrgUnlimitedEthDepositor
+    function rejectService(address _feeDistributorInstance) external {
+        i_feeDistributorFactory.checkOperatorOrOwner(msg.sender);
+
+        s_deposits[_feeDistributorInstance].status = ClientDepositStatus.ServiceRejected;
+        s_deposits[_feeDistributorInstance].expiration = 0; // allow the client to get a refund immediately
+
+        emit P2pOrgUnlimitedEthDepositor__ServiceRejected(_feeDistributorInstance);
     }
 
     /// @inheritdoc IP2pOrgUnlimitedEthDepositor
@@ -187,7 +198,15 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
             revert P2pOrgUnlimitedEthDepositor__AmountOfParametersError();
         }
 
-        s_deposits[_feeDistributorInstance].amount -= amountToStake;
+        uint112 newAmount = s_deposits[_feeDistributorInstance].amount - amountToStake;
+        s_deposits[_feeDistributorInstance].amount = newAmount;
+        if (newAmount == 0) { // all ETH has been deposited to Beacon DepositContract
+            delete s_deposits[_feeDistributorInstance];
+            emit P2pOrgUnlimitedEthDepositor__Eth2DepositCompleted(_feeDistributorInstance);
+        } else {
+            s_deposits[_feeDistributorInstance].status = ClientDepositStatus.BeaconDepositInProgress;
+            emit P2pOrgUnlimitedEthDepositor__Eth2DepositInProgress(_feeDistributorInstance);
+        }
 
         bytes memory withdrawalCredentials = abi.encodePacked(
             hex'010000000000000000000000',
@@ -195,7 +214,7 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         );
 
         for (uint256 i = 0; i < validatorCount;) {
-            // pubkey, withdrawal_credentials, signature lengths are already checked inside ETH DepositContract
+            // pubkey, withdrawal_credentials, signature lengths are already checked inside Beacon DepositContract
 
             i_depositContract.deposit{value : COLLATERAL}(
                 _pubkeys[i],
@@ -229,6 +248,11 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
     /// @inheritdoc IP2pOrgUnlimitedEthDepositor
     function depositExpiration(address _feeDistributorInstance) external view returns (uint40) {
         return s_deposits[_feeDistributorInstance].expiration;
+    }
+
+    /// @inheritdoc IP2pOrgUnlimitedEthDepositor
+    function depositStatus(address _feeDistributorInstance) external view returns (ClientDepositStatus) {
+        return s_deposits[_feeDistributorInstance].status;
     }
 
     /// @inheritdoc ERC165

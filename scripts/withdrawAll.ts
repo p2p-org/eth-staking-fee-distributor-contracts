@@ -1,14 +1,59 @@
 import { getFeeDistributorsFromLogs } from "./getFeeDistributorsFromLogs"
+import { withdrawOneOracle } from "./withdrawOneOracle"
+import { ethers } from "hardhat"
 import { withdrawOne } from "./withdrawOne"
-import { obtainProof } from "./obtainProof"
+
+const withdrawSelectorAbi = [
+    {
+        "inputs": [],
+        "name": "withdrawSelector",
+        "outputs": [
+            {
+                "internalType": "bytes4",
+                "name": "",
+                "type": "bytes4"
+            }
+        ],
+        "stateMutability": "pure",
+        "type": "function"
+    }
+]
 
 export async function withdrawAll(feeDistributorFactoryAddress: string) {
     const feeDistributorsAddresses = await getFeeDistributorsFromLogs(feeDistributorFactoryAddress)
 
-    const withdrawPromises = feeDistributorsAddresses.map(async (feeDistributorsAddress) => {
-        const {proof, value} = obtainProof(feeDistributorFactoryAddress)
-        await withdrawOne(feeDistributorsAddress, proof, value[2])
-    })
+    // const oracleFeeDistributorsAddresses = feeDistributorsAddresses.filter(async fd => {
+    //     const feeDistributor = new ethers.Contract(
+    //         fd,
+    //         withdrawSelectorAbi,
+    //         ethers.provider
+    //     )
+    //     const withdrawSelector = await feeDistributor.withdrawSelector()
+    //
+    //     return withdrawSelector === '0xdd83edc3' // OracleFeeDistributor selector
+    // })
 
-    await Promise.all(withdrawPromises)
+    const oracleFeeDistributorsAddresses = (await Promise.all(feeDistributorsAddresses.map(async(fd) => {
+        const feeDistributor = new ethers.Contract(
+            fd,
+            withdrawSelectorAbi,
+            ethers.provider
+        )
+        const withdrawSelector = await feeDistributor.withdrawSelector()
+        return {
+            value: fd,
+            include: withdrawSelector === '0xdd83edc3' // OracleFeeDistributor selector
+        }
+    }))).filter(v => v.include).map(data => data.value);
+
+    const withdrawOraclePromises = oracleFeeDistributorsAddresses.map(withdrawOneOracle)
+
+    const otherFeeDistributorsAddresses = (function() {
+        const exclusionSet = new Set(oracleFeeDistributorsAddresses);
+        return feeDistributorsAddresses.filter(e => !exclusionSet.has(e));
+    })()
+
+    const withdrawOtherPromises = otherFeeDistributorsAddresses.map(withdrawOne)
+
+    await Promise.all([withdrawOraclePromises, withdrawOtherPromises])
 }

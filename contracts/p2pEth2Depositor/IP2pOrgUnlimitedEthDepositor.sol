@@ -5,6 +5,7 @@ pragma solidity 0.8.10;
 
 import "../@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "../feeDistributor/IFeeDistributor.sol";
+import "../structs/P2pStructs.sol";
 
 /// @dev External interface of P2pOrgUnlimitedEthDepositor declared to support ERC165 detection.
 interface IP2pOrgUnlimitedEthDepositor is IERC165 {
@@ -39,6 +40,25 @@ interface IP2pOrgUnlimitedEthDepositor is IERC165 {
         uint256 _validatorCount
     );
 
+    /// @notice Emits when all the available ETH has been forwarded to Beacon DepositContract
+    /// @param _feeDistributorAddress address of FeeDistributor instance that was associated with the client deposit
+    event P2pOrgUnlimitedEthDepositor__Eth2DepositCompleted(
+        address indexed _feeDistributorAddress
+    );
+
+    /// @notice Emits when some (but not all) of the available ETH has been forwarded to Beacon DepositContract
+    /// @param _feeDistributorAddress address of FeeDistributor instance that was associated with the client deposit
+    event P2pOrgUnlimitedEthDepositor__Eth2DepositInProgress(
+        address indexed _feeDistributorAddress
+    );
+
+    /// @notice Emits when P2P rejects the service for a given FeeDistributor client instance.
+    /// The client can get a full refund immediately in this case.
+    /// @param _feeDistributorAddress address of FeeDistributor instance that was associated with the client deposit
+    event P2pOrgUnlimitedEthDepositor__ServiceRejected(
+        address indexed _feeDistributorAddress
+    );
+
     /// @notice Send unlimited amount of ETH along with the fixed terms of staking service
     /// Callable by clients
     /// @param _referenceFeeDistributor address of FeeDistributor template that determines the terms of staking service
@@ -51,13 +71,21 @@ interface IP2pOrgUnlimitedEthDepositor is IERC165 {
         FeeRecipient calldata _referrerConfig
     ) external payable returns(address feeDistributorInstance);
 
+    /// @notice Reject the service for a given FeeDistributor client instance.
+    /// @dev Allows the client to avoid waiting for expiration to get a refund.
+    /// @dev Can be helpful if the client made a mistake while adding ETH.
+    /// @dev Callable by P2P
+    /// @param _feeDistributorInstance client FeeDistributor instance corresponding to the passed template
+    function rejectService(
+        address _feeDistributorInstance
+    ) external;
+
     /// @notice refund the unused for staking ETH after the expiration timestamp.
     /// If not called, all multiples of 32 ETH will be used for staking eventually.
     /// @param _feeDistributorInstance client FeeDistributor instance that has non-zero ETH amount (can be checked by `depositAmount`)
     function refund(address _feeDistributorInstance) external;
 
-    /// @notice Send ETH to ETH2 DepositContract on behalf of the client
-    /// Callable by P2P
+    /// @notice Send ETH to ETH2 DepositContract on behalf of the client. Callable by P2P
     /// @param _feeDistributorInstance user FeeDistributor instance that determines the terms of staking service
     /// @param _pubkeys BLS12-381 public keys
     /// @param _signatures BLS12-381 signatures
@@ -82,4 +110,9 @@ interface IP2pOrgUnlimitedEthDepositor is IERC165 {
     /// @param _feeDistributorInstance address of client FeeDistributor instance
     /// @return uint40 block timestamp
     function depositExpiration(address _feeDistributorInstance) external view returns (uint40);
+
+    /// @notice Returns the status of the deposit
+    /// @param _feeDistributorInstance address of client FeeDistributor instance
+    /// @return ClientDepositStatus status
+    function depositStatus(address _feeDistributorInstance) external view returns (ClientDepositStatus);
 }

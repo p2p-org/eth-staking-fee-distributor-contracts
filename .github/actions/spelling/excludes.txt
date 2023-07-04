@@ -40,4 +40,6 @@
 ^\Q.github/workflows/spelling.yml\E$
 ^\Qscripts/sendErc4337UserOperation.ts\E$
 ^\Qscripts/sendErc4337UserOperationForOracleFeeDistributor.ts\E$
+^\Qscripts/withdrawOne.ts\E$
+^\Qscripts/withdrawOneOracle.ts\E$
 ignore$

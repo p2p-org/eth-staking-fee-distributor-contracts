@@ -25,12 +25,28 @@ struct ValidatorData {
     uint160 reservedForFutureUse;
 }
 
+/// @dev status of the client deposit
+/// @member None default status indicating that no ETH is waiting to be forwarded to Beacon DepositContract
+/// @member EthAdded client added ETH
+/// @member BeaconDepositInProgress P2P has forwarded some (but not all) ETH to Beacon DepositContract
+/// If all ETH has been forwarded, the status will be None.
+/// @member ServiceRejected P2P has rejected the service for a given FeeDistributor instance
+// The client can get a refund immediately.
+enum ClientDepositStatus {
+    None,
+    EthAdded,
+    BeaconDepositInProgress,
+    ServiceRejected
+}
+
 /// @dev 256 bit struct
 /// @member amount amount of ETH in wei to be used for an ETH2 deposit corresponding to a particular FeeDistributor instance
 /// @member expiration block timestamp after which the client will be able to get a refund
+/// @member status deposit status
 /// @member reservedForFutureUse unused space making up to 256 bit
 struct ClientDeposit {
     uint112 amount;
     uint40 expiration;
-    uint104 reservedForFutureUse;
+    ClientDepositStatus status;
+    uint96 reservedForFutureUse;
 }

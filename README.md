@@ -159,6 +159,8 @@ P2P will then be able to evaluate the proposed terms of service.
 If they are OK, P2P will proceed with `makeBeaconDeposit`.
 If they are not, the client will be able to return their ETH from `P2pOrgUnlimitedEthDepositor` via the `refund` function.
 
+`voluntaryExit` function of `FeeDistributor` allows the client to signal P2P about their intention to exit 1 or more validators that correspond to the provided `_pubkeys`.
+In `ContractWcFeeDistributor` it has additional functionality for accounting 32 ETH per validator (collateral) that should not be split and should go to the client in full.
 
 **Oracle** stores Merkle Root, which is used to verify data (`FeeDistributor` instance address, _amountInGwei) using Merkle Proof.
 
@@ -166,3 +168,6 @@ If they are not, the client will be able to return their ETH from `P2pOrgUnlimit
 Its `makeBeaconDeposit` function passes client's ether to the official ETH2 DepositContract and calls `FeeDistributorFactory` to create an instance of `FeeDistributor`.
 
 Its `refund` function allows the client to get their ETH back if P2P did not use it for staking during the pre-defined `TIMEOUT`.
+
+Its `rejectService` function allows P2P to indicate that there will be no Beacon deposit made so the client can get a refund immediately without waiting for expiration.
+Can be helpful if the client made a mistake and asked P2P to release their funds sooner than expiration. Or if P2P does not agree with the terms of service suggested by the client.

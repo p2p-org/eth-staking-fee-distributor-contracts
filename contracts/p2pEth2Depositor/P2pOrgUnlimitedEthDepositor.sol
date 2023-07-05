@@ -103,17 +103,22 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
     }
 
     /// @inheritdoc IP2pOrgUnlimitedEthDepositor
-    function rejectService(address _feeDistributorInstance) external {
+    function rejectService(
+        address _feeDistributorInstance,
+        string calldata _reason
+    ) external {
         i_feeDistributorFactory.checkOperatorOrOwner(msg.sender);
 
         s_deposits[_feeDistributorInstance].status = ClientDepositStatus.ServiceRejected;
         s_deposits[_feeDistributorInstance].expiration = 0; // allow the client to get a refund immediately
 
-        emit P2pOrgUnlimitedEthDepositor__ServiceRejected(_feeDistributorInstance);
+        emit P2pOrgUnlimitedEthDepositor__ServiceRejected(_feeDistributorInstance, _reason);
     }
 
     /// @inheritdoc IP2pOrgUnlimitedEthDepositor
-    function refund(address _feeDistributorInstance) public {
+    function refund(
+        address _feeDistributorInstance
+    ) public {
         address client = IFeeDistributor(_feeDistributorInstance).client();
         if (msg.sender != client) {
             revert P2pOrgUnlimitedEthDepositor__CallerNotClient(msg.sender, client);

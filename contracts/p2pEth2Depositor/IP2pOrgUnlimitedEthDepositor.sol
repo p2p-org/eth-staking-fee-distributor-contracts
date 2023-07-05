@@ -55,8 +55,10 @@ interface IP2pOrgUnlimitedEthDepositor is IERC165 {
     /// @notice Emits when P2P rejects the service for a given FeeDistributor client instance.
     /// The client can get a full refund immediately in this case.
     /// @param _feeDistributorAddress address of FeeDistributor instance that was associated with the client deposit
+    /// @param _reason optional reason why P2P decided not to provide service
     event P2pOrgUnlimitedEthDepositor__ServiceRejected(
-        address indexed _feeDistributorAddress
+        address indexed _feeDistributorAddress,
+        string _reason
     );
 
     /// @notice Send unlimited amount of ETH along with the fixed terms of staking service
@@ -76,8 +78,10 @@ interface IP2pOrgUnlimitedEthDepositor is IERC165 {
     /// @dev Can be helpful if the client made a mistake while adding ETH.
     /// @dev Callable by P2P
     /// @param _feeDistributorInstance client FeeDistributor instance corresponding to the passed template
+    /// @param _reason optional reason why P2P decided not to provide service
     function rejectService(
-        address _feeDistributorInstance
+        address _feeDistributorInstance,
+        string calldata _reason
     ) external;
 
     /// @notice refund the unused for staking ETH after the expiration timestamp.

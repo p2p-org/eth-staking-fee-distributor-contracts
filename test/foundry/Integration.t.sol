@@ -330,7 +330,24 @@ contract Integration is Test {
     function test_OracleFeeDistributor_Creation_Without_Depositor() public {
         console.log("testOracleFeeDistributorCreationWithoutDepositor started");
 
-        address newFeeDistributorAddress = deployOracleFeeDistributorCreationWithoutDepositor();
+        address newFeeDistributorAddress;
+
+        vm.startPrank(operatorAddress);
+        vm.expectRevert(OracleFeeDistributor__ClientBasisPointsShouldBeHigherThan5000.selector);
+        newFeeDistributorAddress = factory.createFeeDistributor(
+            address(oracleFeeDistributorTemplate),
+            FeeRecipient({
+                recipient: clientWcAddress,
+                basisPoints: 4000
+            }),
+            FeeRecipient({
+                recipient: payable(address(0)),
+                basisPoints: 0
+            })
+        );
+        vm.stopPrank();
+
+        newFeeDistributorAddress = deployOracleFeeDistributorCreationWithoutDepositor();
 
         assertEq(newFeeDistributorAddress, oracleFeeDistributorInstanceAddress);
 
@@ -399,13 +416,13 @@ contract Integration is Test {
         newFeeDistributorAddress = factory.createFeeDistributor(
             address(oracleFeeDistributorTemplate),
             FeeRecipient({
-        recipient: clientWcAddress,
-        basisPoints: defaultClientBasisPoints
-        }),
+                recipient: clientWcAddress,
+                basisPoints: defaultClientBasisPoints
+            }),
             FeeRecipient({
-        recipient: payable(address(0)),
-        basisPoints: 0
-        })
+                recipient: payable(address(0)),
+                basisPoints: 0
+            })
         );
 
         vm.stopPrank();

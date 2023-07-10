@@ -75,7 +75,7 @@ abstract contract BaseFeeDistributor is Erc4337Account, OwnableTokenRecoverer, O
     function initialize(
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig
-    ) external onlyFactory {
+    ) public virtual onlyFactory {
         if (_clientConfig.recipient == address(0)) {
             revert FeeDistributor__ZeroAddressClient();
         }

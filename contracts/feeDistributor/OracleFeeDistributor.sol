@@ -23,6 +23,9 @@ error OracleFeeDistributor__WaitForEnoughRewardsToWithdraw();
 /// @notice clientOnlyClRewards can only be set once
 error OracleFeeDistributor__CannotResetClientOnlyClRewards();
 
+/// @notice Client basis points should be higher than 5000
+error OracleFeeDistributor__ClientBasisPointsShouldBeHigherThan5000();
+
 /// @title FeeDistributor accepting EL rewards only but splitting them with consideration of CL rewards
 /// @dev CL rewards are received by the client directly since client's address is ETH2 withdrawal credentials
 contract OracleFeeDistributor is BaseFeeDistributor {
@@ -54,6 +57,18 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         }
 
         i_oracle = IOracle(_oracle);
+    }
+
+    /// @inheritdoc IFeeDistributor
+    function initialize(
+        FeeRecipient calldata _clientConfig,
+        FeeRecipient calldata _referrerConfig
+    ) public override {
+        if (_clientConfig.basisPoints <= 5000) {
+            revert OracleFeeDistributor__ClientBasisPointsShouldBeHigherThan5000();
+        }
+
+        super.initialize(_clientConfig, _referrerConfig);
     }
 
     /// @notice Set clientOnlyClRewards to a new value

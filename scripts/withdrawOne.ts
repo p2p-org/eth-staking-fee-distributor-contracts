@@ -1,7 +1,15 @@
 import { FeeDistributor__factory } from "../typechain-types"
 import { ethers, getNamedAccounts } from "hardhat"
 
-export async function withdrawOne(feeDistributorAddress: string, proof: string[], amountInGwei: number) {
+export async function withdrawOne(
+    feeDistributorAddress: string,
+    proof: string[],
+    amountInGwei: number,
+    settings: {
+        gasLimit: number,
+        nonce: number
+    }
+) {
     const { deployer } = await getNamedAccounts()
     const deployerSigner = await ethers.getSigner(deployer)
 
@@ -10,5 +18,16 @@ export async function withdrawOne(feeDistributorAddress: string, proof: string[]
         deployerSigner
     )
 
-    await feeDistributor.withdraw(proof, amountInGwei)
+    const balance = await ethers.provider.getBalance(feeDistributor.address);
+    if (balance.gt(0)) {
+        console.log(feeDistributor.address, 'will withdraw')
+
+        const tx = await feeDistributor.withdraw(proof, amountInGwei, settings)
+        await tx.wait(1)
+        settings.nonce += 1
+
+        console.log(feeDistributor.address, 'withdrew')
+    } else {
+        console.log(feeDistributor.address, '0 balance')
+    }
 }

@@ -44,7 +44,7 @@
     "makeBatchDeposit": "yarn hardhat run --network goerli scripts/makeBatchDeposit.ts",
     "getIitialClientOnlyClRewards": "yarn hardhat run --network goerli scripts/getIitialClientOnlyClRewards.ts",
     "createFeeDistributorsForExistingClients": "yarn hardhat run --network mainnet scripts/createFeeDistributorsForExistingClients.ts",
-    "main": "yarn hardhat run --network goerli scripts/main.ts"
+    "main": "yarn hardhat run --network mainnet scripts/main.ts"
   },
   "dependencies": {
     "@google-cloud/bigquery": "^6.2.0"

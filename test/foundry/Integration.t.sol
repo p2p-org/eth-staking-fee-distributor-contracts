@@ -370,6 +370,47 @@ contract Integration is Test {
         console.log("testOracleFeeDistributorCreationWithoutDepositor finished");
     }
 
+    function test_ContractWcFeeDistributor_Rewards_can_be_accounted_as_collateral() public {
+        console.log("test_ContractWcFeeDistributor_Rewards_can_be_accounted_as_collateral started");
+
+        address newFeeDistributorAddress = deployContractWcFeeDistributorCreationWithoutDepositor();
+        contractWcFeeDistributorInstance = ContractWcFeeDistributor(payable(newFeeDistributorAddress));
+
+        vm.startPrank(operatorAddress);
+        contractWcFeeDistributorInstance.increaseDepositedCount(1);
+        vm.stopPrank();
+
+        bytes[] memory dummyPubKeys = new bytes[](1);
+        dummyPubKeys[0] = "test";
+        vm.startPrank(clientWcAddress);
+        contractWcFeeDistributorInstance.voluntaryExit(dummyPubKeys);
+        vm.stopPrank();
+
+        uint256 rewards = 31 ether;
+        uint256 clientSent = 1 ether;
+
+        uint256 serviceBalanceBefore = serviceAddress.balance;
+        uint256 clientBalanceBefore = clientWcAddress.balance;
+
+        vm.deal(address(contractWcFeeDistributorInstance), rewards + COLLATERAL + clientSent);
+
+        contractWcFeeDistributorInstance.withdraw();
+
+        uint256 serviceBalanceAfter = serviceAddress.balance;
+        uint256 clientBalanceAfter = clientWcAddress.balance;
+
+        assertEq(
+            serviceBalanceAfter - serviceBalanceBefore,
+            (rewards + clientSent) * (10000 - defaultClientBasisPoints) / 10000
+        );
+        assertEq(
+            clientBalanceAfter - clientBalanceBefore,
+            (rewards + clientSent) * defaultClientBasisPoints / 10000 + COLLATERAL
+        );
+
+        console.log("test_ContractWcFeeDistributor_Rewards_can_be_accounted_as_collateral finished");
+    }
+
     function test_ContractWcFeeDistributor_Creation_Without_Depositor() public {
         console.log("testContractWcFeeDistributorCreationWithoutDepositor started");
 

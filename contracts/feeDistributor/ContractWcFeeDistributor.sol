@@ -114,8 +114,7 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
         if (balance >= COLLATERAL && s_validatorData.collateralReturnedCount < s_validatorData.exitedCount) {
             // if exited and some validators withdrawn
 
-            // integer division
-            uint32 collateralsCountToReturn = uint32(balance / COLLATERAL);
+            uint32 collateralsCountToReturn = s_validatorData.exitedCount - s_validatorData.collateralReturnedCount;
 
             s_validatorData.collateralReturnedCount += collateralsCountToReturn;
 

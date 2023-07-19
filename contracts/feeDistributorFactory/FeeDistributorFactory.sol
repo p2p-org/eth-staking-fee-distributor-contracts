@@ -125,9 +125,13 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     /// @inheritdoc IFeeDistributorFactory
     function predictFeeDistributorAddress(
         address _referenceFeeDistributor,
-        FeeRecipient calldata _clientConfig,
+        FeeRecipient memory _clientConfig,
         FeeRecipient calldata _referrerConfig
     ) public view returns (address) {
+        if (_clientConfig.basisPoints == 0) {
+            _clientConfig.basisPoints = s_defaultClientBasisPoints;
+        }
+
         return Clones.predictDeterministicAddress(
             _referenceFeeDistributor,
             _getSalt(_clientConfig, _referrerConfig)

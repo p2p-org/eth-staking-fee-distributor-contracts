@@ -327,6 +327,45 @@ contract Integration is Test {
         console.log("testCustomClientFeeDistributor finished");
     }
 
+    function test_Null_basis_points_will_lead_to_the_lock_of_funds() public {
+        console.log("test_Null_basis_points_will_lead_to_the_lock_of_funds started");
+
+        uint256 deposit = 1 ether;
+
+        vm.startPrank(clientDepositorAddress);
+        elFeeDistributorInstance = ElOnlyFeeDistributor(payable(
+            p2pEthDepositor.addEth{value: deposit}(
+                address(elOnlyFeeDistributorTemplate),
+                FeeRecipient({
+                    recipient: clientWcAddress,
+                    basisPoints: 0
+                }),
+                FeeRecipient({
+                    recipient: payable(address(0)),
+                    basisPoints: 0
+                })
+        )));
+        vm.stopPrank();
+
+        uint256 depositAmount = p2pEthDepositor.depositAmount(address(elFeeDistributorInstance));
+        assertEq(depositAmount, deposit);
+
+        vm.startPrank(clientWcAddress);
+        vm.warp(block.timestamp + TIMEOUT + 1);
+        uint256 clientWcAddressBalanceBefore = clientWcAddress.balance;
+
+        p2pEthDepositor.refund(address(elFeeDistributorInstance));
+
+        vm.stopPrank();
+        uint256 clientWcAddressBalanceAfter = clientWcAddress.balance;
+
+        assertEq(clientWcAddressBalanceAfter - clientWcAddressBalanceBefore, deposit);
+        uint256 depositAmountAfterRefund = p2pEthDepositor.depositAmount(address(elFeeDistributorInstance));
+        assertEq(depositAmountAfterRefund, 0);
+
+        console.log("test_Null_basis_points_will_lead_to_the_lock_of_funds finished");
+    }
+
     function test_OracleFeeDistributor_Creation_Without_Depositor() public {
         console.log("testOracleFeeDistributorCreationWithoutDepositor started");
 

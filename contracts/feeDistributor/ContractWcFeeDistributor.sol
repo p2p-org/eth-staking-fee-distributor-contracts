@@ -34,15 +34,15 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
         uint32 _newExitedCount
     );
 
-    /// @notice Emits when new collaterals (multiples of 32 ETH) have been returned to the client
-    /// @param _added number of newly returned collaterals
-    /// @param _newCollateralReturnedCount total number of all collaterals returned to the client
-    event ContractWcFeeDistributor__CollateralReturnedCountIncreased(
-        uint32 _added,
-        uint32 _newCollateralReturnedCount
+    /// @notice Emits when some portion of ETH has been returned to the client as a collateral return
+    /// @param _added amount of newly returned ETH
+    /// @param _newCollateralReturnedValue total collateral value returned to the client
+    event ContractWcFeeDistributor__CollateralReturnedValueIncreased(
+        uint112 _added,
+        uint112 _newCollateralReturnedValue
     );
 
-    /// @dev depositedCount, exitedCount, collateralReturnedCount stored in 1 storage slot
+    /// @dev depositedCount, exitedCount, collateralReturnedValue stored in 1 storage slot
     ValidatorData private s_validatorData;
 
     /// @dev Set values that are constant, common for all the clients, known at the initial deploy time.
@@ -111,22 +111,31 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
             revert FeeDistributor__NothingToWithdraw();
         }
 
-        if (balance >= COLLATERAL && s_validatorData.collateralReturnedCount < s_validatorData.exitedCount) {
-            // if exited and some validators withdrawn
+        if (s_validatorData.collateralReturnedValue / COLLATERAL < s_validatorData.exitedCount) {
+            // If exited some of the validators voluntarily.
+            // In case of slashing, the client can still call the voluntaryExit function to claim
+            // non-splittable balance up to 32 ETH per validator,
+            // thus getting some slashing protection covered from EL rewards.
 
-            uint32 collateralsCountToReturn = s_validatorData.exitedCount - s_validatorData.collateralReturnedCount;
+            uint112 collateralValueToReturn = uint112(
+                s_validatorData.exitedCount * COLLATERAL - s_validatorData.collateralReturnedValue
+            );
 
-            s_validatorData.collateralReturnedCount += collateralsCountToReturn;
+            if (collateralValueToReturn > balance) {
+                collateralValueToReturn = uint112(balance);
+            }
 
-            emit ContractWcFeeDistributor__CollateralReturnedCountIncreased(
-                collateralsCountToReturn,
-                s_validatorData.collateralReturnedCount
+            s_validatorData.collateralReturnedValue += collateralValueToReturn;
+
+            emit ContractWcFeeDistributor__CollateralReturnedValueIncreased(
+                collateralValueToReturn,
+                s_validatorData.collateralReturnedValue
             );
 
             // Send collaterals to client
             P2pAddressLib._sendValue(
                 s_clientConfig.recipient,
-                collateralsCountToReturn * COLLATERAL
+                collateralValueToReturn
             );
 
             // Balance remainder to split
@@ -206,10 +215,10 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
         return s_validatorData.exitedCount;
     }
 
-    /// @notice Returns the number of collaterals (multiples of 32 ETH) returned to the client
-    /// @return uint32 number of collaterals
-    function collateralReturnedCount() external view returns (uint32) {
-        return s_validatorData.collateralReturnedCount;
+    /// @notice Returns the amount of ETH returned to the client to cover the collaterals
+    /// @return uint112 ETH value returned
+    function collateralReturnedValue() external view returns (uint112) {
+        return s_validatorData.collateralReturnedValue;
     }
 
     /// @inheritdoc IFeeDistributor

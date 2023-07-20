@@ -11,6 +11,9 @@ uint256 constant VALIDATORS_MAX_AMOUNT = 400;
 /// @dev Collateral size of 1 validator
 uint256 constant COLLATERAL = 32 ether;
 
+/// @dev Minimal 1 time deposit
+uint256 constant MIN_DEPOSIT = 1 ether;
+
 /// @dev Lockup time to allow P2P to make ETH2 deposits
 /// @dev If there is leftover ETH after this time, it can be refunded
 uint40 constant TIMEOUT = 1 days;

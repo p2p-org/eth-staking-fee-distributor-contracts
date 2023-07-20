@@ -8,8 +8,8 @@ pragma solidity 0.8.10;
 /// @param _amount amount of ETH is wei
 error P2pOrgUnlimitedEthDepositor__FailedToSendEth(address _receiver, uint256 _amount);
 
-/// @notice Deposits must be greater than zero.
-error P2pOrgUnlimitedEthDepositor__NoZeroDeposits();
+/// @notice Deposits must be at least 1 ETH.
+error P2pOrgUnlimitedEthDepositor__NoSmallDeposits();
 
 /// @notice Only client can call refund
 /// @param _caller address calling refund

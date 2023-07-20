@@ -57,8 +57,8 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig
     ) external payable returns(address feeDistributorInstance) {
-        if (msg.value == 0) {
-            revert P2pOrgUnlimitedEthDepositor__NoZeroDeposits();
+        if (msg.value < MIN_DEPOSIT) {
+            revert P2pOrgUnlimitedEthDepositor__NoSmallDeposits();
         }
 
         if (!ERC165Checker.supportsInterface(_referenceFeeDistributor, type(IFeeDistributor).interfaceId)) {

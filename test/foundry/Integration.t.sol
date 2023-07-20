@@ -17,6 +17,7 @@ import "../../contracts/structs/P2pStructs.sol";
 import "../../contracts/mocks/MockClientFeeDistributor.sol";
 import "../../contracts/mocks/IEntryPoint.sol";
 import "../../contracts/erc4337/UserOperation.sol";
+import "../../contracts/mocks/MockAlteringReceive.sol";
 
 contract Integration is Test {
     using ECDSA for bytes32;
@@ -325,6 +326,144 @@ contract Integration is Test {
         makeBeaconDepositForCustomFeeDistributor();
 
         console.log("testCustomClientFeeDistributor finished");
+    }
+
+    function test_Clients_stopping_and_starting_again_receiving_collaterals() public {
+        console.log("test_Clients_stopping_and_starting_again_receiving_collaterals started");
+
+        MockAlteringReceive mockAlteringReceive = new MockAlteringReceive();
+        address payable mockAlteringReceiveAddress = payable(address(mockAlteringReceive));
+
+        vm.startPrank(operatorAddress);
+        address newFeeDistributorAddress = factory.createFeeDistributor(
+            address(contractWcFeeDistributorTemplate),
+            FeeRecipient({
+                recipient: mockAlteringReceiveAddress,
+                basisPoints: defaultClientBasisPoints
+            }),
+            FeeRecipient({
+                recipient: payable(address(0)),
+                basisPoints: 0
+            })
+        );
+        vm.stopPrank();
+
+        contractWcFeeDistributorInstance = ContractWcFeeDistributor(payable(newFeeDistributorAddress));
+
+        vm.startPrank(operatorAddress);
+        contractWcFeeDistributorInstance.increaseDepositedCount(1);
+        vm.stopPrank();
+
+        bytes[] memory dummyPubKeys = new bytes[](1);
+        dummyPubKeys[0] = "test";
+        vm.startPrank(mockAlteringReceiveAddress);
+        contractWcFeeDistributorInstance.voluntaryExit(dummyPubKeys);
+        vm.stopPrank();
+
+        uint256 serviceBalanceBefore = serviceAddress.balance;
+        uint256 clientBalanceBefore = mockAlteringReceiveAddress.balance;
+
+        vm.deal(address(contractWcFeeDistributorInstance), COLLATERAL);
+        mockAlteringReceive.startRevertingOnReceive();
+        contractWcFeeDistributorInstance.withdraw();
+
+        uint256 serviceBalanceAfter = serviceAddress.balance;
+        uint256 clientBalanceAfter = mockAlteringReceiveAddress.balance;
+
+        assertEq(
+            serviceBalanceAfter - serviceBalanceBefore,
+            0
+        );
+        assertEq(
+            clientBalanceAfter - clientBalanceBefore,
+            0
+        );
+
+        mockAlteringReceive.stopRevertingOnReceive();
+        contractWcFeeDistributorInstance.withdraw();
+
+        serviceBalanceAfter = serviceAddress.balance;
+        clientBalanceAfter = mockAlteringReceiveAddress.balance;
+
+        assertEq(
+            serviceBalanceAfter - serviceBalanceBefore,
+            0
+        );
+        assertEq(
+            clientBalanceAfter - clientBalanceBefore,
+            COLLATERAL
+        );
+
+        console.log("test_Clients_stopping_and_starting_again_receiving_collaterals finished");
+    }
+
+    function test_Clients_stopping_receiving_collaterals_cooldown() public {
+        console.log("test_Clients_stopping_receiving_collaterals_cooldown started");
+
+        MockAlteringReceive mockAlteringReceive = new MockAlteringReceive();
+        address payable mockAlteringReceiveAddress = payable(address(mockAlteringReceive));
+
+        vm.startPrank(operatorAddress);
+        address newFeeDistributorAddress = factory.createFeeDistributor(
+            address(contractWcFeeDistributorTemplate),
+            FeeRecipient({
+        recipient: mockAlteringReceiveAddress,
+        basisPoints: defaultClientBasisPoints
+        }),
+            FeeRecipient({
+        recipient: payable(address(0)),
+        basisPoints: 0
+        })
+        );
+        vm.stopPrank();
+
+        contractWcFeeDistributorInstance = ContractWcFeeDistributor(payable(newFeeDistributorAddress));
+
+        vm.startPrank(operatorAddress);
+        contractWcFeeDistributorInstance.increaseDepositedCount(1);
+        vm.stopPrank();
+
+        bytes[] memory dummyPubKeys = new bytes[](1);
+        dummyPubKeys[0] = "test";
+        vm.startPrank(mockAlteringReceiveAddress);
+        contractWcFeeDistributorInstance.voluntaryExit(dummyPubKeys);
+        vm.stopPrank();
+
+        uint256 serviceBalanceBefore = serviceAddress.balance;
+        uint256 clientBalanceBefore = mockAlteringReceiveAddress.balance;
+
+        vm.deal(address(contractWcFeeDistributorInstance), COLLATERAL);
+        mockAlteringReceive.startRevertingOnReceive();
+        contractWcFeeDistributorInstance.withdraw();
+
+        uint256 serviceBalanceAfter = serviceAddress.balance;
+        uint256 clientBalanceAfter = mockAlteringReceiveAddress.balance;
+
+        assertEq(
+            serviceBalanceAfter - serviceBalanceBefore,
+            0
+        );
+        assertEq(
+            clientBalanceAfter - clientBalanceBefore,
+            0
+        );
+
+        vm.warp(block.timestamp + COOLDOWN + 1);
+        contractWcFeeDistributorInstance.withdraw();
+
+        serviceBalanceAfter = serviceAddress.balance;
+        clientBalanceAfter = mockAlteringReceiveAddress.balance;
+
+        assertEq(
+            serviceBalanceAfter - serviceBalanceBefore,
+            COLLATERAL * (10000 - defaultClientBasisPoints) / 10000
+        );
+        assertEq(
+            clientBalanceAfter - clientBalanceBefore,
+            0
+        );
+
+        console.log("test_Clients_stopping_receiving_collaterals_cooldown finished");
     }
 
     function test_Null_basis_points_will_lead_to_the_lock_of_funds() public {

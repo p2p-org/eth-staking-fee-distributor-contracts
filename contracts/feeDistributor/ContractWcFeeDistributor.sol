@@ -42,6 +42,15 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
         uint112 _newCollateralReturnedValue
     );
 
+    /// @notice Emits when the client reverted on collatral receive.
+    /// @dev Highly unlikely scenario. Turns on a 30 days cooldown period for the client to turn back on their
+    /// ETH receiving functionality. After this cooldown period expires, if the client still doesn't accept ETH,
+    /// their collaterals will be split as regular rewards.
+    /// @param _cooldownUntil block timestamp until which it's impossible to bypass client's revert on ETH receive
+    event ContractWcFeeDistributor__ClientRevertOnCollatralReceive(
+        uint80 _cooldownUntil
+    );
+
     /// @dev depositedCount, exitedCount, collateralReturnedValue stored in 1 storage slot
     ValidatorData private s_validatorData;
 
@@ -125,18 +134,37 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
                 collateralValueToReturn = uint112(balance);
             }
 
-            s_validatorData.collateralReturnedValue += collateralValueToReturn;
-
-            emit ContractWcFeeDistributor__CollateralReturnedValueIncreased(
-                collateralValueToReturn,
-                s_validatorData.collateralReturnedValue
-            );
-
             // Send collaterals to client
-            P2pAddressLib._sendValue(
+            bool success = P2pAddressLib._sendValue(
                 s_clientConfig.recipient,
                 collateralValueToReturn
             );
+
+            if (success) {
+                // It's OK to violate the checks-effects-interactions pattern here thanks to nonReentrant
+                s_validatorData.collateralReturnedValue += collateralValueToReturn;
+
+                emit ContractWcFeeDistributor__CollateralReturnedValueIncreased(
+                    collateralValueToReturn,
+                    s_validatorData.collateralReturnedValue
+                );
+
+                if (s_validatorData.cooldownUntil != 0) {
+                    // reset cooldownUntil if the client received their collaterals
+                    s_validatorData.cooldownUntil = 0;
+                }
+            } else {
+                if (s_validatorData.cooldownUntil == 0) {
+                    // set cooldownUntil if it has not been set before
+                    s_validatorData.cooldownUntil = uint80(block.timestamp + COOLDOWN);
+                }
+
+                emit ContractWcFeeDistributor__ClientRevertOnCollatralReceive(s_validatorData.cooldownUntil);
+
+                if (block.timestamp < s_validatorData.cooldownUntil) {
+                    return; // prevent further ETH sending
+                }
+            }
 
             // Balance remainder to split
             balance = address(this).balance;

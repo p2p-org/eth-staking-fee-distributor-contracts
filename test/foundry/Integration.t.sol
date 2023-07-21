@@ -44,7 +44,7 @@ contract Integration is Test {
 
     bytes32 merkleRoot;
     bytes32[] merkleProof;
-    uint256 constant amountInGweiFromOracle = 20000000000;
+    uint256 constant amountInGweiFromOracle = 20 gwei; //
 
     uint256 operatorPrivateKey = 42; // needed for signature
     address payable bundler = payable(address(100500));
@@ -503,6 +503,61 @@ contract Integration is Test {
         assertEq(depositAmountAfterRefund, 0);
 
         console.log("test_Null_basis_points_will_lead_to_the_lock_of_funds finished");
+    }
+
+    function test_OracleFeeDistributor_withdraw_with_the_same_proof() public {
+        console.log("test_OracleFeeDistributor_withdraw_with_the_same_proof started");
+
+        address newFeeDistributorAddress = deployOracleFeeDistributorCreationWithoutDepositor();
+        oracleFeeDistributorInstance = OracleFeeDistributor(payable(newFeeDistributorAddress));
+
+        uint256 elRewards = 10 ether;
+        vm.deal(address(oracleFeeDistributorInstance), elRewards);
+
+        vm.startPrank(operatorAddress);
+        oracle.report(merkleRoot);
+        vm.stopPrank();
+
+        uint256 serviceBalanceBefore = serviceAddress.balance;
+        uint256 clientBalanceBefore = clientWcAddress.balance;
+
+        oracleFeeDistributorInstance.withdraw(merkleProof, amountInGweiFromOracle);
+
+        uint256 serviceBalanceAfter = serviceAddress.balance;
+        uint256 clientBalanceAfter = clientWcAddress.balance;
+
+        uint256 clRewards = amountInGweiFromOracle * 1 gwei;
+        uint256 totalRewards = clRewards + elRewards;
+
+        assertEq(
+            serviceBalanceAfter - serviceBalanceBefore,
+            totalRewards * (10000 - defaultClientBasisPoints) / 10000
+        );
+        assertEq(
+            clientBalanceAfter - clientBalanceBefore,
+            totalRewards * defaultClientBasisPoints / 10000 - clRewards
+        );
+
+        vm.deal(address(oracleFeeDistributorInstance), elRewards); // add more elRewards
+
+        serviceBalanceBefore = serviceAddress.balance;
+        clientBalanceBefore = clientWcAddress.balance;
+
+        oracleFeeDistributorInstance.withdraw(merkleProof, amountInGweiFromOracle);
+
+        serviceBalanceAfter = serviceAddress.balance;
+        clientBalanceAfter = clientWcAddress.balance;
+
+        assertEq(
+            serviceBalanceAfter - serviceBalanceBefore,
+                elRewards * (10000 - defaultClientBasisPoints) / 10000
+        );
+        assertEq(
+            clientBalanceAfter - clientBalanceBefore,
+                elRewards * defaultClientBasisPoints / 10000
+        );
+
+        console.log("test_OracleFeeDistributor_withdraw_with_the_same_proof finished");
     }
 
     function test_OracleFeeDistributor_Creation_Without_Depositor() public {

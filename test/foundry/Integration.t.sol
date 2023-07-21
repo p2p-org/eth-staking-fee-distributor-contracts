@@ -505,6 +505,47 @@ contract Integration is Test {
         console.log("test_Null_basis_points_will_lead_to_the_lock_of_funds finished");
     }
 
+    function test_OracleFeeDistributor_withdraw_after_emergencyEtherRecoveryWithoutOracleData() public {
+        console.log("test_OracleFeeDistributor_withdraw_after_emergencyEtherRecoveryWithoutOracleData started");
+
+        address newFeeDistributorAddress = deployOracleFeeDistributorCreationWithoutDepositor();
+        oracleFeeDistributorInstance = OracleFeeDistributor(payable(newFeeDistributorAddress));
+
+        uint256 elRewards = 6 ether;
+        vm.deal(address(oracleFeeDistributorInstance), elRewards);
+
+        uint256 serviceBalanceBefore = serviceAddress.balance;
+        uint256 clientBalanceBefore = clientWcAddress.balance;
+
+        vm.startPrank(clientWcAddress);
+        oracleFeeDistributorInstance.emergencyEtherRecoveryWithoutOracleData();
+        vm.stopPrank();
+
+        uint256 serviceBalanceAfter = serviceAddress.balance;
+        uint256 clientBalanceAfter = clientWcAddress.balance;
+
+        assertEq(
+            serviceBalanceAfter - serviceBalanceBefore,
+                elRewards / 2
+        );
+        assertEq(
+            clientBalanceAfter - clientBalanceBefore,
+                elRewards / 2
+        );
+
+        vm.startPrank(operatorAddress);
+        oracle.report(merkleRoot);
+        vm.stopPrank();
+
+        elRewards = 5 ether;
+        vm.deal(address(oracleFeeDistributorInstance), elRewards);
+
+        vm.expectRevert(OracleFeeDistributor__WaitForEnoughRewardsToWithdraw.selector);
+        oracleFeeDistributorInstance.withdraw(merkleProof, amountInGweiFromOracle);
+
+        console.log("test_OracleFeeDistributor_withdraw_after_emergencyEtherRecoveryWithoutOracleData finished");
+    }
+
     function test_OracleFeeDistributor_withdraw_with_the_same_proof() public {
         console.log("test_OracleFeeDistributor_withdraw_with_the_same_proof started");
 

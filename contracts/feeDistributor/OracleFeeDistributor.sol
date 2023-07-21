@@ -124,7 +124,7 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         // Gwei to Wei
         uint256 amount = _amountInGwei * (10 ** 9);
 
-        if (balance + amount < s_clientOnlyClRewards) {
+        if (amount < s_clientOnlyClRewards) {
             // Can happen if the client has called emergencyEtherRecoveryWithoutOracleData before
             // but the actual rewards amount now appeared to be lower than the already split.
             // Should happen rarely.

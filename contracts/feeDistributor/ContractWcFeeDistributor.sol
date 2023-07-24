@@ -47,7 +47,7 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
     /// ETH receiving functionality. After this cooldown period expires, if the client still doesn't accept ETH,
     /// their collaterals will be split as regular rewards.
     /// @param _cooldownUntil block timestamp until which it's impossible to bypass client's revert on ETH receive
-    event ContractWcFeeDistributor__ClientRevertOnCollatralReceive(
+    event ContractWcFeeDistributor__ClientRevertOnCollateralReceive(
         uint80 _cooldownUntil
     );
 
@@ -159,7 +159,7 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
                     s_validatorData.cooldownUntil = uint80(block.timestamp + COOLDOWN);
                 }
 
-                emit ContractWcFeeDistributor__ClientRevertOnCollatralReceive(s_validatorData.cooldownUntil);
+                emit ContractWcFeeDistributor__ClientRevertOnCollateralReceive(s_validatorData.cooldownUntil);
 
                 if (block.timestamp < s_validatorData.cooldownUntil) {
                     return; // prevent further ETH sending

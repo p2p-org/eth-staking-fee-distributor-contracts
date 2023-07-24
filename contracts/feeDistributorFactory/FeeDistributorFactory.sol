@@ -53,7 +53,7 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     /// @dev Set values known at the initial deploy time.
     /// @param _defaultClientBasisPoints Default Client Basis Points
     constructor(uint96 _defaultClientBasisPoints) {
-        if (_defaultClientBasisPoints > 10000) {
+        if (_defaultClientBasisPoints >= 10000) {
             revert FeeDistributorFactory__InvalidDefaultClientBasisPoints(_defaultClientBasisPoints);
         }
 
@@ -76,7 +76,7 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     /// @notice Set a new Default Client Basis Points
     /// @param _defaultClientBasisPoints Default Client Basis Points
     function setDefaultClientBasisPoints(uint96 _defaultClientBasisPoints) external onlyOwner {
-        if (_defaultClientBasisPoints > 10000) {
+        if (_defaultClientBasisPoints >= 10000) {
             revert FeeDistributorFactory__InvalidDefaultClientBasisPoints(_defaultClientBasisPoints);
         }
 

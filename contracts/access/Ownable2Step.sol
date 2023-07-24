@@ -11,6 +11,11 @@ import "./Ownable.sol";
 error Ownable2Step__CallerNotNewOwner();
 
 /**
+* @notice new owner address should be different from the current owner
+*/
+error Ownable2Step__NewOwnerShouldNotBeCurrentOwner();
+
+/**
  * @dev Contract module which provides access control mechanism, where
  * there is an account (an owner) that can be granted exclusive access to
  * specific functions.
@@ -43,8 +48,13 @@ abstract contract Ownable2Step is Ownable {
      * Can only be called by the current owner.
      */
     function transferOwnership(address newOwner) public virtual override onlyOwner {
+        address currentOwner = owner();
+        if (newOwner == currentOwner) {
+            revert Ownable2Step__NewOwnerShouldNotBeCurrentOwner();
+        }
+
         s_pendingOwner = newOwner;
-        emit OwnershipTransferStarted(owner(), newOwner);
+        emit OwnershipTransferStarted(currentOwner, newOwner);
     }
 
     /**

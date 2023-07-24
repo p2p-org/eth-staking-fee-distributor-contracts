@@ -109,6 +109,10 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
     ) external {
         i_feeDistributorFactory.checkOperatorOrOwner(msg.sender);
 
+        if (s_deposits[_feeDistributorInstance].status == ClientDepositStatus.None) {
+            revert P2pOrgUnlimitedEthDepositor__NoDepositToReject(_feeDistributorInstance);
+        }
+
         s_deposits[_feeDistributorInstance].status = ClientDepositStatus.ServiceRejected;
         s_deposits[_feeDistributorInstance].expiration = 0; // allow the client to get a refund immediately
 

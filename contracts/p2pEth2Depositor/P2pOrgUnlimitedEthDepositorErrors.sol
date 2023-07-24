@@ -48,3 +48,7 @@ error P2pOrgUnlimitedEthDepositor__NotFeeDistributor(address _passedAddress);
 /// @notice Should be a FeeDistributorFactory contract
 /// @param _passedAddress passed address that does not support IFeeDistributorFactory interface
 error P2pOrgUnlimitedEthDepositor__NotFactory(address _passedAddress);
+
+/// @notice There is no active deposit for the given FeeDistributor instance
+/// @param _feeDistributorInstance FeeDistributor instance address
+error P2pOrgUnlimitedEthDepositor__NoDepositToReject(address _feeDistributorInstance);

@@ -42,7 +42,7 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
         uint112 _newCollateralReturnedValue
     );
 
-    /// @notice Emits when the client reverted on collatral receive.
+    /// @notice Emits when the client reverted on collateral receive.
     /// @dev Highly unlikely scenario. Turns on a 30 days cooldown period for the client to turn back on their
     /// ETH receiving functionality. After this cooldown period expires, if the client still doesn't accept ETH,
     /// their collaterals will be split as regular rewards.

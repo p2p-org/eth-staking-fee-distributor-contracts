@@ -152,23 +152,6 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         emit P2pOrgUnlimitedEthDepositor__Refund(_feeDistributorInstance, client, amount);
     }
 
-    /// @notice Can be very gas expensive.
-    /// Better use `refundAll(address[])`
-    /// Only callable by client
-    function refundAll() external {
-        address[] memory allClientFeeDistributors = i_feeDistributorFactory.allClientFeeDistributors(msg.sender);
-
-        for (uint256 i = 0; i < allClientFeeDistributors.length;) {
-            refund(allClientFeeDistributors[i]);
-
-            // An array can't have a total length
-            // larger than the max uint256 value.
-            unchecked {
-                ++i;
-            }
-        }
-    }
-
     /// @notice Cheaper, requires calling feeDistributorFactory's allClientFeeDistributors externally first
     /// Only callable by client
     /// @param _allClientFeeDistributors array of all client FeeDistributor instances whose associated ETH amounts should be refunded

@@ -80,3 +80,6 @@ error FeeDistributor__EtherRecoveryFailed(
     address _to,
     uint256 _amount
 );
+
+/// @notice ETH receiver should not be a zero address
+error FeeDistributor__ZeroAddressEthReceiver();

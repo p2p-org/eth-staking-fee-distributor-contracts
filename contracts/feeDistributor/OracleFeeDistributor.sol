@@ -208,6 +208,10 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         bytes32[] calldata _proof,
         uint256 _amountInGwei
     ) external onlyOwner {
+        if (_to == address(0)) {
+            revert FeeDistributor__ZeroAddressEthReceiver();
+        }
+
         this.withdraw(_proof, _amountInGwei);
 
         // get the contract's balance

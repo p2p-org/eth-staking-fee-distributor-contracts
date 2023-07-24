@@ -96,6 +96,9 @@ abstract contract BaseFeeDistributor is Erc4337Account, OwnableTokenRecoverer, O
             if (_referrerConfig.recipient == _clientConfig.recipient) {
                 revert FeeDistributor__ReferrerAddressEqualsClient(_referrerConfig.recipient);
             }
+            if (_referrerConfig.basisPoints == 0) {
+                revert FeeDistributor__ZeroReferrerBasisPointsForNonZeroReferrer();
+            }
             if (_clientConfig.basisPoints + _referrerConfig.basisPoints > 10000) {
                 revert FeeDistributor__ClientPlusReferralBasisPointsExceed10000(
                     _clientConfig.basisPoints,

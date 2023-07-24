@@ -76,7 +76,6 @@ describe("test emergencyEtherRecoveryWithoutOracleData", function () {
 
         // deploy P2pOrgUnlimitedEthDepositor contract
         P2pOrgUnlimitedEthDepositorSignedByDeployer = await new P2pOrgUnlimitedEthDepositor__factory(deployerSigner).deploy(
-            true,
             feeDistributorFactorySignedByDeployer.address
         )
 

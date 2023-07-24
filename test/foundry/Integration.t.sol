@@ -112,7 +112,7 @@ contract Integration is Test {
         contractWcFeeDistributorTemplate = new ContractWcFeeDistributor(address(factory), serviceAddress);
         elOnlyFeeDistributorTemplate = new ElOnlyFeeDistributor(address(factory), serviceAddress);
         oracleFeeDistributorTemplate = new OracleFeeDistributor(address(oracle), address(factory), serviceAddress);
-        p2pEthDepositor = new P2pOrgUnlimitedEthDepositor(true, address(factory));
+        p2pEthDepositor = new P2pOrgUnlimitedEthDepositor(address(factory));
         vm.stopPrank();
 
         checkOwnership();

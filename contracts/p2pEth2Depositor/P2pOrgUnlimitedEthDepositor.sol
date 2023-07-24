@@ -71,6 +71,10 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
             _referrerConfig
         );
 
+        if (s_deposits[feeDistributorInstance].status == ClientDepositStatus.ServiceRejected) {
+            revert P2pOrgUnlimitedEthDepositor__ShouldNotBeRejected(feeDistributorInstance);
+        }
+
         if (feeDistributorInstance.code.length == 0) {
             // if feeDistributorInstance doesn't exist, deploy it
 
@@ -188,6 +192,10 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         bytes32[] calldata _depositDataRoots
     ) external {
         i_feeDistributorFactory.checkOperatorOrOwner(msg.sender);
+
+        if (s_deposits[_feeDistributorInstance].status == ClientDepositStatus.ServiceRejected) {
+            revert P2pOrgUnlimitedEthDepositor__ShouldNotBeRejected(_feeDistributorInstance);
+        }
 
         uint256 validatorCount = _pubkeys.length;
         uint112 amountToStake = uint112(COLLATERAL * validatorCount);

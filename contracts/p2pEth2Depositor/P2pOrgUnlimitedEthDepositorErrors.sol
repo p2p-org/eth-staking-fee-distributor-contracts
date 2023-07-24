@@ -52,3 +52,7 @@ error P2pOrgUnlimitedEthDepositor__NotFactory(address _passedAddress);
 /// @notice There is no active deposit for the given FeeDistributor instance
 /// @param _feeDistributorInstance FeeDistributor instance address
 error P2pOrgUnlimitedEthDepositor__NoDepositToReject(address _feeDistributorInstance);
+
+/// @notice Cannot proceed because a deposit for this FeeDistributor instance has already been rejected
+/// @param _feeDistributorInstance FeeDistributor instance address
+error P2pOrgUnlimitedEthDepositor__ShouldNotBeRejected(address _feeDistributorInstance);

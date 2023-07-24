@@ -16,4 +16,16 @@ library P2pAddressLib {
 
         return success;
     }
+
+    /// @notice Sends amount of ETH in wei to recipient
+    /// @param _recipient address of recipient
+    /// @param _amount amount of ETH in wei
+    /// @return bool whether send succeeded
+    function _sendValueWithoutGasRestrictions(address payable _recipient, uint256 _amount) internal returns (bool) {
+        (bool success, ) = _recipient.call{
+            value: _amount
+        }("");
+
+        return success;
+    }
 }

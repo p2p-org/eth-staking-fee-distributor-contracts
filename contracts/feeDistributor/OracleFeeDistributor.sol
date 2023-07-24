@@ -214,7 +214,7 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         uint256 balance = address(this).balance;
 
         if (balance > 0) { // only happens if at least 1 party reverted in their receive
-            bool success = P2pAddressLib._sendValue(_to, balance);
+            bool success = P2pAddressLib._sendValueWithoutGasRestrictions(_to, balance);
 
             if (success) {
                 emit FeeDistributor__EtherRecovered(_to, balance);

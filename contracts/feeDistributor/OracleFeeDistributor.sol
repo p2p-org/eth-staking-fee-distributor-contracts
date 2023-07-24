@@ -162,10 +162,9 @@ contract OracleFeeDistributor is BaseFeeDistributor {
             clientAmount = balance - serviceAmount;
         }
 
-        // client gets the rest from CL as not split anymore amount
-        s_clientOnlyClRewards += (totalAmountToSplit - balance);
-
         emit OracleFeeDistributor__ClientOnlyClRewardsUpdated(s_clientOnlyClRewards);
+
+        bool someEthSent;
 
         // how much should referrer get
         uint256 referrerAmount;
@@ -178,14 +177,19 @@ contract OracleFeeDistributor is BaseFeeDistributor {
             serviceAmount -= referrerAmount;
 
             // Send ETH to referrer. Ignore the possible yet unlikely revert in the receive function.
-            P2pAddressLib._sendValue(s_referrerConfig.recipient, referrerAmount);
+            someEthSent = P2pAddressLib._sendValue(s_referrerConfig.recipient, referrerAmount);
         }
 
         // Send ETH to service. Ignore the possible yet unlikely revert in the receive function.
-        P2pAddressLib._sendValue(i_service, serviceAmount);
+        someEthSent = P2pAddressLib._sendValue(i_service, serviceAmount) || someEthSent;
 
         // Send ETH to client. Ignore the possible yet unlikely revert in the receive function.
-        P2pAddressLib._sendValue(s_clientConfig.recipient, clientAmount);
+        someEthSent = P2pAddressLib._sendValue(s_clientConfig.recipient, clientAmount) || someEthSent;
+
+        if (someEthSent) {
+            // client gets the rest from CL as not split anymore amount
+            s_clientOnlyClRewards += (totalAmountToSplit - balance);
+        }
 
         emit FeeDistributor__Withdrawn(
             serviceAmount,
@@ -241,10 +245,9 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         // the total amount being split fits the actual balance of this contract
         uint256 totalAmountToSplit = (halfBalance * 10000) / (10000 - s_clientConfig.basisPoints);
 
-        // client gets the rest from CL as not split anymore amount
-        s_clientOnlyClRewards += (totalAmountToSplit - balance);
-
         emit OracleFeeDistributor__ClientOnlyClRewardsUpdated(s_clientOnlyClRewards);
+
+        bool someEthSent;
 
         // how much should referrer get
         uint256 referrerAmount;
@@ -257,14 +260,19 @@ contract OracleFeeDistributor is BaseFeeDistributor {
             serviceAmount -= referrerAmount;
 
             // Send ETH to referrer. Ignore the possible yet unlikely revert in the receive function.
-            P2pAddressLib._sendValue(s_referrerConfig.recipient, referrerAmount);
+            someEthSent = P2pAddressLib._sendValue(s_referrerConfig.recipient, referrerAmount);
         }
 
         // Send ETH to service. Ignore the possible yet unlikely revert in the receive function.
-        P2pAddressLib._sendValue(i_service, serviceAmount);
+        someEthSent = P2pAddressLib._sendValue(i_service, serviceAmount) || someEthSent;
 
         // Send ETH to client. Ignore the possible yet unlikely revert in the receive function.
-        P2pAddressLib._sendValue(s_clientConfig.recipient, clientAmount);
+        someEthSent = P2pAddressLib._sendValue(s_clientConfig.recipient, clientAmount) || someEthSent;
+
+        if (someEthSent) {
+            // client gets the rest from CL as not split anymore amount
+            s_clientOnlyClRewards += (totalAmountToSplit - balance);
+        }
 
         emit FeeDistributor__Withdrawn(
             serviceAmount,

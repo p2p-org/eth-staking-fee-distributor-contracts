@@ -226,7 +226,7 @@ contract ContractWcFeeDistributor is BaseFeeDistributor {
             if (success) {
                 emit FeeDistributor__EtherRecovered(_to, balance);
             } else {
-                emit FeeDistributor__EtherRecoveryFailed(_to, balance);
+                revert FeeDistributor__EtherRecoveryFailed(_to, balance);
             }
         }
     }

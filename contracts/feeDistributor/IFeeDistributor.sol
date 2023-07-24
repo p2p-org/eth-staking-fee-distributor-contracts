@@ -45,14 +45,6 @@ interface IFeeDistributor is IERC165 {
         uint256 _amount
     );
 
-    /// @notice Emits if case there was some ether left after `withdraw` and it has failed to recover.
-    /// @param _to destination address for ether.
-    /// @param _amount how much wei the destination address should have received, but didn't.
-    event FeeDistributor__EtherRecoveryFailed(
-        address indexed _to,
-        uint256 _amount
-    );
-
     /// @notice Set client address.
     /// @dev Could not be in the constructor since it is different for different clients.
     /// _referrerConfig can be zero if there is no referrer.

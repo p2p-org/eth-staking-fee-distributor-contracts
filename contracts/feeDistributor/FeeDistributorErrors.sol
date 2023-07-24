@@ -72,3 +72,11 @@ error FeeDistributor__NothingToWithdraw();
 /// @param _caller address of the caller
 /// @param _client address of the client
 error FeeDistributor__CallerNotClient(address _caller, address _client);
+
+/// @notice Throws in case there was some ether left after `withdraw` and it has failed to recover.
+/// @param _to destination address for ether.
+/// @param _amount how much wei the destination address should have received, but didn't.
+error FeeDistributor__EtherRecoveryFailed(
+    address _to,
+    uint256 _amount
+);

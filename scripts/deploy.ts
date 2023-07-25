@@ -65,7 +65,6 @@ async function main() {
 
         // deploy P2pEth2Depositor contract
         const p2pEth2DepositorSignedByDeployer = await new P2pOrgUnlimitedEthDepositor__factory(deployerSigner).deploy(
-            chainId === 1,
             feeDistributorFactorySignedByDeployer.address,
             {gasLimit: 10000000, maxPriorityFeePerGas: 1000, maxFeePerGas: 400000000000}
         )

@@ -23,6 +23,9 @@ error OracleFeeDistributor__WaitForEnoughRewardsToWithdraw();
 /// @notice clientOnlyClRewards can only be set once
 error OracleFeeDistributor__CannotResetClientOnlyClRewards();
 
+/// @notice Client basis points should be higher than 5000
+error OracleFeeDistributor__ClientBasisPointsShouldBeHigherThan5000();
+
 /// @title FeeDistributor accepting EL rewards only but splitting them with consideration of CL rewards
 /// @dev CL rewards are received by the client directly since client's address is ETH2 withdrawal credentials
 contract OracleFeeDistributor is BaseFeeDistributor {
@@ -54,6 +57,18 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         }
 
         i_oracle = IOracle(_oracle);
+    }
+
+    /// @inheritdoc IFeeDistributor
+    function initialize(
+        FeeRecipient calldata _clientConfig,
+        FeeRecipient calldata _referrerConfig
+    ) public override {
+        if (_clientConfig.basisPoints <= 5000) {
+            revert OracleFeeDistributor__ClientBasisPointsShouldBeHigherThan5000();
+        }
+
+        super.initialize(_clientConfig, _referrerConfig);
     }
 
     /// @notice Set clientOnlyClRewards to a new value
@@ -109,7 +124,7 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         // Gwei to Wei
         uint256 amount = _amountInGwei * (10 ** 9);
 
-        if (balance + amount < s_clientOnlyClRewards) {
+        if (amount < s_clientOnlyClRewards) {
             // Can happen if the client has called emergencyEtherRecoveryWithoutOracleData before
             // but the actual rewards amount now appeared to be lower than the already split.
             // Should happen rarely.
@@ -147,10 +162,9 @@ contract OracleFeeDistributor is BaseFeeDistributor {
             clientAmount = balance - serviceAmount;
         }
 
-        // client gets the rest from CL as not split anymore amount
-        s_clientOnlyClRewards += (totalAmountToSplit - balance);
-
         emit OracleFeeDistributor__ClientOnlyClRewardsUpdated(s_clientOnlyClRewards);
+
+        bool someEthSent;
 
         // how much should referrer get
         uint256 referrerAmount;
@@ -163,14 +177,19 @@ contract OracleFeeDistributor is BaseFeeDistributor {
             serviceAmount -= referrerAmount;
 
             // Send ETH to referrer. Ignore the possible yet unlikely revert in the receive function.
-            P2pAddressLib._sendValue(s_referrerConfig.recipient, referrerAmount);
+            someEthSent = P2pAddressLib._sendValue(s_referrerConfig.recipient, referrerAmount);
         }
 
         // Send ETH to service. Ignore the possible yet unlikely revert in the receive function.
-        P2pAddressLib._sendValue(i_service, serviceAmount);
+        someEthSent = P2pAddressLib._sendValue(i_service, serviceAmount) || someEthSent;
 
         // Send ETH to client. Ignore the possible yet unlikely revert in the receive function.
-        P2pAddressLib._sendValue(s_clientConfig.recipient, clientAmount);
+        someEthSent = P2pAddressLib._sendValue(s_clientConfig.recipient, clientAmount) || someEthSent;
+
+        if (someEthSent) {
+            // client gets the rest from CL as not split anymore amount
+            s_clientOnlyClRewards += (totalAmountToSplit - balance);
+        }
 
         emit FeeDistributor__Withdrawn(
             serviceAmount,
@@ -189,18 +208,22 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         bytes32[] calldata _proof,
         uint256 _amountInGwei
     ) external onlyOwner {
+        if (_to == address(0)) {
+            revert FeeDistributor__ZeroAddressEthReceiver();
+        }
+
         this.withdraw(_proof, _amountInGwei);
 
         // get the contract's balance
         uint256 balance = address(this).balance;
 
         if (balance > 0) { // only happens if at least 1 party reverted in their receive
-            bool success = P2pAddressLib._sendValue(_to, balance);
+            bool success = P2pAddressLib._sendValueWithoutGasRestrictions(_to, balance);
 
             if (success) {
                 emit FeeDistributor__EtherRecovered(_to, balance);
             } else {
-                emit FeeDistributor__EtherRecoveryFailed(_to, balance);
+                revert FeeDistributor__EtherRecoveryFailed(_to, balance);
             }
         }
     }
@@ -226,10 +249,9 @@ contract OracleFeeDistributor is BaseFeeDistributor {
         // the total amount being split fits the actual balance of this contract
         uint256 totalAmountToSplit = (halfBalance * 10000) / (10000 - s_clientConfig.basisPoints);
 
-        // client gets the rest from CL as not split anymore amount
-        s_clientOnlyClRewards += (totalAmountToSplit - balance);
-
         emit OracleFeeDistributor__ClientOnlyClRewardsUpdated(s_clientOnlyClRewards);
+
+        bool someEthSent;
 
         // how much should referrer get
         uint256 referrerAmount;
@@ -242,14 +264,19 @@ contract OracleFeeDistributor is BaseFeeDistributor {
             serviceAmount -= referrerAmount;
 
             // Send ETH to referrer. Ignore the possible yet unlikely revert in the receive function.
-            P2pAddressLib._sendValue(s_referrerConfig.recipient, referrerAmount);
+            someEthSent = P2pAddressLib._sendValue(s_referrerConfig.recipient, referrerAmount);
         }
 
         // Send ETH to service. Ignore the possible yet unlikely revert in the receive function.
-        P2pAddressLib._sendValue(i_service, serviceAmount);
+        someEthSent = P2pAddressLib._sendValue(i_service, serviceAmount) || someEthSent;
 
         // Send ETH to client. Ignore the possible yet unlikely revert in the receive function.
-        P2pAddressLib._sendValue(s_clientConfig.recipient, clientAmount);
+        someEthSent = P2pAddressLib._sendValue(s_clientConfig.recipient, clientAmount) || someEthSent;
+
+        if (someEthSent) {
+            // client gets the rest from CL as not split anymore amount
+            s_clientOnlyClRewards += (totalAmountToSplit - balance);
+        }
 
         emit FeeDistributor__Withdrawn(
             serviceAmount,

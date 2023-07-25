@@ -32,16 +32,15 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
     mapping(address => ClientDeposit) private s_deposits;
 
     /// @dev Set values known at the initial deploy time.
-    /// @param _mainnet Mainnet=true Goerli=false
     /// @param _feeDistributorFactory address of FeeDistributorFactory
-    constructor(bool _mainnet, address _feeDistributorFactory) {
+    constructor(address _feeDistributorFactory) {
         if (!ERC165Checker.supportsInterface(_feeDistributorFactory, type(IFeeDistributorFactory).interfaceId)) {
             revert P2pOrgUnlimitedEthDepositor__NotFactory(_feeDistributorFactory);
         }
 
         i_feeDistributorFactory = IFeeDistributorFactory(_feeDistributorFactory);
 
-        i_depositContract = _mainnet
+        i_depositContract = block.chainid == 1
             ? IDepositContract(0x00000000219ab540356cBB839Cbe05303d7705Fa) // real Mainnet DepositContract
             : IDepositContract(0xff50ed3d0ec03aC01D4C79aAd74928BFF48a7b2b); // real Goerli DepositContract
     }
@@ -57,8 +56,8 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig
     ) external payable returns(address feeDistributorInstance) {
-        if (msg.value == 0) {
-            revert P2pOrgUnlimitedEthDepositor__NoZeroDeposits();
+        if (msg.value < MIN_DEPOSIT) {
+            revert P2pOrgUnlimitedEthDepositor__NoSmallDeposits();
         }
 
         if (!ERC165Checker.supportsInterface(_referenceFeeDistributor, type(IFeeDistributor).interfaceId)) {
@@ -70,6 +69,10 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
             _clientConfig,
             _referrerConfig
         );
+
+        if (s_deposits[feeDistributorInstance].status == ClientDepositStatus.ServiceRejected) {
+            revert P2pOrgUnlimitedEthDepositor__ShouldNotBeRejected(feeDistributorInstance);
+        }
 
         if (feeDistributorInstance.code.length == 0) {
             // if feeDistributorInstance doesn't exist, deploy it
@@ -109,6 +112,10 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
     ) external {
         i_feeDistributorFactory.checkOperatorOrOwner(msg.sender);
 
+        if (s_deposits[_feeDistributorInstance].status == ClientDepositStatus.None) {
+            revert P2pOrgUnlimitedEthDepositor__NoDepositToReject(_feeDistributorInstance);
+        }
+
         s_deposits[_feeDistributorInstance].status = ClientDepositStatus.ServiceRejected;
         s_deposits[_feeDistributorInstance].expiration = 0; // allow the client to get a refund immediately
 
@@ -144,23 +151,6 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         emit P2pOrgUnlimitedEthDepositor__Refund(_feeDistributorInstance, client, amount);
     }
 
-    /// @notice Can be very gas expensive.
-    /// Better use `refundAll(address[])`
-    /// Only callable by client
-    function refundAll() external {
-        address[] memory allClientFeeDistributors = i_feeDistributorFactory.allClientFeeDistributors(msg.sender);
-
-        for (uint256 i = 0; i < allClientFeeDistributors.length;) {
-            refund(allClientFeeDistributors[i]);
-
-            // An array can't have a total length
-            // larger than the max uint256 value.
-            unchecked {
-                ++i;
-            }
-        }
-    }
-
     /// @notice Cheaper, requires calling feeDistributorFactory's allClientFeeDistributors externally first
     /// Only callable by client
     /// @param _allClientFeeDistributors array of all client FeeDistributor instances whose associated ETH amounts should be refunded
@@ -184,6 +174,10 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         bytes32[] calldata _depositDataRoots
     ) external {
         i_feeDistributorFactory.checkOperatorOrOwner(msg.sender);
+
+        if (s_deposits[_feeDistributorInstance].status == ClientDepositStatus.ServiceRejected) {
+            revert P2pOrgUnlimitedEthDepositor__ShouldNotBeRejected(_feeDistributorInstance);
+        }
 
         uint256 validatorCount = _pubkeys.length;
         uint112 amountToStake = uint112(COLLATERAL * validatorCount);

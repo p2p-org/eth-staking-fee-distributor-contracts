@@ -8,8 +8,8 @@ pragma solidity 0.8.10;
 /// @param _amount amount of ETH is wei
 error P2pOrgUnlimitedEthDepositor__FailedToSendEth(address _receiver, uint256 _amount);
 
-/// @notice Deposits must be greater than zero.
-error P2pOrgUnlimitedEthDepositor__NoZeroDeposits();
+/// @notice Deposits must be at least 1 ETH.
+error P2pOrgUnlimitedEthDepositor__NoSmallDeposits();
 
 /// @notice Only client can call refund
 /// @param _caller address calling refund
@@ -48,3 +48,11 @@ error P2pOrgUnlimitedEthDepositor__NotFeeDistributor(address _passedAddress);
 /// @notice Should be a FeeDistributorFactory contract
 /// @param _passedAddress passed address that does not support IFeeDistributorFactory interface
 error P2pOrgUnlimitedEthDepositor__NotFactory(address _passedAddress);
+
+/// @notice There is no active deposit for the given FeeDistributor instance
+/// @param _feeDistributorInstance FeeDistributor instance address
+error P2pOrgUnlimitedEthDepositor__NoDepositToReject(address _feeDistributorInstance);
+
+/// @notice Cannot proceed because a deposit for this FeeDistributor instance has already been rejected
+/// @param _feeDistributorInstance FeeDistributor instance address
+error P2pOrgUnlimitedEthDepositor__ShouldNotBeRejected(address _feeDistributorInstance);

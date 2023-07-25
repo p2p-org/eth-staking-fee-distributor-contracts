@@ -22,7 +22,7 @@ abstract contract TokenRecoverer {
     using SafeERC20 for IERC20;
 
     event ERC20Transferred(address indexed _token, address indexed _recipient, uint256 _amount);
-    event ERC721Transferred(address indexed _token, address indexed _recipient, uint256 _tokenId, bytes _data);
+    event ERC721Transferred(address indexed _token, address indexed _recipient, uint256 _tokenId);
     event ERC1155Transferred(address indexed _token, address indexed _recipient, uint256 _tokenId, uint256 _amount, bytes _data);
 
     /**
@@ -61,16 +61,14 @@ abstract contract TokenRecoverer {
      * @param _token address of the ERC721 token
      * @param _recipient address to transfer the token to
      * @param _tokenId id of the individual token
-     * @param _data data to transfer along
      */
     function _transferERC721(
         address _token,
         address _recipient,
-        uint256 _tokenId,
-        bytes calldata _data
+        uint256 _tokenId
     ) internal virtual burnDisallowed(_recipient) {
-        IERC721(_token).safeTransferFrom(address(this), _recipient, _tokenId, _data);
-        emit ERC721Transferred(_token, _recipient, _tokenId, _data);
+        IERC721(_token).transferFrom(address(this), _recipient, _tokenId);
+        emit ERC721Transferred(_token, _recipient, _tokenId);
     }
 
     /**

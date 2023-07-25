@@ -60,7 +60,7 @@ abstract contract OwnableWithOperator is Ownable2Step, IOwnableWithOperator {
         address currentOwner = owner();
         address currentOperator = s_operator;
 
-        if (currentOperator != _address && currentOwner != _address) {
+        if (_address == address(0) || (currentOperator != _address && currentOwner != _address)) {
             revert Access__AddressNeitherOperatorNorOwner(_address, currentOperator, currentOwner);
         }
     }

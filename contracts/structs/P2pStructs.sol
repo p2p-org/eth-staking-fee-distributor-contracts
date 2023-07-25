@@ -16,13 +16,13 @@ struct FeeRecipient {
 /// @dev 256 bit struct
 /// @member depositedCount the number of deposited validators
 /// @member exitedCount the number of validators requested to exit
-/// @member collateralReturnedCount the number of collaterals (multiples of 32 ETH) returned to the client
-/// @member reservedForFutureUse unused space making up to 256 bit. Can be some address in the future.
+/// @member collateralReturnedValue amount of ETH returned to the client to cover the collaterals
+/// @member cooldownUntil timestamp after which it will be possible to withdraw ignoring the client's revert on ETH receive
 struct ValidatorData {
     uint32 depositedCount;
     uint32 exitedCount;
-    uint32 collateralReturnedCount;
-    uint160 reservedForFutureUse;
+    uint112 collateralReturnedValue;
+    uint80 cooldownUntil;
 }
 
 /// @dev status of the client deposit

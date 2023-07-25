@@ -29,6 +29,10 @@ error FeeDistributorFactory__ReferenceFeeDistributorNotSet();
 /// @param _caller calling address
 error FeeDistributorFactory__CallerNotAuthorized(address _caller);
 
+/// @notice Default client basis points should be >= 0 and <= 10000
+/// @param _defaultClientBasisPoints passed incorrect default client basis points
+error FeeDistributorFactory__InvalidDefaultClientBasisPoints(uint96 _defaultClientBasisPoints);
+
 /// @title Factory for cloning (EIP-1167) FeeDistributor instances pre client
 contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ERC165, IFeeDistributorFactory {
 
@@ -49,6 +53,10 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     /// @dev Set values known at the initial deploy time.
     /// @param _defaultClientBasisPoints Default Client Basis Points
     constructor(uint96 _defaultClientBasisPoints) {
+        if (_defaultClientBasisPoints >= 10000) {
+            revert FeeDistributorFactory__InvalidDefaultClientBasisPoints(_defaultClientBasisPoints);
+        }
+
         s_defaultClientBasisPoints = _defaultClientBasisPoints;
 
         emit FeeDistributorFactory__DefaultClientBasisPointsSet(_defaultClientBasisPoints);
@@ -68,6 +76,10 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     /// @notice Set a new Default Client Basis Points
     /// @param _defaultClientBasisPoints Default Client Basis Points
     function setDefaultClientBasisPoints(uint96 _defaultClientBasisPoints) external onlyOwner {
+        if (_defaultClientBasisPoints >= 10000) {
+            revert FeeDistributorFactory__InvalidDefaultClientBasisPoints(_defaultClientBasisPoints);
+        }
+
         s_defaultClientBasisPoints = _defaultClientBasisPoints;
 
         emit FeeDistributorFactory__DefaultClientBasisPointsSet(_defaultClientBasisPoints);
@@ -125,9 +137,13 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
     /// @inheritdoc IFeeDistributorFactory
     function predictFeeDistributorAddress(
         address _referenceFeeDistributor,
-        FeeRecipient calldata _clientConfig,
+        FeeRecipient memory _clientConfig,
         FeeRecipient calldata _referrerConfig
     ) public view returns (address) {
+        if (_clientConfig.basisPoints == 0) {
+            _clientConfig.basisPoints = s_defaultClientBasisPoints;
+        }
+
         return Clones.predictDeterministicAddress(
             _referenceFeeDistributor,
             _getSalt(_clientConfig, _referrerConfig)

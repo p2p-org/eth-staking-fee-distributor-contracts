@@ -23,6 +23,9 @@ error FeeDistributor__ZeroAddressClient();
 /// @param _clientBasisPoints passed incorrect client basis points
 error FeeDistributor__InvalidClientBasisPoints(uint96 _clientBasisPoints);
 
+/// @notice Referrer basis points should be > 0 if the referrer exists
+error FeeDistributor__ZeroReferrerBasisPointsForNonZeroReferrer();
+
 /// @notice The sum of (Client basis points + Referral basis points) should be >= 0 and <= 10000
 /// @param _clientBasisPoints passed client basis points
 /// @param _referralBasisPoints passed referral basis points
@@ -72,3 +75,14 @@ error FeeDistributor__NothingToWithdraw();
 /// @param _caller address of the caller
 /// @param _client address of the client
 error FeeDistributor__CallerNotClient(address _caller, address _client);
+
+/// @notice Throws in case there was some ether left after `withdraw` and it has failed to recover.
+/// @param _to destination address for ether.
+/// @param _amount how much wei the destination address should have received, but didn't.
+error FeeDistributor__EtherRecoveryFailed(
+    address _to,
+    uint256 _amount
+);
+
+/// @notice ETH receiver should not be a zero address
+error FeeDistributor__ZeroAddressEthReceiver();

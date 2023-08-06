@@ -35,15 +35,13 @@ abstract contract OwnableTokenRecoverer is TokenRecoverer, OwnableBase {
      * @param _token address of the ERC721 token
      * @param _recipient address to transfer the token to
      * @param _tokenId id of the individual token
-     * @param _data data to transfer along
      */
     function transferERC721(
         address _token,
         address _recipient,
-        uint256 _tokenId,
-        bytes calldata _data
+        uint256 _tokenId
     ) external onlyOwner {
-        _transferERC721(_token, _recipient, _tokenId, _data);
+        _transferERC721(_token, _recipient, _tokenId);
     }
 
     /**

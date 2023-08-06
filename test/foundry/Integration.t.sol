@@ -17,6 +17,7 @@ import "../../contracts/structs/P2pStructs.sol";
 import "../../contracts/mocks/MockClientFeeDistributor.sol";
 import "../../contracts/mocks/IEntryPoint.sol";
 import "../../contracts/erc4337/UserOperation.sol";
+import "../../contracts/mocks/MockAlteringReceive.sol";
 
 contract Integration is Test {
     using ECDSA for bytes32;
@@ -43,7 +44,7 @@ contract Integration is Test {
 
     bytes32 merkleRoot;
     bytes32[] merkleProof;
-    uint256 constant amountInGweiFromOracle = 20000000000;
+    uint256 constant amountInGweiFromOracle = 20 gwei; //
 
     uint256 operatorPrivateKey = 42; // needed for signature
     address payable bundler = payable(address(100500));
@@ -111,7 +112,7 @@ contract Integration is Test {
         contractWcFeeDistributorTemplate = new ContractWcFeeDistributor(address(factory), serviceAddress);
         elOnlyFeeDistributorTemplate = new ElOnlyFeeDistributor(address(factory), serviceAddress);
         oracleFeeDistributorTemplate = new OracleFeeDistributor(address(oracle), address(factory), serviceAddress);
-        p2pEthDepositor = new P2pOrgUnlimitedEthDepositor(true, address(factory));
+        p2pEthDepositor = new P2pOrgUnlimitedEthDepositor(address(factory));
         vm.stopPrank();
 
         checkOwnership();
@@ -327,6 +328,279 @@ contract Integration is Test {
         console.log("testCustomClientFeeDistributor finished");
     }
 
+    function test_Clients_stopping_and_starting_again_receiving_collaterals() public {
+        console.log("test_Clients_stopping_and_starting_again_receiving_collaterals started");
+
+        MockAlteringReceive mockAlteringReceive = new MockAlteringReceive();
+        address payable mockAlteringReceiveAddress = payable(address(mockAlteringReceive));
+
+        vm.startPrank(operatorAddress);
+        address newFeeDistributorAddress = factory.createFeeDistributor(
+            address(contractWcFeeDistributorTemplate),
+            FeeRecipient({
+                recipient: mockAlteringReceiveAddress,
+                basisPoints: defaultClientBasisPoints
+            }),
+            FeeRecipient({
+                recipient: payable(address(0)),
+                basisPoints: 0
+            })
+        );
+        vm.stopPrank();
+
+        contractWcFeeDistributorInstance = ContractWcFeeDistributor(payable(newFeeDistributorAddress));
+
+        vm.startPrank(operatorAddress);
+        contractWcFeeDistributorInstance.increaseDepositedCount(1);
+        vm.stopPrank();
+
+        bytes[] memory dummyPubKeys = new bytes[](1);
+        dummyPubKeys[0] = "test";
+        vm.startPrank(mockAlteringReceiveAddress);
+        contractWcFeeDistributorInstance.voluntaryExit(dummyPubKeys);
+        vm.stopPrank();
+
+        uint256 serviceBalanceBefore = serviceAddress.balance;
+        uint256 clientBalanceBefore = mockAlteringReceiveAddress.balance;
+
+        vm.deal(address(contractWcFeeDistributorInstance), COLLATERAL);
+        mockAlteringReceive.startRevertingOnReceive();
+        contractWcFeeDistributorInstance.withdraw();
+
+        uint256 serviceBalanceAfter = serviceAddress.balance;
+        uint256 clientBalanceAfter = mockAlteringReceiveAddress.balance;
+
+        assertEq(
+            serviceBalanceAfter - serviceBalanceBefore,
+            0
+        );
+        assertEq(
+            clientBalanceAfter - clientBalanceBefore,
+            0
+        );
+
+        mockAlteringReceive.stopRevertingOnReceive();
+        contractWcFeeDistributorInstance.withdraw();
+
+        serviceBalanceAfter = serviceAddress.balance;
+        clientBalanceAfter = mockAlteringReceiveAddress.balance;
+
+        assertEq(
+            serviceBalanceAfter - serviceBalanceBefore,
+            0
+        );
+        assertEq(
+            clientBalanceAfter - clientBalanceBefore,
+            COLLATERAL
+        );
+
+        console.log("test_Clients_stopping_and_starting_again_receiving_collaterals finished");
+    }
+
+    function test_Clients_stopping_receiving_collaterals_cooldown() public {
+        console.log("test_Clients_stopping_receiving_collaterals_cooldown started");
+
+        MockAlteringReceive mockAlteringReceive = new MockAlteringReceive();
+        address payable mockAlteringReceiveAddress = payable(address(mockAlteringReceive));
+
+        vm.startPrank(operatorAddress);
+        address newFeeDistributorAddress = factory.createFeeDistributor(
+            address(contractWcFeeDistributorTemplate),
+            FeeRecipient({
+        recipient: mockAlteringReceiveAddress,
+        basisPoints: defaultClientBasisPoints
+        }),
+            FeeRecipient({
+        recipient: payable(address(0)),
+        basisPoints: 0
+        })
+        );
+        vm.stopPrank();
+
+        contractWcFeeDistributorInstance = ContractWcFeeDistributor(payable(newFeeDistributorAddress));
+
+        vm.startPrank(operatorAddress);
+        contractWcFeeDistributorInstance.increaseDepositedCount(1);
+        vm.stopPrank();
+
+        bytes[] memory dummyPubKeys = new bytes[](1);
+        dummyPubKeys[0] = "test";
+        vm.startPrank(mockAlteringReceiveAddress);
+        contractWcFeeDistributorInstance.voluntaryExit(dummyPubKeys);
+        vm.stopPrank();
+
+        uint256 serviceBalanceBefore = serviceAddress.balance;
+        uint256 clientBalanceBefore = mockAlteringReceiveAddress.balance;
+
+        vm.deal(address(contractWcFeeDistributorInstance), COLLATERAL);
+        mockAlteringReceive.startRevertingOnReceive();
+        contractWcFeeDistributorInstance.withdraw();
+
+        uint256 serviceBalanceAfter = serviceAddress.balance;
+        uint256 clientBalanceAfter = mockAlteringReceiveAddress.balance;
+
+        assertEq(
+            serviceBalanceAfter - serviceBalanceBefore,
+            0
+        );
+        assertEq(
+            clientBalanceAfter - clientBalanceBefore,
+            0
+        );
+
+        vm.warp(block.timestamp + COOLDOWN + 1);
+        contractWcFeeDistributorInstance.withdraw();
+
+        serviceBalanceAfter = serviceAddress.balance;
+        clientBalanceAfter = mockAlteringReceiveAddress.balance;
+
+        assertEq(
+            serviceBalanceAfter - serviceBalanceBefore,
+            COLLATERAL * (10000 - defaultClientBasisPoints) / 10000
+        );
+        assertEq(
+            clientBalanceAfter - clientBalanceBefore,
+            0
+        );
+
+        console.log("test_Clients_stopping_receiving_collaterals_cooldown finished");
+    }
+
+    function test_Null_basis_points_will_lead_to_the_lock_of_funds() public {
+        console.log("test_Null_basis_points_will_lead_to_the_lock_of_funds started");
+
+        uint256 deposit = 1 ether;
+
+        vm.startPrank(clientDepositorAddress);
+        elFeeDistributorInstance = ElOnlyFeeDistributor(payable(
+            p2pEthDepositor.addEth{value: deposit}(
+                address(elOnlyFeeDistributorTemplate),
+                FeeRecipient({
+                    recipient: clientWcAddress,
+                    basisPoints: 0
+                }),
+                FeeRecipient({
+                    recipient: payable(address(0)),
+                    basisPoints: 0
+                })
+        )));
+        vm.stopPrank();
+
+        uint256 depositAmount = p2pEthDepositor.depositAmount(address(elFeeDistributorInstance));
+        assertEq(depositAmount, deposit);
+
+        vm.startPrank(clientWcAddress);
+        vm.warp(block.timestamp + TIMEOUT + 1);
+        uint256 clientWcAddressBalanceBefore = clientWcAddress.balance;
+
+        p2pEthDepositor.refund(address(elFeeDistributorInstance));
+
+        vm.stopPrank();
+        uint256 clientWcAddressBalanceAfter = clientWcAddress.balance;
+
+        assertEq(clientWcAddressBalanceAfter - clientWcAddressBalanceBefore, deposit);
+        uint256 depositAmountAfterRefund = p2pEthDepositor.depositAmount(address(elFeeDistributorInstance));
+        assertEq(depositAmountAfterRefund, 0);
+
+        console.log("test_Null_basis_points_will_lead_to_the_lock_of_funds finished");
+    }
+
+    function test_OracleFeeDistributor_withdraw_after_emergencyEtherRecoveryWithoutOracleData() public {
+        console.log("test_OracleFeeDistributor_withdraw_after_emergencyEtherRecoveryWithoutOracleData started");
+
+        address newFeeDistributorAddress = deployOracleFeeDistributorCreationWithoutDepositor();
+        oracleFeeDistributorInstance = OracleFeeDistributor(payable(newFeeDistributorAddress));
+
+        uint256 elRewards = 6 ether;
+        vm.deal(address(oracleFeeDistributorInstance), elRewards);
+
+        uint256 serviceBalanceBefore = serviceAddress.balance;
+        uint256 clientBalanceBefore = clientWcAddress.balance;
+
+        vm.startPrank(clientWcAddress);
+        oracleFeeDistributorInstance.emergencyEtherRecoveryWithoutOracleData();
+        vm.stopPrank();
+
+        uint256 serviceBalanceAfter = serviceAddress.balance;
+        uint256 clientBalanceAfter = clientWcAddress.balance;
+
+        assertEq(
+            serviceBalanceAfter - serviceBalanceBefore,
+                elRewards / 2
+        );
+        assertEq(
+            clientBalanceAfter - clientBalanceBefore,
+                elRewards / 2
+        );
+
+        vm.startPrank(operatorAddress);
+        oracle.report(merkleRoot);
+        vm.stopPrank();
+
+        elRewards = 5 ether;
+        vm.deal(address(oracleFeeDistributorInstance), elRewards);
+
+        vm.expectRevert(OracleFeeDistributor__WaitForEnoughRewardsToWithdraw.selector);
+        oracleFeeDistributorInstance.withdraw(merkleProof, amountInGweiFromOracle);
+
+        console.log("test_OracleFeeDistributor_withdraw_after_emergencyEtherRecoveryWithoutOracleData finished");
+    }
+
+    function test_OracleFeeDistributor_withdraw_with_the_same_proof() public {
+        console.log("test_OracleFeeDistributor_withdraw_with_the_same_proof started");
+
+        address newFeeDistributorAddress = deployOracleFeeDistributorCreationWithoutDepositor();
+        oracleFeeDistributorInstance = OracleFeeDistributor(payable(newFeeDistributorAddress));
+
+        uint256 elRewards = 10 ether;
+        vm.deal(address(oracleFeeDistributorInstance), elRewards);
+
+        vm.startPrank(operatorAddress);
+        oracle.report(merkleRoot);
+        vm.stopPrank();
+
+        uint256 serviceBalanceBefore = serviceAddress.balance;
+        uint256 clientBalanceBefore = clientWcAddress.balance;
+
+        oracleFeeDistributorInstance.withdraw(merkleProof, amountInGweiFromOracle);
+
+        uint256 serviceBalanceAfter = serviceAddress.balance;
+        uint256 clientBalanceAfter = clientWcAddress.balance;
+
+        uint256 clRewards = amountInGweiFromOracle * 1 gwei;
+        uint256 totalRewards = clRewards + elRewards;
+
+        assertEq(
+            serviceBalanceAfter - serviceBalanceBefore,
+            totalRewards * (10000 - defaultClientBasisPoints) / 10000
+        );
+        assertEq(
+            clientBalanceAfter - clientBalanceBefore,
+            totalRewards * defaultClientBasisPoints / 10000 - clRewards
+        );
+
+        vm.deal(address(oracleFeeDistributorInstance), elRewards); // add more elRewards
+
+        serviceBalanceBefore = serviceAddress.balance;
+        clientBalanceBefore = clientWcAddress.balance;
+
+        oracleFeeDistributorInstance.withdraw(merkleProof, amountInGweiFromOracle);
+
+        serviceBalanceAfter = serviceAddress.balance;
+        clientBalanceAfter = clientWcAddress.balance;
+
+        assertEq(
+            serviceBalanceAfter - serviceBalanceBefore,
+                elRewards * (10000 - defaultClientBasisPoints) / 10000
+        );
+        assertEq(
+            clientBalanceAfter - clientBalanceBefore,
+                elRewards * defaultClientBasisPoints / 10000
+        );
+
+        console.log("test_OracleFeeDistributor_withdraw_with_the_same_proof finished");
+    }
+
     function test_OracleFeeDistributor_Creation_Without_Depositor() public {
         console.log("testOracleFeeDistributorCreationWithoutDepositor started");
 
@@ -368,6 +642,47 @@ contract Integration is Test {
         withdrawOracleFeeDistributor({clientOnlyClRewards: clientOnlyClRewards});
 
         console.log("testOracleFeeDistributorCreationWithoutDepositor finished");
+    }
+
+    function test_ContractWcFeeDistributor_Rewards_can_be_accounted_as_collateral() public {
+        console.log("test_ContractWcFeeDistributor_Rewards_can_be_accounted_as_collateral started");
+
+        address newFeeDistributorAddress = deployContractWcFeeDistributorCreationWithoutDepositor();
+        contractWcFeeDistributorInstance = ContractWcFeeDistributor(payable(newFeeDistributorAddress));
+
+        vm.startPrank(operatorAddress);
+        contractWcFeeDistributorInstance.increaseDepositedCount(1);
+        vm.stopPrank();
+
+        bytes[] memory dummyPubKeys = new bytes[](1);
+        dummyPubKeys[0] = "test";
+        vm.startPrank(clientWcAddress);
+        contractWcFeeDistributorInstance.voluntaryExit(dummyPubKeys);
+        vm.stopPrank();
+
+        uint256 rewards = 31 ether;
+        uint256 clientSent = 1 ether;
+
+        uint256 serviceBalanceBefore = serviceAddress.balance;
+        uint256 clientBalanceBefore = clientWcAddress.balance;
+
+        vm.deal(address(contractWcFeeDistributorInstance), rewards + COLLATERAL + clientSent);
+
+        contractWcFeeDistributorInstance.withdraw();
+
+        uint256 serviceBalanceAfter = serviceAddress.balance;
+        uint256 clientBalanceAfter = clientWcAddress.balance;
+
+        assertEq(
+            serviceBalanceAfter - serviceBalanceBefore,
+            (rewards + clientSent) * (10000 - defaultClientBasisPoints) / 10000
+        );
+        assertEq(
+            clientBalanceAfter - clientBalanceBefore,
+            (rewards + clientSent) * defaultClientBasisPoints / 10000 + COLLATERAL
+        );
+
+        console.log("test_ContractWcFeeDistributor_Rewards_can_be_accounted_as_collateral finished");
     }
 
     function test_ContractWcFeeDistributor_Creation_Without_Depositor() public {

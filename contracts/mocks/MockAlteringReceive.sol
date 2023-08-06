@@ -12,13 +12,15 @@ contract MockAlteringReceive {
 
     receive() external payable {
         if (s_shouldRevertOnReceive) {
-            for(;;) {
-                // infinite loop to consume all the gas
-            }
+            revert("Intentional revert");
         }
     }
 
     function startRevertingOnReceive() external {
         s_shouldRevertOnReceive = true;
+    }
+
+    function stopRevertingOnReceive() external {
+        s_shouldRevertOnReceive = false;
     }
 }

@@ -31,7 +31,7 @@ contract Deploy is Script {
         ContractWcFeeDistributor contractWcFeeDistributorTemplate = new ContractWcFeeDistributor(address(factory), serviceAddress);
         ElOnlyFeeDistributor elOnlyFeeDistributorTemplate = new ElOnlyFeeDistributor(address(factory), serviceAddress);
         OracleFeeDistributor oracleFeeDistributorTemplate = new OracleFeeDistributor(address(oracle), address(factory), serviceAddress);
-        P2pOrgUnlimitedEthDepositor p2pEthDepositor = new P2pOrgUnlimitedEthDepositor(block.chainid == 1, address(factory));
+        P2pOrgUnlimitedEthDepositor p2pEthDepositor = new P2pOrgUnlimitedEthDepositor(address(factory));
         factory.setP2pEth2Depositor(address(p2pEthDepositor));
 
         vm.stopBroadcast();

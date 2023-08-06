@@ -238,7 +238,7 @@ describe("FeeDistributorFactory", function () {
                 `OwnableBase__CallerNotOwner`
             )
 
-        await expect(factorySignedByOwner.transferERC721(erc721.address, nobody, erc721TokenId, "0x", {gasLimit: 30000000}))
+        await expect(factorySignedByOwner.transferERC721(erc721.address, nobody, erc721TokenId, {gasLimit: 30000000}))
             .to.be.revertedWith(
                 `OwnableBase__CallerNotOwner`
             )
@@ -255,7 +255,7 @@ describe("FeeDistributorFactory", function () {
         const recipientErc20Balance = await erc20.balanceOf(nobody)
         expect(recipientErc20Balance).to.be.equal(erc20Amount)
 
-        await factorySignedByOwner.transferERC721(erc721.address, nobody, erc721TokenId, "0x", {gasLimit: 30000000})
+        await factorySignedByOwner.transferERC721(erc721.address, nobody, erc721TokenId, {gasLimit: 30000000})
         const recipientErc721Balance = await erc721.balanceOf(nobody)
         expect(recipientErc721Balance).to.be.equal(1)
 

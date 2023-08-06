@@ -81,18 +81,22 @@ contract ElOnlyFeeDistributor is BaseFeeDistributor {
     /// refuse to accept ether.
     /// @param _to receiver address
     function recoverEther(address payable _to) external onlyOwner {
+        if (_to == address(0)) {
+            revert FeeDistributor__ZeroAddressEthReceiver();
+        }
+
         this.withdraw();
 
         // get the contract's balance
         uint256 balance = address(this).balance;
 
         if (balance > 0) { // only happens if at least 1 party reverted in their receive
-            bool success = P2pAddressLib._sendValue(_to, balance);
+            bool success = P2pAddressLib._sendValueWithoutGasRestrictions(_to, balance);
 
             if (success) {
                 emit FeeDistributor__EtherRecovered(_to, balance);
             } else {
-                emit FeeDistributor__EtherRecoveryFailed(_to, balance);
+                revert FeeDistributor__EtherRecoveryFailed(_to, balance);
             }
         }
     }

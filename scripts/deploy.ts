@@ -94,12 +94,12 @@ main().catch((error) => {
 });
 
 
-// Deploying to: goerli
-// FeeDistributorFactory deployed at: 0x8C87EFBA90414687A66C8B2E7D21039E81d55456
-// Oracle deployed at: 0x6aA04FA882E4Cd26F0354B07Ee1884Fe156f78B2
-// ContractWcFeeDistributor instance deployed at: 0x46320E8a9F101D43e7502dbFc06aaCE389448986
-// ElOnlyFeeDistributor instance deployed at: 0x94EDf7e950fA01bAa44a8690cAC64264cdB7cA7c
-// OracleFeeDistributor instance deployed at: 0xAD91441aB557b5eC5d9f29DB64522Eb918B4f32b
-// P2pEth2Depositor deployed at: 0x38129624175aC89337B5068B8364EfC5F539a567
+// Deploying to: holesky
+// FeeDistributorFactory deployed at: 0x5C3911AF5C62164ae6a158453173E26c96e931BC
+// Oracle deployed at: 0x9Ff4a1D87162732dF869f6fd724ca2286fCd1630
+// ContractWcFeeDistributor instance deployed at: 0xB85bcA7e8aFC19e88473982E5BD97648eA8D3C47
+// ElOnlyFeeDistributor instance deployed at: 0x917105CC314C12890D9C8224Aee5aF9574F871cf
+// OracleFeeDistributor instance deployed at: 0xd91e69d53912e72a8C780bea15DF3D888F3828f5
+// P2pEth2Depositor deployed at: 0x933AcC6f337489D78188CBef2141cD9D6466d07D
 //
 

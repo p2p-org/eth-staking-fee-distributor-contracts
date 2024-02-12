@@ -42,7 +42,7 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
 
         i_depositContract = block.chainid == 1
             ? IDepositContract(0x00000000219ab540356cBB839Cbe05303d7705Fa) // real Mainnet DepositContract
-            : IDepositContract(0xff50ed3d0ec03aC01D4C79aAd74928BFF48a7b2b); // real Goerli DepositContract
+            : IDepositContract(0x4242424242424242424242424242424242424242); // real Holesky DepositContract
     }
 
     /// @notice ETH should only be sent to this contract along with the `addEth` function

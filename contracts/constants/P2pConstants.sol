@@ -11,6 +11,9 @@ uint256 constant VALIDATORS_MAX_AMOUNT = 400;
 /// @dev Collateral size of 1 validator
 uint256 constant COLLATERAL = 32 ether;
 
+/// @dev EIP-7251 MAX_EFFECTIVE_BALANCE
+uint256 constant MAX_EFFECTIVE_BALANCE = 2048 ether;
+
 /// @dev Minimal 1 time deposit
 uint256 constant MIN_DEPOSIT = 1 ether;
 

@@ -6,8 +6,6 @@ pragma solidity 0.8.10;
 import {Script} from "forge-std/Script.sol";
 import "../contracts/oracle/Oracle.sol";
 import "../contracts/feeDistributorFactory/FeeDistributorFactory.sol";
-import "../contracts/feeDistributor/ContractWcFeeDistributor.sol";
-import "../contracts/feeDistributor/ElOnlyFeeDistributor.sol";
 import "../contracts/feeDistributor/OracleFeeDistributor.sol";
 import "../contracts/p2pEth2Depositor/P2pOrgUnlimitedEthDepositor.sol";
 
@@ -18,8 +16,6 @@ contract Deploy is Script {
     function run() external returns (
         Oracle,
         FeeDistributorFactory,
-        ContractWcFeeDistributor,
-        ElOnlyFeeDistributor,
         OracleFeeDistributor,
         P2pOrgUnlimitedEthDepositor
     ) {
@@ -28,8 +24,6 @@ contract Deploy is Script {
 
         Oracle oracle = new Oracle();
         FeeDistributorFactory factory = new FeeDistributorFactory(defaultClientBasisPoints);
-        ContractWcFeeDistributor contractWcFeeDistributorTemplate = new ContractWcFeeDistributor(address(factory), serviceAddress);
-        ElOnlyFeeDistributor elOnlyFeeDistributorTemplate = new ElOnlyFeeDistributor(address(factory), serviceAddress);
         OracleFeeDistributor oracleFeeDistributorTemplate = new OracleFeeDistributor(address(oracle), address(factory), serviceAddress);
         P2pOrgUnlimitedEthDepositor p2pEthDepositor = new P2pOrgUnlimitedEthDepositor(address(factory));
         factory.setP2pEth2Depositor(address(p2pEthDepositor));
@@ -39,8 +33,6 @@ contract Deploy is Script {
         return (
             oracle,
             factory,
-            contractWcFeeDistributorTemplate,
-            elOnlyFeeDistributorTemplate,
             oracleFeeDistributorTemplate,
             p2pEthDepositor
         );

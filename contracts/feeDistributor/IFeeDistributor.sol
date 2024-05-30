@@ -56,7 +56,7 @@ interface IFeeDistributor is IERC165 {
     ) external;
 
     /// @notice Increase the number of deposited validators.
-    /// @dev Should be called when a new ETH2 deposit has been made
+    /// @dev DEPRECATED. Need to keep it to preserve the interface.
     /// @param _validatorCountToAdd number of newly deposited validators
     function increaseDepositedCount(
         uint32 _validatorCountToAdd

@@ -101,6 +101,20 @@ interface IP2pOrgUnlimitedEthDepositor is IERC165 {
         bytes32[] calldata _depositDataRoots
     ) external;
 
+    /// @notice Send ETH to ETH2 DepositContract on behalf of the client. Callable by P2P
+    /// @param _feeDistributorInstance user FeeDistributor instance that determines the terms of staking service
+    /// @param _pubkeys BLS12-381 public keys
+    /// @param _signatures BLS12-381 signatures
+    /// @param _depositDataRoots SHA-256 hashes of the SSZ-encoded DepositData objects
+    /// @param _ethAmountPerValidator amount of ETH to deposit per 1 validator (should be >= 32 and <= 2048)
+    function makeBeaconDeposit(
+        address _feeDistributorInstance,
+        bytes[] calldata _pubkeys,
+        bytes[] calldata _signatures,
+        bytes32[] calldata _depositDataRoots,
+        uint256 _ethAmountPerValidator
+    ) external;
+
     /// @notice Returns the total contract ETH balance in wei
     /// @return uint256 total contract ETH balance in wei
     function totalBalance() external view returns (uint256);

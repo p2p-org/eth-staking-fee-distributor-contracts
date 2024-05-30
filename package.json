@@ -39,14 +39,12 @@
     "coverage": "hardhat coverage",
     "typechain": "yarn hardhat typechain",
     "size": "yarn run hardhat size-contracts",
-    "deployToGoerli": "yarn hardhat run --network goerli scripts/deploy.ts",
     "deployToHolesky": "yarn hardhat run --network holesky scripts/deploy.ts",
-    "main": "yarn hardhat run --network goerli scripts/main.ts",
-    "testErc4337OnGoerli": "yarn hardhat run --network goerli scripts/testErc4337OnGoerli.ts",
-    "sendErc4337UserOperation": "yarn hardhat run --network goerli scripts/sendErc4337UserOperation.ts",
-    "sendErc4337UserOperationForOracleFeeDistributor": "yarn hardhat run --network goerli scripts/sendErc4337UserOperationForOracleFeeDistributor.ts",
-    "generateMockMerkleTree": "yarn hardhat run --network goerli scripts/generateMockMerkleTree.ts",
-    "deployWithForge": "forge script script/Deploy.s.sol:Deploy --rpc-url $GOERLI_RPC_URL --private-key $PRIVATE_KEY --broadcast --chain goerli --json --verify --etherscan-api-key $ETHERSCAN_API_KEY -vvvv"
+    "main": "yarn hardhat run --network holesky scripts/main.ts",
+    "sendErc4337UserOperation": "yarn hardhat run --network holesky scripts/sendErc4337UserOperation.ts",
+    "sendErc4337UserOperationForOracleFeeDistributor": "yarn hardhat run --network holesky scripts/sendErc4337UserOperationForOracleFeeDistributor.ts",
+    "generateMockMerkleTree": "yarn hardhat run --network holesky scripts/generateMockMerkleTree.ts",
+    "deployWithForge": "forge script script/Deploy.s.sol:Deploy --rpc-url $GOERLI_RPC_URL --private-key $PRIVATE_KEY --broadcast --chain holesky --json --verify --etherscan-api-key $ETHERSCAN_API_KEY -vvvv"
   },
   "dependencies": {
     "@google-cloud/bigquery": "6.2.0"

@@ -229,7 +229,72 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
             }
         }
 
-        IFeeDistributor(_feeDistributorInstance).increaseDepositedCount(uint32(validatorCount));
+        emit P2pOrgUnlimitedEthDepositor__Eth2Deposit(_feeDistributorInstance, validatorCount);
+    }
+
+    /// @inheritdoc IP2pOrgUnlimitedEthDepositor
+    function makeBeaconDeposit(
+        address _feeDistributorInstance,
+        bytes[] calldata _pubkeys,
+        bytes[] calldata _signatures,
+        bytes32[] calldata _depositDataRoots,
+        uint256 _ethAmountPerValidatorInWei
+    ) external {
+        i_feeDistributorFactory.checkOperatorOrOwner(msg.sender);
+
+        if (s_deposits[_feeDistributorInstance].status == ClientDepositStatus.ServiceRejected) {
+            revert P2pOrgUnlimitedEthDepositor__ShouldNotBeRejected(_feeDistributorInstance);
+        }
+
+        uint256 validatorCount = _pubkeys.length;
+        uint112 amountToStake = uint112(_ethAmountPerValidatorInWei * validatorCount);
+
+        if (validatorCount == 0 || validatorCount > VALIDATORS_MAX_AMOUNT) {
+            revert P2pOrgUnlimitedEthDepositor__ValidatorCountError();
+        }
+
+        if (s_deposits[_feeDistributorInstance].amount < amountToStake) {
+            revert P2pOrgUnlimitedEthDepositor__EtherValueError();
+        }
+
+        if (!(
+            _signatures.length == validatorCount &&
+            _depositDataRoots.length == validatorCount
+        )) {
+            revert P2pOrgUnlimitedEthDepositor__AmountOfParametersError();
+        }
+
+        uint112 newAmount = s_deposits[_feeDistributorInstance].amount - amountToStake;
+        s_deposits[_feeDistributorInstance].amount = newAmount;
+        if (newAmount == 0) { // all ETH has been deposited to Beacon DepositContract
+            delete s_deposits[_feeDistributorInstance];
+            emit P2pOrgUnlimitedEthDepositor__Eth2DepositCompleted(_feeDistributorInstance);
+        } else {
+            s_deposits[_feeDistributorInstance].status = ClientDepositStatus.BeaconDepositInProgress;
+            emit P2pOrgUnlimitedEthDepositor__Eth2DepositInProgress(_feeDistributorInstance);
+        }
+
+        bytes memory withdrawalCredentials = abi.encodePacked(
+            hex'020000000000000000000000',
+            IFeeDistributor(_feeDistributorInstance).eth2WithdrawalCredentialsAddress()
+        );
+
+        for (uint256 i = 0; i < validatorCount;) {
+            // pubkey, withdrawal_credentials, signature lengths are already checked inside Beacon DepositContract
+
+            i_depositContract.deposit{value : _ethAmountPerValidatorInWei}(
+                _pubkeys[i],
+                withdrawalCredentials,
+                _signatures[i],
+                _depositDataRoots[i]
+            );
+
+            // An array can't have a total length
+            // larger than the max uint256 value.
+            unchecked {
+                ++i;
+            }
+        }
 
         emit P2pOrgUnlimitedEthDepositor__Eth2Deposit(_feeDistributorInstance, validatorCount);
     }

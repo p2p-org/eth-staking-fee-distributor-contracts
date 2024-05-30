@@ -116,7 +116,7 @@ describe("test emergencyEtherRecoveryWithoutOracleData", function () {
         }
         const _feeDistributorInstance = clientEthAddedEvent.args?._feeDistributorInstance
 
-        const makeBeaconDepositTx = await P2pOrgUnlimitedEthDepositorSignedByDeployer.makeBeaconDeposit(
+        const makeBeaconDepositTx = await P2pOrgUnlimitedEthDepositorSignedByDeployer["makeBeaconDeposit(address,bytes[],bytes[],bytes32[])"](
             _feeDistributorInstance,
             batchDepositData.map(d => d.pubkey),
             batchDepositData.map(d => d.signature),

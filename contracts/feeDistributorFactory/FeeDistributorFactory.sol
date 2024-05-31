@@ -140,6 +140,14 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
         FeeRecipient memory _clientConfig,
         FeeRecipient calldata _referrerConfig
     ) public view returns (address) {
+        if (_referenceFeeDistributor == address(0)) {
+            revert FeeDistributorFactory__ReferenceFeeDistributorNotSet();
+        }
+
+        if (!ERC165Checker.supportsInterface(_referenceFeeDistributor, type(IFeeDistributor).interfaceId)) {
+            revert FeeDistributorFactory__NotFeeDistributor(_referenceFeeDistributor);
+        }
+
         if (_clientConfig.basisPoints == 0) {
             _clientConfig.basisPoints = s_defaultClientBasisPoints;
         }

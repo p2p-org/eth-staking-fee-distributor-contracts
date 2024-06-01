@@ -61,6 +61,14 @@ interface IP2pOrgUnlimitedEthDepositor is IERC165 {
         string _reason
     );
 
+    /// @notice Emits when EIP-7251 has been enabled
+    event P2pOrgUnlimitedEthDepositor__Eip7251Enabled();
+
+    /// @notice make makeBeaconDeposit work with custom deposit amount
+    /// @dev Callable by deployer
+    /// @dev Should be called after Pectra hardfork
+    function enableEip7251() external;
+
     /// @notice Send unlimited amount of ETH along with the fixed terms of staking service
     /// Callable by clients
     /// @param _referenceFeeDistributor address of FeeDistributor template that determines the terms of staking service

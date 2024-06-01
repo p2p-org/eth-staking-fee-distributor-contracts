@@ -56,3 +56,15 @@ error P2pOrgUnlimitedEthDepositor__NoDepositToReject(address _feeDistributorInst
 /// @notice Cannot proceed because a deposit for this FeeDistributor instance has already been rejected
 /// @param _feeDistributorInstance FeeDistributor instance address
 error P2pOrgUnlimitedEthDepositor__ShouldNotBeRejected(address _feeDistributorInstance);
+
+/// @notice Caller should be EIP-7251 enabler (contract deployer)
+/// @param _caller caller address
+/// @param _eip7251Enabler EIP-7251 enabler address
+error P2pOrgUnlimitedEthDepositor__CallerNotEip7251Enabler(address _caller, address _eip7251Enabler);
+
+/// @notice EIP-7251 has not been enabled yet.
+error P2pOrgUnlimitedEthDepositor__Eip7251NotEnabledYet();
+
+/// @notice ETH amount per validator must be >= 32 ETH and <= 2048 ETH
+/// @param _ethAmountPerValidatorInWei passed ETH amount per validator in wei
+error P2pOrgUnlimitedEthDepositor__EthAmountPerValidatorInWeiOutOfRange(uint256 _ethAmountPerValidatorInWei);

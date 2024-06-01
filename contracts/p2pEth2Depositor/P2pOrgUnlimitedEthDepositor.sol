@@ -28,8 +28,14 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
     /// @notice FeeDistributorFactory address
     IFeeDistributorFactory public immutable i_feeDistributorFactory;
 
+    /// @notice address that will be able to enable EIP-7251 (deployer)
+    address private i_eip7251Enabler;
+
     /// @notice client FeeDistributor instance -> (amount, expiration)
     mapping(address => ClientDeposit) private s_deposits;
+
+    /// @notice whether EIP-7251 has been enabled
+    bool private s_eip7251Enabled;
 
     /// @dev Set values known at the initial deploy time.
     /// @param _feeDistributorFactory address of FeeDistributorFactory
@@ -43,11 +49,24 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         i_depositContract = block.chainid == 1
             ? IDepositContract(0x00000000219ab540356cBB839Cbe05303d7705Fa) // real Mainnet DepositContract
             : IDepositContract(0x4242424242424242424242424242424242424242); // real Holesky DepositContract
+
+        i_eip7251Enabler = msg.sender;
     }
 
     /// @notice ETH should only be sent to this contract along with the `addEth` function
     receive() external payable {
         revert P2pOrgUnlimitedEthDepositor__DoNotSendEthDirectlyHere();
+    }
+
+    /// @inheritdoc IP2pOrgUnlimitedEthDepositor
+    function enableEip7251() external {
+        if (msg.sender != i_eip7251Enabler) {
+            revert P2pOrgUnlimitedEthDepositor__CallerNotEip7251Enabler(msg.sender, i_eip7251Enabler);
+        }
+
+        s_eip7251Enabled = true;
+
+        emit P2pOrgUnlimitedEthDepositor__Eip7251Enabled();
     }
 
     /// @inheritdoc IP2pOrgUnlimitedEthDepositor
@@ -242,6 +261,12 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
     ) external {
         i_feeDistributorFactory.checkOperatorOrOwner(msg.sender);
 
+        if (!s_eip7251Enabled) {
+            revert P2pOrgUnlimitedEthDepositor__Eip7251NotEnabledYet();
+        }
+        if (_ethAmountPerValidatorInWei < COLLATERAL || _ethAmountPerValidatorInWei > MAX_EFFECTIVE_BALANCE) {
+            revert P2pOrgUnlimitedEthDepositor__EthAmountPerValidatorInWeiOutOfRange(_ethAmountPerValidatorInWei);
+        }
         if (s_deposits[_feeDistributorInstance].status == ClientDepositStatus.ServiceRejected) {
             revert P2pOrgUnlimitedEthDepositor__ShouldNotBeRejected(_feeDistributorInstance);
         }
@@ -317,6 +342,11 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
     /// @inheritdoc IP2pOrgUnlimitedEthDepositor
     function depositStatus(address _feeDistributorInstance) external view returns (ClientDepositStatus) {
         return s_deposits[_feeDistributorInstance].status;
+    }
+
+    /// @notice Returns whether EIP-7251 has been enabled
+    function eip7251Enabled() external view returns (bool) {
+        return s_eip7251Enabled;
     }
 
     /// @inheritdoc ERC165

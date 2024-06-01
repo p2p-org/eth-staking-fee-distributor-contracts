@@ -397,6 +397,62 @@ contract Integration is Test {
         console.log("testOracleFeeDistributorCreationWithoutDepositor finished");
     }
 
+    function test_P2pOrgUnlimitedEthDepositor_makeBeaconDepositWithEip7251() public {
+        console.log("test_P2pOrgUnlimitedEthDepositor_makeBeaconDepositWithEip7251 started");
+
+        addEthToOracleFeeDistributor();
+
+        vm.startPrank(operatorAddress);
+
+        uint256 balanceBefore = p2pEthDepositor.totalBalance();
+
+        assertEq(p2pEthDepositor.depositAmount(address(oracleFeeDistributorInstance)), clientDepositedEth);
+
+        vm.expectRevert(P2pOrgUnlimitedEthDepositor__Eip7251NotEnabledYet.selector);
+        p2pEthDepositor.makeBeaconDeposit(
+            address(oracleFeeDistributorInstance),
+            pubKeys,
+            signatures,
+            depositDataRoots,
+            1 ether
+        );
+
+        vm.expectRevert(abi.encodeWithSelector(P2pOrgUnlimitedEthDepositor__CallerNotEip7251Enabler.selector, operatorAddress, p2pDeployerAddress));
+        p2pEthDepositor.enableEip7251();
+
+        vm.stopPrank();
+        vm.startPrank(p2pDeployerAddress);
+
+        p2pEthDepositor.enableEip7251();
+
+        vm.stopPrank();
+        vm.startPrank(operatorAddress);
+
+        vm.expectRevert(abi.encodeWithSelector(P2pOrgUnlimitedEthDepositor__EthAmountPerValidatorInWeiOutOfRange.selector, 1 ether));
+        p2pEthDepositor.makeBeaconDeposit(
+            address(oracleFeeDistributorInstance),
+            pubKeys,
+            signatures,
+            depositDataRoots,
+            1 ether
+        );
+
+        p2pEthDepositor.makeBeaconDeposit(
+            address(oracleFeeDistributorInstance),
+            pubKeys,
+            signatures,
+            depositDataRoots
+        );
+
+        vm.stopPrank();
+
+        uint256 balanceAfter = balanceBefore - COLLATERAL * VALIDATORS_MAX_AMOUNT;
+        assertEq(p2pEthDepositor.totalBalance(), balanceAfter);
+        assertEq(p2pEthDepositor.depositAmount(address(oracleFeeDistributorInstance)), clientDepositedEth - COLLATERAL * VALIDATORS_MAX_AMOUNT);
+
+        console.log("test_P2pOrgUnlimitedEthDepositor_makeBeaconDepositWithEip7251 finished");
+    }
+
     function deployOracleFeeDistributorCreationWithoutDepositor() private returns(address newFeeDistributorAddress) {
         vm.startPrank(operatorAddress);
 

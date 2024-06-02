@@ -28,9 +28,13 @@ contract Integration is Test {
     bytes[] signatures;
     bytes32[] depositDataRoots;
 
-    bytes[] pubKeysForContractWc;
-    bytes[] signaturesForContractWc;
-    bytes32[] depositDataRootsForContractWc;
+    bytes pubKey02;
+    bytes signature02;
+    bytes32 depositDataRoot02;
+
+    bytes[] pubKeys02;
+    bytes[] signatures02;
+    bytes32[] depositDataRoots02;
 
     bytes[] pubKeysForZeroAddressWc;
     bytes[] signaturesForZeroAddressWc;
@@ -83,14 +87,18 @@ contract Integration is Test {
         signature = bytes(hex'816597afd6c13068692512ed57e7c6facde10be01b247c58d67f15e3716ec7eb9856d28e25e1375ab526b098fdd3094405435a9bf7bf95369697365536cb904f0ae4f8da07f830ae1892182e318588ce8dd6220be2145f6c29d28e0d57040d42');
         depositDataRoot = bytes32(hex'34b7017543befa837eb0af8a32b2c6e543b1d869ff526680c9d59291b742d5b7');
 
+        pubKey02 = bytes(hex'a9ff619fbfedc3178cd401526b8320590903f8278c00ab1bf791b836cce92f2afa7c884dca2684a0a835a588e8661fa7');
+        signature02 = bytes(hex'84d94d74997ab4d4138421c11ba57c93ba5db613f7cba69b9cc4ff2e0ccd3e77694a731a4cbd38a73a1a66cb6fc45c3206dd5ec97733bb9bcca351301845c28de368b77dc01e15a2fed8e8c607e06f737591cefd1af14251c4c0228762fcc695');
+        depositDataRoot02 = bytes32(hex'0588bf26fe5bee3ab89a604f9eba3afee8eb4a5add07f7e809951ab6db48fb1c');
+
         for (uint256 i = 0; i < VALIDATORS_MAX_AMOUNT; i++) {
             pubKeys.push(pubKey);
             signatures.push(signature);
             depositDataRoots.push(depositDataRoot);
 
-            pubKeysForContractWc.push(bytes(hex'8ac881a1fe216fa252f63ef3967484cbd89396de26d7908f82c3ac895d92fe44adaefbe914c6ca3d0f8eb0f37acf4771'));
-            signaturesForContractWc.push(bytes(hex'964b3a3913d001a524af456437f78b2eb5f7c2b30e7cee08cd3283019aefb1dee72ecca1a4d4da7c7602bc5ea5afe85510f7f45dab312c7243a61482908900b1ded150d64a3afdcab2a18f8b091f579aecded6a108e6060a62c636d8ea1dc36b'));
-            depositDataRootsForContractWc.push(bytes32(hex'a45088a6edc1d3731bfbe77069a15c6f82cafec3deca39e35b770a951173dd30'));
+            pubKeys02.push(pubKey02);
+            signatures02.push(signature02);
+            depositDataRoots02.push(depositDataRoot02);
 
             pubKeysForZeroAddressWc.push(bytes(hex'b1c9ac4f20bca70faf03d1afa308912073753d3f7a54aa205604f411feacf26243bcf5119fcbf2ebde1b34327c80506b'));
             signaturesForZeroAddressWc.push(bytes(hex'adfdd15ae10ecd6d53f5d66b6344542ee1195fa128bd20025136eb2e828fe787ec8244510561d833153dfa47367c32d601a9ddd31494daa8926cb596e5490df3dcfdc719e09c18d9fb3e2d059769433fa2b72de1b59e0416376b60edf2af7c8d'));
@@ -431,17 +439,18 @@ contract Integration is Test {
         vm.expectRevert(abi.encodeWithSelector(P2pOrgUnlimitedEthDepositor__EthAmountPerValidatorInWeiOutOfRange.selector, 1 ether));
         p2pEthDepositor.makeBeaconDeposit(
             address(oracleFeeDistributorInstance),
-            pubKeys,
-            signatures,
-            depositDataRoots,
+            pubKeys02,
+            signatures02,
+            depositDataRoots02,
             1 ether
         );
 
         p2pEthDepositor.makeBeaconDeposit(
             address(oracleFeeDistributorInstance),
-            pubKeys,
-            signatures,
-            depositDataRoots
+            pubKeys02,
+            signatures02,
+            depositDataRoots02,
+            32 ether
         );
 
         vm.stopPrank();

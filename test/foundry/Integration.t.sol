@@ -457,11 +457,11 @@ contract Integration is Test {
             1 ether
         );
 
-        vm.expectRevert(abi.encodeWithSelector(P2pOrgUnlimitedEthDepositor__CallerNotEip7251Enabler.selector, operatorAddress, p2pDeployerAddress));
+        vm.expectRevert(abi.encodeWithSelector(P2pOrgUnlimitedEthDepositor__CallerNotEip7251Enabler.selector, operatorAddress, extraSecureP2pAddress));
         p2pEthDepositor.enableEip7251();
 
         vm.stopPrank();
-        vm.startPrank(p2pDeployerAddress);
+        vm.startPrank(extraSecureP2pAddress);
 
         p2pEthDepositor.enableEip7251();
 

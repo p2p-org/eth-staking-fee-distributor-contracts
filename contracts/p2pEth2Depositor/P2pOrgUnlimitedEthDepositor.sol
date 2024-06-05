@@ -28,9 +28,6 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
     /// @notice FeeDistributorFactory address
     IFeeDistributorFactory public immutable i_feeDistributorFactory;
 
-    /// @notice address that will be able to enable EIP-7251 (deployer)
-    address private i_eip7251Enabler;
-
     /// @notice client FeeDistributor instance -> (amount, expiration)
     mapping(address => ClientDeposit) private s_deposits;
 
@@ -49,8 +46,6 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         i_depositContract = block.chainid == 1
             ? IDepositContract(0x00000000219ab540356cBB839Cbe05303d7705Fa) // real Mainnet DepositContract
             : IDepositContract(0x4242424242424242424242424242424242424242); // real Holesky DepositContract
-
-        i_eip7251Enabler = msg.sender;
     }
 
     /// @notice ETH should only be sent to this contract along with the `addEth` function
@@ -60,8 +55,9 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
 
     /// @inheritdoc IP2pOrgUnlimitedEthDepositor
     function enableEip7251() external {
-        if (msg.sender != i_eip7251Enabler) {
-            revert P2pOrgUnlimitedEthDepositor__CallerNotEip7251Enabler(msg.sender, i_eip7251Enabler);
+        address eip7251Enabler = i_feeDistributorFactory.owner();
+        if (msg.sender != eip7251Enabler) {
+            revert P2pOrgUnlimitedEthDepositor__CallerNotEip7251Enabler(msg.sender, eip7251Enabler);
         }
 
         s_eip7251Enabled = true;

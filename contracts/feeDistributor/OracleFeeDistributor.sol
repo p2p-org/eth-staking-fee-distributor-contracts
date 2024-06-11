@@ -302,10 +302,4 @@ contract OracleFeeDistributor is BaseFeeDistributor {
     function withdrawSelector() public pure override returns (bytes4) {
         return OracleFeeDistributor.withdraw.selector;
     }
-
-    /// @inheritdoc IFeeDistributor
-    /// @dev client address
-    function eth2WithdrawalCredentialsAddress() external override view returns (address) {
-        return s_clientConfig.recipient;
-    }
 }

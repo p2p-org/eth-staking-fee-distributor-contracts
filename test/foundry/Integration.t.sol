@@ -494,9 +494,9 @@ contract Integration is Test {
             32 ether
         );
 
-        uint256 balanceAfter = balanceBefore - COLLATERAL * VALIDATORS_MAX_AMOUNT;
+        uint256 balanceAfter = balanceBefore - MIN_ACTIVATION_BALANCE * VALIDATORS_MAX_AMOUNT;
         assertEq(p2pEthDepositor.totalBalance(), balanceAfter);
-        assertEq(p2pEthDepositor.depositAmount(address(oracleFeeDistributorInstance)), clientDepositedEth - COLLATERAL * VALIDATORS_MAX_AMOUNT);
+        assertEq(p2pEthDepositor.depositAmount(address(oracleFeeDistributorInstance)), clientDepositedEth - MIN_ACTIVATION_BALANCE * VALIDATORS_MAX_AMOUNT);
 
         p2pEthDepositor.makeBeaconDeposit(
             address(oracleFeeDistributorInstance),
@@ -512,7 +512,7 @@ contract Integration is Test {
         assertEq(p2pEthDepositor.totalBalance(), balanceAfter_42eth);
         assertEq(p2pEthDepositor.depositAmount(
             address(oracleFeeDistributorInstance)),
-            clientDepositedEth - COLLATERAL * VALIDATORS_MAX_AMOUNT - 42 ether * VALIDATORS_MAX_AMOUNT
+            clientDepositedEth - MIN_ACTIVATION_BALANCE * VALIDATORS_MAX_AMOUNT - 42 ether * VALIDATORS_MAX_AMOUNT
         );
 
         console.log("test_P2pOrgUnlimitedEthDepositor_makeBeaconDepositWithEip7251 finished");
@@ -584,9 +584,9 @@ contract Integration is Test {
             depositDataRoots
         );
 
-        uint256 balanceAfter = balanceBefore - COLLATERAL * VALIDATORS_MAX_AMOUNT;
+        uint256 balanceAfter = balanceBefore - MIN_ACTIVATION_BALANCE * VALIDATORS_MAX_AMOUNT;
         assertEq(p2pEthDepositor.totalBalance(), balanceAfter);
-        assertEq(p2pEthDepositor.depositAmount(address(oracleFeeDistributorInstance)), clientDepositedEth - COLLATERAL * VALIDATORS_MAX_AMOUNT);
+        assertEq(p2pEthDepositor.depositAmount(address(oracleFeeDistributorInstance)), clientDepositedEth - MIN_ACTIVATION_BALANCE * VALIDATORS_MAX_AMOUNT);
 
         vm.stopPrank();
     }
@@ -607,9 +607,9 @@ contract Integration is Test {
             depositDataRootsForZeroAddressWc
         );
 
-        uint256 balanceAfter = balanceBefore - COLLATERAL * VALIDATORS_MAX_AMOUNT;
+        uint256 balanceAfter = balanceBefore - MIN_ACTIVATION_BALANCE * VALIDATORS_MAX_AMOUNT;
         assertEq(p2pEthDepositor.totalBalance(), balanceAfter);
-        assertEq(p2pEthDepositor.depositAmount(address(customFeeDistributorInstance)), clientDepositedEth - COLLATERAL * VALIDATORS_MAX_AMOUNT);
+        assertEq(p2pEthDepositor.depositAmount(address(customFeeDistributorInstance)), clientDepositedEth - MIN_ACTIVATION_BALANCE * VALIDATORS_MAX_AMOUNT);
 
         vm.stopPrank();
     }

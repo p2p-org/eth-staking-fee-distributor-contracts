@@ -8,8 +8,8 @@ pragma solidity 0.8.10;
 /// https://ethereum.stackexchange.com/questions/144120/maximum-calldata-size-per-block
 uint256 constant VALIDATORS_MAX_AMOUNT = 400;
 
-/// @dev Collateral size of 1 validator
-uint256 constant COLLATERAL = 32 ether;
+/// @dev EIP-7251 MIN_ACTIVATION_BALANCE
+uint256 constant MIN_ACTIVATION_BALANCE = 32 ether;
 
 /// @dev EIP-7251 MAX_EFFECTIVE_BALANCE
 uint256 constant MAX_EFFECTIVE_BALANCE = 2048 ether;

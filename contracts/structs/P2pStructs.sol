@@ -43,10 +43,10 @@ enum ClientDepositStatus {
 /// @member amount amount of ETH in wei to be used for an ETH2 deposit corresponding to a particular FeeDistributor instance
 /// @member expiration block timestamp after which the client will be able to get a refund
 /// @member status deposit status
-/// @member reservedForFutureUse unused space making up to 256 bit
+/// @member ethAmountPerValidatorInWei amount of ETH to deposit per 1 validator (should be >= 32 and <= 2048)
 struct ClientDeposit {
     uint112 amount;
     uint40 expiration;
     ClientDepositStatus status;
-    uint96 reservedForFutureUse;
+    uint96 ethAmountPerValidatorInWei;
 }

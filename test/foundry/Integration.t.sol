@@ -99,6 +99,7 @@ contract Integration is Test {
         payable(0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789);
 
     bytes32 depositId_32_01;
+    bytes32 depositId_32_02;
     bytes32 depositId_42_02;
     bytes32 depositId_2050_02;
     bytes32 depositId_32_01_ForCustomFeeDistributorInstance;
@@ -249,6 +250,14 @@ contract Integration is Test {
 
         depositId_32_01 = p2pEthDepositor.getDepositId(
             withdrawalCredentials_01,
+            32 ether,
+            address(oracleFeeDistributorTemplate),
+            clientFeeRecipientDefault,
+            referrerFeeRecipientDefault
+        );
+
+        depositId_32_02 = p2pEthDepositor.getDepositId(
+            withdrawalCredentials_02,
             32 ether,
             address(oracleFeeDistributorTemplate),
             clientFeeRecipientDefault,
@@ -628,26 +637,57 @@ contract Integration is Test {
             "test_P2pOrgUnlimitedEthDepositor_makeBeaconDepositWithEip7251 started"
         );
 
-        bytes32 depositId = addEthToOracleFeeDistributor();
+        vm.startPrank(clientDepositorAddress);
 
-        vm.startPrank(operatorAddress);
+        assertTrue(address(oracleFeeDistributorInstance) == address(0));
 
-        uint256 balanceBefore = p2pEthDepositor.totalBalance();
+        uint256 totalBalanceBefore = p2pEthDepositor.totalBalance();
 
-        assertEq(p2pEthDepositor.depositAmount(depositId), clientDepositedEth);
+        (, address feeDistributorInstance) = p2pEthDepositor.addEth{
+            value: clientDepositedEth
+        }(
+            withdrawalCredentials_01,
+            MIN_ACTIVATION_BALANCE,
+            address(oracleFeeDistributorTemplate),
+            clientFeeRecipientDefault,
+            referrerFeeRecipientDefault,
+            ""
+        );
 
+        oracleFeeDistributorInstance = OracleFeeDistributor(
+            payable(feeDistributorInstance)
+        );
+
+        uint256 totalBalanceAfter = p2pEthDepositor.totalBalance();
+
+        assertTrue(address(oracleFeeDistributorInstance) != address(0));
+        assertEq(totalBalanceAfter - totalBalanceBefore, clientDepositedEth);
+
+        vm.stopPrank();
+
+        vm.expectRevert("ERC1167: create2 failed");
+        deployOracleFeeDistributorCreationWithoutDepositor();
+
+        assertEq(
+            p2pEthDepositor.depositAmount(depositId_32_01),
+            clientDepositedEth
+        );
+
+        vm.startPrank(clientDepositorAddress);
         vm.expectRevert(
             P2pOrgUnlimitedEthDepositor__Eip7251NotEnabledYet.selector
         );
-        p2pEthDepositor.makeBeaconDeposit(
+        p2pEthDepositor.addEth{value: clientDepositedEth}(
             withdrawalCredentials_02,
-            1 ether,
-            address(oracleFeeDistributorInstance),
-            pubKeys,
-            signatures,
-            depositDataRoots
+            MIN_ACTIVATION_BALANCE,
+            address(oracleFeeDistributorTemplate),
+            clientFeeRecipientDefault,
+            referrerFeeRecipientDefault,
+            ""
         );
+        vm.stopPrank();
 
+        vm.startPrank(operatorAddress);
         vm.expectRevert(
             abi.encodeWithSelector(
                 P2pOrgUnlimitedEthDepositor__CallerNotEip7251Enabler.selector,
@@ -656,15 +696,13 @@ contract Integration is Test {
             )
         );
         p2pEthDepositor.enableEip7251();
-
         vm.stopPrank();
+
         vm.startPrank(extraSecureP2pAddress);
-
         p2pEthDepositor.enableEip7251();
-
         vm.stopPrank();
-        vm.startPrank(operatorAddress);
 
+        vm.startPrank(clientDepositorAddress);
         vm.expectRevert(
             abi.encodeWithSelector(
                 P2pOrgUnlimitedEthDepositor__EthAmountPerValidatorInWeiOutOfRange
@@ -672,15 +710,14 @@ contract Integration is Test {
                 1 ether
             )
         );
-        p2pEthDepositor.makeBeaconDeposit(
+        p2pEthDepositor.addEth{value: clientDepositedEth}(
             withdrawalCredentials_02,
             1 ether,
-            address(oracleFeeDistributorInstance),
-            pubKeys02,
-            signatures02,
-            depositDataRoots02
+            address(oracleFeeDistributorTemplate),
+            clientFeeRecipientDefault,
+            referrerFeeRecipientDefault,
+            ""
         );
-
         vm.expectRevert(
             abi.encodeWithSelector(
                 P2pOrgUnlimitedEthDepositor__EthAmountPerValidatorInWeiOutOfRange
@@ -688,15 +725,36 @@ contract Integration is Test {
                 2050 ether
             )
         );
-        p2pEthDepositor.makeBeaconDeposit(
+        p2pEthDepositor.addEth{value: clientDepositedEth}(
             withdrawalCredentials_02,
             2050 ether,
-            address(oracleFeeDistributorInstance),
-            pubKeys02_2050eth,
-            signatures02_2050eth,
-            depositDataRoots02_2050eth
+            address(oracleFeeDistributorTemplate),
+            clientFeeRecipientDefault,
+            referrerFeeRecipientDefault,
+            ""
         );
 
+        p2pEthDepositor.addEth{value: clientDepositedEth}(
+            withdrawalCredentials_02,
+            MIN_ACTIVATION_BALANCE,
+            address(oracleFeeDistributorTemplate),
+            clientFeeRecipientDefault,
+            referrerFeeRecipientDefault,
+            ""
+        );
+        p2pEthDepositor.addEth{value: clientDepositedEth}(
+            withdrawalCredentials_02,
+            42 ether,
+            address(oracleFeeDistributorTemplate),
+            clientFeeRecipientDefault,
+            referrerFeeRecipientDefault,
+            ""
+        );
+        vm.stopPrank();
+
+        uint256 balanceBefore = p2pEthDepositor.totalBalance();
+
+        vm.startPrank(operatorAddress);
         p2pEthDepositor.makeBeaconDeposit(
             withdrawalCredentials_02,
             32 ether,
@@ -705,16 +763,18 @@ contract Integration is Test {
             signatures02,
             depositDataRoots02
         );
+        vm.stopPrank();
 
         uint256 balanceAfter = balanceBefore -
             MIN_ACTIVATION_BALANCE *
             VALIDATORS_MAX_AMOUNT;
         assertEq(p2pEthDepositor.totalBalance(), balanceAfter);
         assertEq(
-            p2pEthDepositor.depositAmount(depositId),
+            p2pEthDepositor.depositAmount(depositId_32_02),
             clientDepositedEth - MIN_ACTIVATION_BALANCE * VALIDATORS_MAX_AMOUNT
         );
 
+        vm.startPrank(operatorAddress);
         p2pEthDepositor.makeBeaconDeposit(
             withdrawalCredentials_02,
             42 ether,
@@ -723,7 +783,6 @@ contract Integration is Test {
             signatures02_42eth,
             depositDataRoots02_42eth
         );
-
         vm.stopPrank();
 
         uint256 balanceAfter_42eth = balanceAfter -
@@ -731,12 +790,8 @@ contract Integration is Test {
             VALIDATORS_MAX_AMOUNT;
         assertEq(p2pEthDepositor.totalBalance(), balanceAfter_42eth);
         assertEq(
-            p2pEthDepositor.depositAmount(depositId),
-            clientDepositedEth -
-                MIN_ACTIVATION_BALANCE *
-                VALIDATORS_MAX_AMOUNT -
-                42 ether *
-                VALIDATORS_MAX_AMOUNT
+            p2pEthDepositor.depositAmount(depositId_42_02),
+            clientDepositedEth - 42 ether * VALIDATORS_MAX_AMOUNT
         );
 
         console.log(
@@ -885,7 +940,7 @@ contract Integration is Test {
         vm.stopPrank();
     }
 
-    function addEthToOracleFeeDistributor() private returns (bytes32) {
+    function addEthToOracleFeeDistributor() private {
         console.log("addEthToOracleFeeDistributor");
 
         vm.startPrank(clientDepositorAddress);
@@ -894,8 +949,9 @@ contract Integration is Test {
 
         uint256 totalBalanceBefore = p2pEthDepositor.totalBalance();
 
-        (bytes32 depositId, address feeDistributorInstance) = p2pEthDepositor
-            .addEth{value: clientDepositedEth}(
+        (, address feeDistributorInstance) = p2pEthDepositor.addEth{
+            value: clientDepositedEth
+        }(
             withdrawalCredentials_01,
             MIN_ACTIVATION_BALANCE,
             address(oracleFeeDistributorTemplate),
@@ -917,8 +973,6 @@ contract Integration is Test {
 
         vm.expectRevert("ERC1167: create2 failed");
         deployOracleFeeDistributorCreationWithoutDepositor();
-
-        return depositId;
     }
 
     function addEthToCustomFeeDistributor() private {

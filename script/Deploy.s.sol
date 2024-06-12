@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: 2023 P2P Validator <info@p2p.org>
+// SPDX-FileCopyrightText: 2024 P2P Validator <info@p2p.org>
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.10;
+pragma solidity 0.8.24;
 
 import {Script} from "forge-std/Script.sol";
 import "../contracts/oracle/Oracle.sol";
@@ -22,8 +22,9 @@ contract Deploy is Script {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerKey);
 
+        Oracle oracle = new Oracle();
         FeeDistributorFactory factory = new FeeDistributorFactory(defaultClientBasisPoints);
-        OracleFeeDistributor oracleFeeDistributorTemplate = new OracleFeeDistributor(oracleAddress, address(factory), serviceAddress);
+        OracleFeeDistributor oracleFeeDistributorTemplate = new OracleFeeDistributor(address(oracle), address(factory), serviceAddress);
         P2pOrgUnlimitedEthDepositor p2pEthDepositor = new P2pOrgUnlimitedEthDepositor(address(factory));
         factory.setP2pEth2Depositor(address(p2pEthDepositor));
 

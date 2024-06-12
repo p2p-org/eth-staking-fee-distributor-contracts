@@ -47,17 +47,17 @@ const config: HardhatUserConfig = {
     },
   },
   solidity: {
-    compilers: [
-      {
-        version: "0.8.24",
-      },
-    ],
+    version: "0.8.24",
     settings: {
-        optimizer: {
-            enabled: true,
-            runs: 10,
-            details: { yul: false },
+      viaIR: true,
+      optimizer: {
+        enabled: true,
+        details: {
+          yulDetails: {
+            optimizerSteps: "u",
+          },
         },
+      },
     },
   },
   etherscan: {

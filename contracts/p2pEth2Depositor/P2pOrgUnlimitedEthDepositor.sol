@@ -21,7 +21,6 @@ import "../structs/P2pStructs.sol";
 /// 1) Beacon DepositContract with client defined withdrawal credentials
 /// 2) Client defined withdrawal credentials address itself
 contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
-
     /// @notice Beacon DepositContract address
     IDepositContract public immutable i_depositContract;
 
@@ -37,11 +36,20 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
     /// @dev Set values known at the initial deploy time.
     /// @param _feeDistributorFactory address of FeeDistributorFactory
     constructor(address _feeDistributorFactory) {
-        if (!ERC165Checker.supportsInterface(_feeDistributorFactory, type(IFeeDistributorFactory).interfaceId)) {
-            revert P2pOrgUnlimitedEthDepositor__NotFactory(_feeDistributorFactory);
+        if (
+            !ERC165Checker.supportsInterface(
+                _feeDistributorFactory,
+                type(IFeeDistributorFactory).interfaceId
+            )
+        ) {
+            revert P2pOrgUnlimitedEthDepositor__NotFactory(
+                _feeDistributorFactory
+            );
         }
 
-        i_feeDistributorFactory = IFeeDistributorFactory(_feeDistributorFactory);
+        i_feeDistributorFactory = IFeeDistributorFactory(
+            _feeDistributorFactory
+        );
 
         i_depositContract = block.chainid == 1
             ? IDepositContract(0x00000000219ab540356cBB839Cbe05303d7705Fa) // real Mainnet DepositContract
@@ -57,7 +65,10 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
     function enableEip7251() external {
         address eip7251Enabler = i_feeDistributorFactory.owner();
         if (msg.sender != eip7251Enabler) {
-            revert P2pOrgUnlimitedEthDepositor__CallerNotEip7251Enabler(msg.sender, eip7251Enabler);
+            revert P2pOrgUnlimitedEthDepositor__CallerNotEip7251Enabler(
+                msg.sender,
+                eip7251Enabler
+            );
         }
 
         s_eip7251Enabled = true;
@@ -69,39 +80,62 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
     function addEth(
         bytes32 _eth2WithdrawalCredentials,
         uint96 _ethAmountPerValidatorInWei,
-
         address _referenceFeeDistributor,
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig,
-
         bytes calldata _extraData
-    ) external payable returns(bytes32 depositId) {
+    )
+        external
+        payable
+        returns (bytes32 depositId, address feeDistributorInstance)
+    {
         if (msg.value < MIN_DEPOSIT) {
             revert P2pOrgUnlimitedEthDepositor__NoSmallDeposits();
         }
-        if ((_ethAmountPerValidatorInWei != MIN_ACTIVATION_BALANCE || _eth2WithdrawalCredentials[0] != 0x01) &&
-            !s_eip7251Enabled
+        if (
+            (_ethAmountPerValidatorInWei != MIN_ACTIVATION_BALANCE ||
+                _eth2WithdrawalCredentials[0] != 0x01) && !s_eip7251Enabled
         ) {
             revert P2pOrgUnlimitedEthDepositor__Eip7251NotEnabledYet();
         }
-        if (_eth2WithdrawalCredentials[0] != 0x01 && _eth2WithdrawalCredentials[0] != 0x02) {
-            revert P2pOrgUnlimitedEthDepositor__IncorrectWithdrawalCredentialsPrefix(_eth2WithdrawalCredentials[0]);
+        if (
+            _eth2WithdrawalCredentials[0] != 0x01 &&
+            _eth2WithdrawalCredentials[0] != 0x02
+        ) {
+            revert P2pOrgUnlimitedEthDepositor__IncorrectWithdrawalCredentialsPrefix(
+                _eth2WithdrawalCredentials[0]
+            );
         }
-        if (_eth2WithdrawalCredentials << 16 >> 176 != 0) {
-            revert P2pOrgUnlimitedEthDepositor__WithdrawalCredentialsBytesNotZero(_eth2WithdrawalCredentials);
+        if ((_eth2WithdrawalCredentials << 16) >> 176 != 0) {
+            revert P2pOrgUnlimitedEthDepositor__WithdrawalCredentialsBytesNotZero(
+                _eth2WithdrawalCredentials
+            );
         }
-        if (_ethAmountPerValidatorInWei < MIN_ACTIVATION_BALANCE || _ethAmountPerValidatorInWei > MAX_EFFECTIVE_BALANCE) {
-            revert P2pOrgUnlimitedEthDepositor__EthAmountPerValidatorInWeiOutOfRange(_ethAmountPerValidatorInWei);
+        if (
+            _ethAmountPerValidatorInWei < MIN_ACTIVATION_BALANCE ||
+            _ethAmountPerValidatorInWei > MAX_EFFECTIVE_BALANCE
+        ) {
+            revert P2pOrgUnlimitedEthDepositor__EthAmountPerValidatorInWeiOutOfRange(
+                _ethAmountPerValidatorInWei
+            );
         }
-        if (!ERC165Checker.supportsInterface(_referenceFeeDistributor, type(IFeeDistributor).interfaceId)) {
-            revert P2pOrgUnlimitedEthDepositor__NotFeeDistributor(_referenceFeeDistributor);
+        if (
+            !ERC165Checker.supportsInterface(
+                _referenceFeeDistributor,
+                type(IFeeDistributor).interfaceId
+            )
+        ) {
+            revert P2pOrgUnlimitedEthDepositor__NotFeeDistributor(
+                _referenceFeeDistributor
+            );
         }
 
-        address feeDistributorInstance = i_feeDistributorFactory.predictFeeDistributorAddress(
-            _referenceFeeDistributor,
-            _clientConfig,
-            _referrerConfig
-        );
+        feeDistributorInstance = i_feeDistributorFactory
+            .predictFeeDistributorAddress(
+                _referenceFeeDistributor,
+                _clientConfig,
+                _referrerConfig
+            );
 
         depositId = getDepositId(
             _eth2WithdrawalCredentials,
@@ -109,7 +143,9 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
             feeDistributorInstance
         );
 
-        if (s_deposits[depositId].status == ClientDepositStatus.ServiceRejected) {
+        if (
+            s_deposits[depositId].status == ClientDepositStatus.ServiceRejected
+        ) {
             revert P2pOrgUnlimitedEthDepositor__ShouldNotBeRejected(depositId);
         }
 
@@ -173,7 +209,10 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
     ) public {
         address client = IFeeDistributor(_feeDistributorInstance).client();
         if (msg.sender != client) {
-            revert P2pOrgUnlimitedEthDepositor__CallerNotClient(msg.sender, client);
+            revert P2pOrgUnlimitedEthDepositor__CallerNotClient(
+                msg.sender,
+                client
+            );
         }
 
         bytes32 depositId = getDepositId(
@@ -183,7 +222,10 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         );
         uint40 expiration = s_deposits[depositId].expiration;
         if (uint40(block.timestamp) < expiration) {
-            revert P2pOrgUnlimitedEthDepositor__WaitForExpiration(expiration, uint40(block.timestamp));
+            revert P2pOrgUnlimitedEthDepositor__WaitForExpiration(
+                expiration,
+                uint40(block.timestamp)
+            );
         }
 
         uint256 amount = s_deposits[depositId].amount;
@@ -211,7 +253,6 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         bytes32 _eth2WithdrawalCredentials,
         uint96 _ethAmountPerValidatorInWei,
         address _feeDistributorInstance,
-
         bytes[] calldata _pubkeys,
         bytes[] calldata _signatures,
         bytes32[] calldata _depositDataRoots
@@ -230,7 +271,9 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         }
 
         uint256 validatorCount = _pubkeys.length;
-        uint112 amountToStake = uint112(_ethAmountPerValidatorInWei * validatorCount);
+        uint112 amountToStake = uint112(
+            _ethAmountPerValidatorInWei * validatorCount
+        );
 
         if (validatorCount == 0 || validatorCount > VALIDATORS_MAX_AMOUNT) {
             revert P2pOrgUnlimitedEthDepositor__ValidatorCountError();
@@ -240,20 +283,22 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
             revert P2pOrgUnlimitedEthDepositor__EtherValueError();
         }
 
-        if (!(
-            _signatures.length == validatorCount &&
-            _depositDataRoots.length == validatorCount
-        )) {
+        if (
+            !(_signatures.length == validatorCount &&
+                _depositDataRoots.length == validatorCount)
+        ) {
             revert P2pOrgUnlimitedEthDepositor__AmountOfParametersError();
         }
 
         uint112 newAmount = clientDeposit.amount - amountToStake;
         s_deposits[depositId].amount = newAmount;
-        if (newAmount == 0) { // all ETH has been deposited to Beacon DepositContract
+        if (newAmount == 0) {
+            // all ETH has been deposited to Beacon DepositContract
             delete s_deposits[depositId];
             emit P2pOrgUnlimitedEthDepositor__Eth2DepositCompleted(depositId);
         } else {
-            s_deposits[depositId].status = ClientDepositStatus.BeaconDepositInProgress;
+            s_deposits[depositId].status = ClientDepositStatus
+                .BeaconDepositInProgress;
             emit P2pOrgUnlimitedEthDepositor__Eth2DepositInProgress(depositId);
         }
 
@@ -262,10 +307,10 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
             mstore(add(withdrawalCredentials, 32), _eth2WithdrawalCredentials)
         }
 
-        for (uint256 i = 0; i < validatorCount;) {
+        for (uint256 i = 0; i < validatorCount; ) {
             // pubkey, withdrawal_credentials, signature lengths are already checked inside Beacon DepositContract
 
-            i_depositContract.deposit{value : _ethAmountPerValidatorInWei}(
+            i_depositContract.deposit{value: _ethAmountPerValidatorInWei}(
                 _pubkeys[i],
                 withdrawalCredentials,
                 _signatures[i],
@@ -296,33 +341,37 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         uint96 _ethAmountPerValidatorInWei,
         address _feeDistributorInstance
     ) public view returns (bytes32) {
-        return keccak256(abi.encode(
-            _eth2WithdrawalCredentials,
-            _ethAmountPerValidatorInWei,
-            _feeDistributorInstance
-        ));
+        return
+            keccak256(
+                abi.encode(
+                    _eth2WithdrawalCredentials,
+                    _ethAmountPerValidatorInWei,
+                    _feeDistributorInstance
+                )
+            );
     }
 
     /// @inheritdoc IP2pOrgUnlimitedEthDepositor
     function getDepositId(
         bytes32 _eth2WithdrawalCredentials,
         uint96 _ethAmountPerValidatorInWei,
-
         address _referenceFeeDistributor,
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig
     ) public view returns (bytes32) {
-        address feeDistributorInstance = i_feeDistributorFactory.predictFeeDistributorAddress(
-            _referenceFeeDistributor,
-            _clientConfig,
-            _referrerConfig
-        );
+        address feeDistributorInstance = i_feeDistributorFactory
+            .predictFeeDistributorAddress(
+                _referenceFeeDistributor,
+                _clientConfig,
+                _referrerConfig
+            );
 
-        return getDepositId(
-            _eth2WithdrawalCredentials,
-            _ethAmountPerValidatorInWei,
-            feeDistributorInstance
-        );
+        return
+            getDepositId(
+                _eth2WithdrawalCredentials,
+                _ethAmountPerValidatorInWei,
+                feeDistributorInstance
+            );
     }
 
     /// @inheritdoc IP2pOrgUnlimitedEthDepositor
@@ -331,12 +380,16 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
     }
 
     /// @inheritdoc IP2pOrgUnlimitedEthDepositor
-    function depositExpiration(bytes32 _depositId) external view returns (uint40) {
+    function depositExpiration(
+        bytes32 _depositId
+    ) external view returns (uint40) {
         return s_deposits[_depositId].expiration;
     }
 
     /// @inheritdoc IP2pOrgUnlimitedEthDepositor
-    function depositStatus(bytes32 _depositId) external view returns (ClientDepositStatus) {
+    function depositStatus(
+        bytes32 _depositId
+    ) external view returns (ClientDepositStatus) {
         return s_deposits[_depositId].status;
     }
 
@@ -346,7 +399,11 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
     }
 
     /// @inheritdoc ERC165
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
-        return interfaceId == type(IP2pOrgUnlimitedEthDepositor).interfaceId || super.supportsInterface(interfaceId);
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC165, IERC165) returns (bool) {
+        return
+            interfaceId == type(IP2pOrgUnlimitedEthDepositor).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }

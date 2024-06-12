@@ -9,10 +9,10 @@ pragma solidity 0.8.24;
 uint256 constant VALIDATORS_MAX_AMOUNT = 400;
 
 /// @dev EIP-7251 MIN_ACTIVATION_BALANCE
-uint256 constant MIN_ACTIVATION_BALANCE = 32 ether;
+uint96 constant MIN_ACTIVATION_BALANCE = 32 ether;
 
 /// @dev EIP-7251 MAX_EFFECTIVE_BALANCE
-uint256 constant MAX_EFFECTIVE_BALANCE = 2048 ether;
+uint96 constant MAX_EFFECTIVE_BALANCE = 2048 ether;
 
 /// @dev Minimal 1 time deposit
 uint256 constant MIN_DEPOSIT = 1 ether;

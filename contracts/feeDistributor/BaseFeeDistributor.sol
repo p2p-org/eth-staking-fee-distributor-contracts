@@ -181,7 +181,7 @@ abstract contract BaseFeeDistributor is Erc4337Account, OwnableTokenRecoverer, O
     }
 
     /// @inheritdoc IOwnable
-    function owner() public view override(Erc4337Account, OwnableBase, Ownable) returns (address) {
+    function owner() public view override(Erc4337Account, OwnableBase, Ownable, IOwnable) returns (address) {
         return i_factory.owner();
     }
 

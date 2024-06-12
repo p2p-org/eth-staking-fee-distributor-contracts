@@ -9,7 +9,6 @@ import "../structs/P2pStructs.sol";
 
 /// @dev External interface of P2pOrgUnlimitedEthDepositor declared to support ERC165 detection.
 interface IP2pOrgUnlimitedEthDepositor is IERC165 {
-
     /// @notice Emits when a client adds ETH for staking
     /// @param _depositId ID of client deposit (derived from ETH2 WithdrawalCredentials, ETH amount per validator in wei, fee distributor instance address)
     /// @param _sender address who sent ETH
@@ -88,16 +87,18 @@ interface IP2pOrgUnlimitedEthDepositor is IERC165 {
     /// @param _referrerConfig address and basis points (percent * 100) of the referrer.
     /// @param _extraData any other data to pass to the event listener
     /// @return depositId ID of client deposit (derived from ETH2 WithdrawalCredentials, ETH amount per validator in wei, fee distributor instance address)
+    /// @return feeDistributorInstance client FeeDistributor instance
     function addEth(
         bytes32 _eth2WithdrawalCredentials,
         uint96 _ethAmountPerValidatorInWei,
-
         address _referenceFeeDistributor,
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig,
-
         bytes calldata _extraData
-    ) external payable returns(bytes32 depositId);
+    )
+        external
+        payable
+        returns (bytes32 depositId, address feeDistributorInstance);
 
     /// @notice Reject the service for a given ID of client deposit.
     /// @dev Allows the client to avoid waiting for expiration to get a refund.
@@ -132,7 +133,6 @@ interface IP2pOrgUnlimitedEthDepositor is IERC165 {
         bytes32 _eth2WithdrawalCredentials,
         uint96 _ethAmountPerValidatorInWei,
         address _feeDistributorInstance,
-
         bytes[] calldata _pubkeys,
         bytes[] calldata _signatures,
         bytes32[] calldata _depositDataRoots
@@ -163,7 +163,6 @@ interface IP2pOrgUnlimitedEthDepositor is IERC165 {
     function getDepositId(
         bytes32 _eth2WithdrawalCredentials,
         uint96 _ethAmountPerValidatorInWei,
-
         address _referenceFeeDistributor,
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig
@@ -177,10 +176,14 @@ interface IP2pOrgUnlimitedEthDepositor is IERC165 {
     /// @notice Returns the block timestamp after which the client will be able to get a refund
     /// @param _depositId ID of client deposit (derived from ETH2 WithdrawalCredentials, ETH amount per validator in wei, fee distributor instance address)
     /// @return uint40 block timestamp
-    function depositExpiration(bytes32 _depositId) external view returns (uint40);
+    function depositExpiration(
+        bytes32 _depositId
+    ) external view returns (uint40);
 
     /// @notice Returns the status of the deposit
     /// @param _depositId ID of client deposit (derived from ETH2 WithdrawalCredentials, ETH amount per validator in wei, fee distributor instance address)
     /// @return ClientDepositStatus status
-    function depositStatus(bytes32 _depositId) external view returns (ClientDepositStatus);
+    function depositStatus(
+        bytes32 _depositId
+    ) external view returns (ClientDepositStatus);
 }

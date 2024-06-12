@@ -48,6 +48,10 @@ contract Integration is Test {
     bytes signature02_2050eth;
     bytes32 depositDataRoot02_2050eth;
 
+    bytes pubKey_CustomFd;
+    bytes signature_CustomFd;
+    bytes32 depositDataRoot_CustomFd;
+
     bytes[] pubKeys02_2050eth;
     bytes[] signatures02_2050eth;
     bytes32[] depositDataRoots02_2050eth;
@@ -55,6 +59,10 @@ contract Integration is Test {
     bytes[] pubKeysForZeroAddressWc;
     bytes[] signaturesForZeroAddressWc;
     bytes32[] depositDataRootsForZeroAddressWc;
+
+    bytes[] pubKeys_CustomFd;
+    bytes[] signatures_CustomFd;
+    bytes32[] depositDataRoots_CustomFd;
 
     address payable constant serviceAddress =
         payable(0x6Bb8b45a1C6eA816B70d76f83f7dC4f0f87365Ff);
@@ -67,14 +75,19 @@ contract Integration is Test {
 
     uint256 operatorPrivateKey = 42; // needed for signature
     address payable bundler = payable(address(100500));
+
     address constant clientDepositorAddress =
         0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8;
     address payable constant clientWcAddress =
         payable(0xB3E84B6C6409826DC45432B655D8C9489A14A0D7);
+
     bytes32 constant withdrawalCredentials_01 =
         0x010000000000000000000000B3E84B6C6409826DC45432B655D8C9489A14A0D7;
     bytes32 constant withdrawalCredentials_02 =
         0x020000000000000000000000B3E84B6C6409826DC45432B655D8C9489A14A0D7;
+    bytes32 constant withdrawalCredentials_01_CustomFd =
+        0x0100000000000000000000002F3B0cde60F8885809B2F347b99d54315ae716A3;
+
     address constant p2pDeployerAddress =
         0x5a52E96BAcdaBb82fd05763E25335261B270Efcb;
     address operatorAddress;
@@ -170,6 +183,16 @@ contract Integration is Test {
             hex"2e3b263532435ba176dbd7d0442a99bb062525bc994af41447957450ae062691"
         );
 
+        pubKey_CustomFd = bytes(
+            hex"944a91ae380a0ece1a41a9cf22729d4af45373308400b2b178f56eaa9322d55b85bd97bd4d82aec8fb8b0fe4152a0ab0"
+        );
+        signature_CustomFd = bytes(
+            hex"8a7e148dd76c5ce6cfcba6522d0a65f6b20124027fba69c602a85868f91899f0e257800d282e5f60ebe24e8041668f200c039dbf2413f63dfe997f02f008d3605167cd93a7fb71095bf45164e97a95f01195556f2c9899f9aaa8240914b877a2"
+        );
+        depositDataRoot_CustomFd = bytes32(
+            hex"21cb4c3055a11918f01af6a7a8dfaf29a6c979c57e72bd1a2d2ee2b5852d18cf"
+        );
+
         for (uint256 i = 0; i < VALIDATORS_MAX_AMOUNT; i++) {
             pubKeys.push(pubKey);
             signatures.push(signature);
@@ -186,6 +209,10 @@ contract Integration is Test {
             pubKeys02_2050eth.push(pubKey02_2050eth);
             signatures02_2050eth.push(signature02_2050eth);
             depositDataRoots02_2050eth.push(depositDataRoot02_2050eth);
+
+            pubKeys_CustomFd.push(pubKey_CustomFd);
+            signatures_CustomFd.push(signature_CustomFd);
+            depositDataRoots_CustomFd.push(depositDataRoot_CustomFd);
 
             pubKeysForZeroAddressWc.push(
                 bytes(
@@ -836,12 +863,12 @@ contract Integration is Test {
         );
 
         p2pEthDepositor.makeBeaconDeposit(
-            withdrawalCredentials_01,
+            withdrawalCredentials_01_CustomFd,
             MIN_ACTIVATION_BALANCE,
             address(customFeeDistributorInstance),
-            pubKeysForZeroAddressWc,
-            signaturesForZeroAddressWc,
-            depositDataRootsForZeroAddressWc
+            pubKeys_CustomFd,
+            signatures_CustomFd,
+            depositDataRoots_CustomFd
         );
 
         uint256 balanceAfter = balanceBefore -
@@ -908,7 +935,7 @@ contract Integration is Test {
         (bytes32 depositId, address fdInstanceAddress) = p2pEthDepositor.addEth{
             value: clientDepositedEth
         }(
-            withdrawalCredentials_01,
+            withdrawalCredentials_01_CustomFd,
             MIN_ACTIVATION_BALANCE,
             address(customFeeDistributorTemplate),
             clientFeeRecipientDefault,

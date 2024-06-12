@@ -340,7 +340,7 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
         bytes32 _eth2WithdrawalCredentials,
         uint96 _ethAmountPerValidatorInWei,
         address _feeDistributorInstance
-    ) public view returns (bytes32) {
+    ) public pure returns (bytes32) {
         return
             keccak256(
                 abi.encode(

@@ -151,7 +151,7 @@ interface IP2pOrgUnlimitedEthDepositor is IERC165 {
         bytes32 _eth2WithdrawalCredentials,
         uint96 _ethAmountPerValidatorInWei,
         address _feeDistributorInstance
-    ) external view returns (bytes32);
+    ) external pure returns (bytes32);
 
     /// @notice Returns the ID of client deposit
     /// @param _eth2WithdrawalCredentials ETH2 withdrawal credentials

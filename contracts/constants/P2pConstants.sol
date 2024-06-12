@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: 2023 P2P Validator <info@p2p.org>
+// SPDX-FileCopyrightText: 2024 P2P Validator <info@p2p.org>
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.10;
+pragma solidity 0.8.24;
 
 /// @dev Maximal number of ETH2 deposits within a single transaction
 /// @dev 400 deposits (12800 ETH) is determined by calldata size limit of 128 kb

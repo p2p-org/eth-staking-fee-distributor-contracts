@@ -32,7 +32,7 @@ const config: HardhatUserConfig = {
       },
       forking: {
         url: MAINNET_RPC_URL,
-        blockNumber: 16902726
+        blockNumber: 20067153
       }
     },
     holesky: {

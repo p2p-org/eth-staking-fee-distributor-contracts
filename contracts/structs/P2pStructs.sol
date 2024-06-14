@@ -40,7 +40,7 @@ enum ClientDepositStatus {
 }
 
 /// @dev 256 bit struct
-/// @member amount amount of ETH in wei to be used for an ETH2 deposit corresponding to a particular FeeDistributor instance
+/// @member amount ETH in wei to be used for an ETH2 deposit corresponding to a particular FeeDistributor instance
 /// @member expiration block timestamp after which the client will be able to get a refund
 /// @member status deposit status
 /// @member ethAmountPerValidatorInWei amount of ETH to deposit per 1 validator (should be >= 32 and <= 2048)

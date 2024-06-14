@@ -9,8 +9,8 @@ import "hardhat-deploy"
 import "hardhat-contract-sizer"
 import { HardhatUserConfig } from "hardhat/config"
 
-const GOERLI_RPC_URL = process.env.GOERLI_RPC_URL || "https://goerli.alchemyapi.io/v3/your-api-key"
 const MAINNET_RPC_URL = process.env.MAINNET_RPC_URL || "https://mainnet.alchemyapi.io/v3/your-api-key"
+const HOLESKY_RPC_URL = process.env.HOLESKY_RPC_URL || "https://holesky.alchemyapi.io/v3/your-api-key"
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "0000000000000000000000000000000000000000000000000000000000000000"
 
@@ -32,13 +32,13 @@ const config: HardhatUserConfig = {
       },
       forking: {
         url: MAINNET_RPC_URL,
-        blockNumber: 16902726
+        blockNumber: 20067153
       }
     },
-    goerli: {
-        url: GOERLI_RPC_URL,
-        accounts: [PRIVATE_KEY],
-        chainId: 5,
+    holesky: {
+      url: HOLESKY_RPC_URL,
+      accounts: [PRIVATE_KEY],
+      chainId: 17000,
     },
     mainnet: {
       url: MAINNET_RPC_URL,
@@ -47,21 +47,31 @@ const config: HardhatUserConfig = {
     },
   },
   solidity: {
-    compilers: [
-      {
-        version: "0.8.10",
-      },
-    ],
+    version: "0.8.24",
     settings: {
-        optimizer: {
-            enabled: true,
-            runs: 10,
-            details: { yul: false },
+      viaIR: true,
+      optimizer: {
+        enabled: true,
+        details: {
+          yulDetails: {
+            optimizerSteps: "u",
+          },
         },
+      },
     },
   },
   etherscan: {
     apiKey: ETHERSCAN_API_KEY,
+    customChains: [
+      {
+        network: "holesky",
+        chainId: 17000,
+        urls: {
+          apiURL: "https://api-holesky.etherscan.io/api",
+          browserURL: "https://holesky.etherscan.io"
+        }
+      }
+    ]
   },
   gasReporter: {
     enabled: true,

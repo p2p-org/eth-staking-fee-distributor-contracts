@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: 2023 P2P Validator <info@p2p.org>
+// SPDX-FileCopyrightText: 2024 P2P Validator <info@p2p.org>
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.10;
+pragma solidity 0.8.24;
 
 import "../@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../@openzeppelin/contracts/utils/introspection/ERC165.sol";
@@ -146,16 +146,6 @@ abstract contract BaseFeeDistributor is Erc4337Account, OwnableTokenRecoverer, O
     }
 
     /// @inheritdoc IFeeDistributor
-    function increaseDepositedCount(uint32 _validatorCountToAdd) external virtual {
-        // Do nothing by default. Can be overridden.
-    }
-
-    /// @inheritdoc IFeeDistributor
-    function voluntaryExit(bytes[] calldata _pubkeys) public virtual onlyClient {
-        emit FeeDistributor__VoluntaryExit(_pubkeys);
-    }
-
-    /// @inheritdoc IFeeDistributor
     function factory() external view returns (address) {
         return address(i_factory);
     }
@@ -185,16 +175,13 @@ abstract contract BaseFeeDistributor is Erc4337Account, OwnableTokenRecoverer, O
         return s_referrerConfig.basisPoints;
     }
 
-    /// @inheritdoc IFeeDistributor
-    function eth2WithdrawalCredentialsAddress() external virtual view returns (address);
-
     /// @inheritdoc ERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
         return interfaceId == type(IFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
     }
 
     /// @inheritdoc IOwnable
-    function owner() public view override(Erc4337Account, OwnableBase, Ownable) returns (address) {
+    function owner() public view override(Erc4337Account, OwnableBase, Ownable, IOwnable) returns (address) {
         return i_factory.owner();
     }
 

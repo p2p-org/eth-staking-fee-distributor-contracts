@@ -4,6 +4,7 @@
 (?:^|/)go\.sum$
 (?:^|/)package(?:-lock|)\.json$
 (?:^|/)vendor/
+(?:^|/)lib/
 \.ai$
 \.avi$
 \.bmp$

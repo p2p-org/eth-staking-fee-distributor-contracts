@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: 2023 P2P Validator <info@p2p.org>
+// SPDX-FileCopyrightText: 2024 P2P Validator <info@p2p.org>
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.10;
+pragma solidity 0.8.24;
 
 import "../@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "../structs/P2pStructs.sol";
@@ -31,12 +31,6 @@ interface IFeeDistributor is IERC165 {
         uint256 _referrerAmount
     );
 
-    /// @notice Emits on request for a voluntary exit of validators
-    /// @param _pubkeys pubkeys of validators
-    event FeeDistributor__VoluntaryExit(
-        bytes[] _pubkeys
-    );
-
     /// @notice Emits if case there was some ether left after `withdraw` and it has been sent successfully.
     /// @param _to destination address for ether.
     /// @param _amount how much wei the destination address received.
@@ -53,20 +47,6 @@ interface IFeeDistributor is IERC165 {
     function initialize(
         FeeRecipient calldata _clientConfig,
         FeeRecipient calldata _referrerConfig
-    ) external;
-
-    /// @notice Increase the number of deposited validators.
-    /// @dev Should be called when a new ETH2 deposit has been made
-    /// @param _validatorCountToAdd number of newly deposited validators
-    function increaseDepositedCount(
-        uint32 _validatorCountToAdd
-    ) external;
-
-    /// @notice Request a voluntary exit of validators
-    /// @dev Should be called by the client when they want to signal P2P that certain validators need to be exited
-    /// @param _pubkeys pubkeys of validators
-    function voluntaryExit(
-        bytes[] calldata _pubkeys
     ) external;
 
     /// @notice Returns the factory address
@@ -92,10 +72,4 @@ interface IFeeDistributor is IERC165 {
     /// @notice Returns the referrer basis points
     /// @return uint256 referrer basis points
     function referrerBasisPoints() external view returns (uint256);
-
-    /// @notice Returns the address for ETH2 0x01 withdrawal credentials associated with this FeeDistributor
-    /// @dev Return FeeDistributor's own address if FeeDistributor should be CL rewards recipient
-    /// Otherwise, return the client address
-    /// @return address address for ETH2 0x01 withdrawal credentials
-    function eth2WithdrawalCredentialsAddress() external view returns (address);
 }

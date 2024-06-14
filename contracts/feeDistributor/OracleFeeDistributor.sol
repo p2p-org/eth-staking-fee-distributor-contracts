@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: 2023 P2P Validator <info@p2p.org>
+// SPDX-FileCopyrightText: 2024 P2P Validator <info@p2p.org>
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.10;
+pragma solidity 0.8.24;
 
 import "../@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../@openzeppelin/contracts/utils/introspection/ERC165.sol";
@@ -41,7 +41,7 @@ contract OracleFeeDistributor is BaseFeeDistributor {
 
     /// @notice amount of CL rewards (in Wei) that should belong to the client only
     /// and should not be considered for splitting between the service and the referrer
-    uint256 s_clientOnlyClRewards;
+    uint256 private s_clientOnlyClRewards;
 
     /// @dev Set values that are constant, common for all the clients, known at the initial deploy time.
     /// @param _oracle address of Oracle
@@ -301,11 +301,5 @@ contract OracleFeeDistributor is BaseFeeDistributor {
     /// @inheritdoc Erc4337Account
     function withdrawSelector() public pure override returns (bytes4) {
         return OracleFeeDistributor.withdraw.selector;
-    }
-
-    /// @inheritdoc IFeeDistributor
-    /// @dev client address
-    function eth2WithdrawalCredentialsAddress() external override view returns (address) {
-        return s_clientConfig.recipient;
     }
 }

@@ -1,8 +1,8 @@
-// SPDX-FileCopyrightText: 2023 P2P Validator <info@p2p.org>, Lido <info@lido.fi>
+// SPDX-FileCopyrightText: 2024 P2P Validator <info@p2p.org>, Lido <info@lido.fi>
 // SPDX-License-Identifier: MIT
 
 // https://github.com/lidofinance/lido-otc-seller/blob/master/contracts/lib/AssetRecoverer.sol
-pragma solidity 0.8.10;
+pragma solidity 0.8.24;
 
 import {IERC20} from "../@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "../@openzeppelin/contracts/token/ERC721/IERC721.sol";

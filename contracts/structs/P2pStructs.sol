@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: 2023 P2P Validator <info@p2p.org>
+// SPDX-FileCopyrightText: 2024 P2P Validator <info@p2p.org>
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.10;
+pragma solidity 0.8.24;
 
 import "../feeDistributor/IFeeDistributor.sol";
 
@@ -40,13 +40,13 @@ enum ClientDepositStatus {
 }
 
 /// @dev 256 bit struct
-/// @member amount amount of ETH in wei to be used for an ETH2 deposit corresponding to a particular FeeDistributor instance
+/// @member amount ETH in wei to be used for an ETH2 deposit corresponding to a particular FeeDistributor instance
 /// @member expiration block timestamp after which the client will be able to get a refund
 /// @member status deposit status
-/// @member reservedForFutureUse unused space making up to 256 bit
+/// @member ethAmountPerValidatorInWei amount of ETH to deposit per 1 validator (should be >= 32 and <= 2048)
 struct ClientDeposit {
     uint112 amount;
     uint40 expiration;
     ClientDepositStatus status;
-    uint96 reservedForFutureUse;
+    uint96 ethAmountPerValidatorInWei;
 }

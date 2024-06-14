@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: 2023 P2P Validator <info@p2p.org>
+// SPDX-FileCopyrightText: 2024 P2P Validator <info@p2p.org>
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.10;
+pragma solidity 0.8.24;
 
 import "../@openzeppelin/contracts/proxy/Clones.sol";
 import "../@openzeppelin/contracts/utils/introspection/ERC165.sol";
@@ -140,6 +140,14 @@ contract FeeDistributorFactory is OwnableAssetRecoverer, OwnableWithOperator, ER
         FeeRecipient memory _clientConfig,
         FeeRecipient calldata _referrerConfig
     ) public view returns (address) {
+        if (_referenceFeeDistributor == address(0)) {
+            revert FeeDistributorFactory__ReferenceFeeDistributorNotSet();
+        }
+
+        if (!ERC165Checker.supportsInterface(_referenceFeeDistributor, type(IFeeDistributor).interfaceId)) {
+            revert FeeDistributorFactory__NotFeeDistributor(_referenceFeeDistributor);
+        }
+
         if (_clientConfig.basisPoints == 0) {
             _clientConfig.basisPoints = s_defaultClientBasisPoints;
         }

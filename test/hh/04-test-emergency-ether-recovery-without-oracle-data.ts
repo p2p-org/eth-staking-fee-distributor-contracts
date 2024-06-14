@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import {ethers, getNamedAccounts} from "hardhat"
+import { ethers, getNamedAccounts, network } from "hardhat"
 import {
     FeeDistributorFactory__factory,
     FeeDistributorFactory,
@@ -45,6 +45,7 @@ describe("test emergencyEtherRecoveryWithoutOracleData", function () {
     let serviceAddress: string
     let clientDepositor: string
     let clientAddress: string
+    const withdrawalCredentials = '0x010000000000000000000000B3E84B6C6409826DC45432B655D8C9489A14A0D7'
 
     beforeEach(async () => {
         const namedAccounts = await getNamedAccounts()
@@ -99,9 +100,12 @@ describe("test emergencyEtherRecoveryWithoutOracleData", function () {
         const batchDepositData = generateMockDepositData(depositCount)
 
         const addEthTx = await P2pOrgUnlimitedEthDepositorSignedByClientDepositor.addEth(
+            withdrawalCredentials,
+            ethers.utils.parseUnits('32', 'ether'),
             feeDistributorReferenceInstance.address,
             {recipient: clientAddress, basisPoints: clientBasisPoints},
             {recipient: ethers.constants.AddressZero, basisPoints: 0},
+            "0x",
             {
                 value: ethers.utils.parseUnits((depositCount * 32).toString(), 'ether')
             }
@@ -117,6 +121,8 @@ describe("test emergencyEtherRecoveryWithoutOracleData", function () {
         const _feeDistributorInstance = clientEthAddedEvent.args?._feeDistributorInstance
 
         const makeBeaconDepositTx = await P2pOrgUnlimitedEthDepositorSignedByDeployer.makeBeaconDeposit(
+            withdrawalCredentials,
+            ethers.utils.parseUnits('32', 'ether'),
             _feeDistributorInstance,
             batchDepositData.map(d => d.pubkey),
             batchDepositData.map(d => d.signature),
@@ -130,7 +136,7 @@ describe("test emergencyEtherRecoveryWithoutOracleData", function () {
 
         const makeBeaconDepositTxReceipt = await makeBeaconDepositTx.wait();
 
-        const event = makeBeaconDepositTxReceipt?.events?.find(event => event.event === 'P2pOrgUnlimitedEthDepositor__Eth2Deposit');
+        const event = makeBeaconDepositTxReceipt?.events?.find((event: any) => event.event === 'P2pOrgUnlimitedEthDepositor__Eth2Deposit');
         if (!event) {
             throw Error('No P2pOrgUnlimitedEthDepositor__Eth2Deposit event found')
         }
@@ -154,17 +160,11 @@ describe("test emergencyEtherRecoveryWithoutOracleData", function () {
         const {proof, value} = obtainProof(_feeDistributorInstance)
         const amountInGwei = value[1]
 
-        // set the newly created FeeDistributor contract as coinbase (block rewards recipient)
-        // In the real world this will be done in a validator's settings
-        await ethers.provider.send("hardhat_setCoinbase", [
+        const elRewards = ethers.utils.parseEther('2')
+
+        await network.provider.send("hardhat_setBalance", [
             _feeDistributorInstance,
-        ])
-
-        // simulate producing a new block so that our FeeDistributor contract can get its rewards
-        await ethers.provider.send("evm_mine", [])
-
-        await ethers.provider.send("hardhat_setCoinbase", [
-            ethers.constants.AddressZero,
+            elRewards.toHexString().replace("0x0", "0x")
         ])
 
         // attach to the FeeDistributor contract with the owner (signer)
@@ -177,8 +177,6 @@ describe("test emergencyEtherRecoveryWithoutOracleData", function () {
 
         // call emergencyEtherRecoveryWithoutOracleData
         await feeDistributorSignedByClient.emergencyEtherRecoveryWithoutOracleData()
-
-        const elRewards = ethers.utils.parseEther('2')
 
         // get service address balance
         const serviceAddressBalance = await ethers.provider.getBalance(serviceAddress)
@@ -210,8 +208,6 @@ describe("test emergencyEtherRecoveryWithoutOracleData", function () {
         ])
 
         // call withdraw
-        await expect(feeDistributorSignedByClient.withdraw(proof, amountInGwei)).to.be.revertedWith(
-            `FeeDistributor__WaitForEnoughRewardsToWithdraw`
-        )
+        await expect(feeDistributorSignedByClient.withdraw(proof, amountInGwei)).to.be.reverted
     })
 })

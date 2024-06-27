@@ -5,6 +5,7 @@ libs = ['node_modules', 'lib']
 test = 'test/foundry'
 cache_path  = 'forge-cache'
 solc-version = "0.8.24"
+evm_version = 'cancun'
 via_ir = true
 optimizer = true
 optimizer-runs = 200

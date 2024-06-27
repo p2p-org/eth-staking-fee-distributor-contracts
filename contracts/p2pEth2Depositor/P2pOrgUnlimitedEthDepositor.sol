@@ -307,7 +307,7 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
             mstore(add(withdrawalCredentials, 32), _eth2WithdrawalCredentials)
         }
 
-        for (uint256 i = 0; i < validatorCount; ) {
+        for (uint256 i = 0; i < validatorCount; ++i) {
             // pubkey, withdrawal_credentials, signature lengths are already checked inside Beacon DepositContract
 
             i_depositContract.deposit{value: _ethAmountPerValidatorInWei}(
@@ -316,12 +316,6 @@ contract P2pOrgUnlimitedEthDepositor is ERC165, IP2pOrgUnlimitedEthDepositor {
                 _signatures[i],
                 _depositDataRoots[i]
             );
-
-            // An array can't have a total length
-            // larger than the max uint256 value.
-            unchecked {
-                ++i;
-            }
         }
 
         emit P2pOrgUnlimitedEthDepositor__Eth2Deposit(

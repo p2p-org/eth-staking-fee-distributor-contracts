@@ -39,21 +39,40 @@ contract DeoracleizedFeeDistributor is BaseFeeDistributor {
             revert FeeDistributor__NothingToWithdraw();
         }
 
-        if (s_referrerConfig.recipient != address(0)) {
-            // if there is a referrer
-
-            // Send ETH to referrer. Ignore the possible yet unlikely revert in the receive function.
-            P2pAddressLib._sendValue(
-                s_referrerConfig.recipient,
-                _referrerAmount
-            );
+        if (
+            _clientAmount + _serviceAmount + _referrerAmount >
+            address(this).balance
+        ) {
+            revert FeeDistributor__AmountsExceedBalance();
         }
 
-        // Send ETH to service. Ignore the possible yet unlikely revert in the receive function.
-        P2pAddressLib._sendValue(i_service, _serviceAmount);
+        if (_clientAmount == _serviceAmount == _referrerAmount == 0) {
+            revert FeeDistributor__AmountsAreZero();
+        }
 
-        // Send ETH to client. Ignore the possible yet unlikely revert in the receive function.
-        P2pAddressLib._sendValue(s_clientConfig.recipient, _clientAmount);
+        if (_referrerAmount > 0) {
+            if (s_referrerConfig.recipient != address(0)) {
+                // if there is a referrer
+
+                // Send ETH to referrer. Ignore the possible yet unlikely revert in the receive function.
+                P2pAddressLib._sendValue(
+                    s_referrerConfig.recipient,
+                    _referrerAmount
+                );
+            } else {
+                revert FeeDistributor__ReferrerNotSet();
+            }
+        }
+
+        if (_serviceAmount > 0) {
+            // Send ETH to service. Ignore the possible yet unlikely revert in the receive function.
+            P2pAddressLib._sendValue(i_service, _serviceAmount);
+        }
+
+        if (_clientAmount > 0) {
+            // Send ETH to client. Ignore the possible yet unlikely revert in the receive function.
+            P2pAddressLib._sendValue(s_clientConfig.recipient, _clientAmount);
+        }
 
         emit FeeDistributor__Withdrawn(
             _serviceAmount,

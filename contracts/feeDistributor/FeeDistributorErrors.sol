@@ -43,6 +43,16 @@ error FeeDistributor__ClientAlreadySet(address _existingClient);
 /// @dev The client address is supposed to be set by the factory.
 error FeeDistributor__ClientNotSet();
 
+/// @notice Cannot call `withdraw` if the referrer address is not set yet.
+/// @dev The referrer address is supposed to be set by the factory.
+error FeeDistributor__ReferrerNotSet();
+
+/// @notice Sum of client, service and referrer amounts exceeds balance.
+error FeeDistributor__AmountsExceedBalance();
+
+/// @notice All amounts are zero.
+error FeeDistributor__AmountsAreZero();
+
 /// @notice service should be able to receive ether.
 /// @param _service address of the service.
 error FeeDistributor__ServiceCannotReceiveEther(address _service);

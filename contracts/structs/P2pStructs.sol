@@ -50,3 +50,13 @@ struct ClientDeposit {
     ClientDepositStatus status;
     uint96 ethAmountPerValidatorInWei;
 }
+
+/// @dev 256 bit struct
+/// @member clientAmount ETH in wei to be sent to the client
+/// @member serviceAmount ETH in wei to be sent to the service
+/// @member referrerAmount ETH in wei to be sent to the referrer
+struct Withdrawal {
+    uint80 clientAmount;
+    uint80 serviceAmount;
+    uint80 referrerAmount;
+}

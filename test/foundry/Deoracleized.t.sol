@@ -111,9 +111,9 @@ contract Deoracleized is Test {
     function withdrawDeoracleizedFeeDistributor() private {
         console.log("withdrawDeoracleizedFeeDistributor");
 
-        uint256 clientAmount = 9 ether;
-        uint256 serviceAmount = 0.6 ether;
-        uint256 referrerAmount = 0.4 ether;
+        uint80 clientAmount = 9 ether;
+        uint80 serviceAmount = 0.6 ether;
+        uint80 referrerAmount = 0.4 ether;
 
         uint256 elRewards = clientAmount + serviceAmount + referrerAmount;
 
@@ -131,23 +131,29 @@ contract Deoracleized is Test {
             )
         );
         deoracleizedFeeDistributorInstance.withdraw(
-            clientAmount,
-            serviceAmount,
-            referrerAmount
+            Withdrawal({
+                clientAmount: clientAmount,
+                serviceAmount: serviceAmount,
+                referrerAmount: referrerAmount
+            })
         );
 
         vm.startPrank(operatorAddress);
         vm.expectRevert(FeeDistributor__ReferrerNotSet.selector);
         deoracleizedFeeDistributorInstance.withdraw(
-            clientAmount,
-            serviceAmount,
-            referrerAmount
+            Withdrawal({
+                clientAmount: clientAmount,
+                serviceAmount: serviceAmount,
+                referrerAmount: referrerAmount
+            })
         );
 
         deoracleizedFeeDistributorInstance.withdraw(
-            clientAmount,
-            serviceAmount,
-            0
+            Withdrawal({
+                clientAmount: clientAmount,
+                serviceAmount: serviceAmount,
+                referrerAmount: 0
+            })
         );
         vm.stopPrank();
 

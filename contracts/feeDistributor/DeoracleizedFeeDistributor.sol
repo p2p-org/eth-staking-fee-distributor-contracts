@@ -23,11 +23,7 @@ contract DeoracleizedFeeDistributor is BaseFeeDistributor {
     ) BaseFeeDistributor(_factory, _service) {}
 
     /// @notice Withdraw
-    function withdraw(
-        uint256 _clientAmount,
-        uint256 _serviceAmount,
-        uint256 _referrerAmount
-    ) external nonReentrant {
+    function withdraw(Withdrawal calldata _withdrawal) external nonReentrant {
         i_factory.checkOperatorOrOwner(msg.sender);
 
         if (s_clientConfig.recipient == address(0)) {
@@ -39,45 +35,49 @@ contract DeoracleizedFeeDistributor is BaseFeeDistributor {
             revert FeeDistributor__NothingToWithdraw();
         }
 
+        uint256 clientAmount = uint256(_withdrawal.clientAmount);
+        uint256 serviceAmount = uint256(_withdrawal.serviceAmount);
+        uint256 referrerAmount = uint256(_withdrawal.referrerAmount);
+
         if (
-            _clientAmount + _serviceAmount + _referrerAmount >
+            clientAmount + serviceAmount + referrerAmount >
             address(this).balance
         ) {
             revert FeeDistributor__AmountsExceedBalance();
         }
 
-        if (_clientAmount + _serviceAmount + _referrerAmount == 0) {
+        if (clientAmount + serviceAmount + referrerAmount == 0) {
             revert FeeDistributor__AmountsAreZero();
         }
 
-        if (_referrerAmount > 0) {
+        if (referrerAmount > 0) {
             if (s_referrerConfig.recipient != address(0)) {
                 // if there is a referrer
 
                 // Send ETH to referrer. Ignore the possible yet unlikely revert in the receive function.
                 P2pAddressLib._sendValue(
                     s_referrerConfig.recipient,
-                    _referrerAmount
+                    referrerAmount
                 );
             } else {
                 revert FeeDistributor__ReferrerNotSet();
             }
         }
 
-        if (_serviceAmount > 0) {
+        if (serviceAmount > 0) {
             // Send ETH to service. Ignore the possible yet unlikely revert in the receive function.
-            P2pAddressLib._sendValue(i_service, _serviceAmount);
+            P2pAddressLib._sendValue(i_service, serviceAmount);
         }
 
-        if (_clientAmount > 0) {
+        if (clientAmount > 0) {
             // Send ETH to client. Ignore the possible yet unlikely revert in the receive function.
-            P2pAddressLib._sendValue(s_clientConfig.recipient, _clientAmount);
+            P2pAddressLib._sendValue(s_clientConfig.recipient, clientAmount);
         }
 
         emit FeeDistributor__Withdrawn(
-            _serviceAmount,
-            _clientAmount,
-            _referrerAmount
+            serviceAmount,
+            clientAmount,
+            referrerAmount
         );
     }
 }

@@ -46,7 +46,7 @@ contract DeoracleizedFeeDistributor is BaseFeeDistributor {
             revert FeeDistributor__AmountsExceedBalance();
         }
 
-        if (_clientAmount == _serviceAmount == _referrerAmount == 0) {
+        if (_clientAmount + _serviceAmount + _referrerAmount == 0) {
             revert FeeDistributor__AmountsAreZero();
         }
 

@@ -24,7 +24,9 @@ contract Deoracleized is Test {
     FeeDistributorFactory constant factory =
         FeeDistributorFactory(0xecA6e48C44C7c0cAf4651E5c5089e564031E8b90);
     P2pOrgUnlimitedEthDepositor constant p2pEthDepositor =
-        P2pOrgUnlimitedEthDepositor(0x23BE839a14cEc3D6D716D904f09368Bbf9c750eb);
+        P2pOrgUnlimitedEthDepositor(
+            payable(0x23BE839a14cEc3D6D716D904f09368Bbf9c750eb)
+        );
     DeoracleizedFeeDistributor deoracleizedFeeDistributorTemplate;
     DeoracleizedFeeDistributor deoracleizedFeeDistributorInstance;
 
@@ -122,7 +124,7 @@ contract Deoracleized is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                Access__CallerNeitherOperatorNorOwner.selector,
+                Access__AddressNeitherOperatorNorOwner.selector,
                 address(this),
                 operatorAddress,
                 extraSecureP2pAddress
@@ -135,10 +137,17 @@ contract Deoracleized is Test {
         );
 
         vm.startPrank(operatorAddress);
+        vm.expectRevert(FeeDistributor__ReferrerNotSet.selector);
         deoracleizedFeeDistributorInstance.withdraw(
             clientAmount,
             serviceAmount,
             referrerAmount
+        );
+
+        deoracleizedFeeDistributorInstance.withdraw(
+            clientAmount,
+            serviceAmount,
+            0
         );
         vm.stopPrank();
 

@@ -80,4 +80,9 @@ contract DeoracleizedFeeDistributor is BaseFeeDistributor {
             referrerAmount
         );
     }
+
+    /// @inheritdoc Erc4337Account
+    function withdrawSelector() public pure override returns (bytes4) {
+        return DeoracleizedFeeDistributor.withdraw.selector;
+    }
 }

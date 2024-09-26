@@ -16,8 +16,14 @@ import "../lib/P2pAddressLib.sol";
 import "./Erc4337Account.sol";
 
 /// @title Common logic for all FeeDistributor types
-abstract contract BaseFeeDistributor is Erc4337Account, OwnableTokenRecoverer, OwnableWithOperator, ReentrancyGuard, ERC165, IFeeDistributor {
-
+abstract contract BaseFeeDistributor is
+    Erc4337Account,
+    OwnableTokenRecoverer,
+    OwnableWithOperator,
+    ReentrancyGuard,
+    ERC165,
+    IFeeDistributor
+{
     /// @notice FeeDistributorFactory address
     IFeeDistributorFactory internal immutable i_factory;
 
@@ -51,11 +57,13 @@ abstract contract BaseFeeDistributor is Erc4337Account, OwnableTokenRecoverer, O
     /// @dev Set values that are constant, common for all the clients, known at the initial deploy time.
     /// @param _factory address of FeeDistributorFactory
     /// @param _service address of the service (P2P) fee recipient
-    constructor(
-        address _factory,
-        address payable _service
-    ) {
-        if (!ERC165Checker.supportsInterface(_factory, type(IFeeDistributorFactory).interfaceId)) {
+    constructor(address _factory, address payable _service) {
+        if (
+            !ERC165Checker.supportsInterface(
+                _factory,
+                type(IFeeDistributorFactory).interfaceId
+            )
+        ) {
             revert FeeDistributor__NotFactory(_factory);
         }
         if (_service == address(0)) {
@@ -80,39 +88,29 @@ abstract contract BaseFeeDistributor is Erc4337Account, OwnableTokenRecoverer, O
             revert FeeDistributor__ZeroAddressClient();
         }
         if (_clientConfig.recipient == i_service) {
-            revert FeeDistributor__ClientAddressEqualsService(_clientConfig.recipient);
+            revert FeeDistributor__ClientAddressEqualsService(
+                _clientConfig.recipient
+            );
         }
         if (s_clientConfig.recipient != address(0)) {
             revert FeeDistributor__ClientAlreadySet(s_clientConfig.recipient);
         }
-        if (_clientConfig.basisPoints >= 10000) {
-            revert FeeDistributor__InvalidClientBasisPoints(_clientConfig.basisPoints);
-        }
 
-        if (_referrerConfig.recipient != address(0)) {// if there is a referrer
+        if (_referrerConfig.recipient != address(0)) {
+            // if there is a referrer
             if (_referrerConfig.recipient == i_service) {
-                revert FeeDistributor__ReferrerAddressEqualsService(_referrerConfig.recipient);
+                revert FeeDistributor__ReferrerAddressEqualsService(
+                    _referrerConfig.recipient
+                );
             }
             if (_referrerConfig.recipient == _clientConfig.recipient) {
-                revert FeeDistributor__ReferrerAddressEqualsClient(_referrerConfig.recipient);
-            }
-            if (_referrerConfig.basisPoints == 0) {
-                revert FeeDistributor__ZeroReferrerBasisPointsForNonZeroReferrer();
-            }
-            if (_clientConfig.basisPoints + _referrerConfig.basisPoints > 10000) {
-                revert FeeDistributor__ClientPlusReferralBasisPointsExceed10000(
-                    _clientConfig.basisPoints,
-                    _referrerConfig.basisPoints
+                revert FeeDistributor__ReferrerAddressEqualsClient(
+                    _referrerConfig.recipient
                 );
             }
 
             // set referrer config
             s_referrerConfig = _referrerConfig;
-
-        } else {// if there is no referrer
-            if (_referrerConfig.basisPoints != 0) {
-                revert FeeDistributor__ReferrerBasisPointsMustBeZeroIfAddressIsZero(_referrerConfig.basisPoints);
-            }
         }
 
         // set client config
@@ -125,14 +123,25 @@ abstract contract BaseFeeDistributor is Erc4337Account, OwnableTokenRecoverer, O
             _referrerConfig.basisPoints
         );
 
-        bool clientCanReceiveEther = P2pAddressLib._sendValue(_clientConfig.recipient, 0);
+        bool clientCanReceiveEther = P2pAddressLib._sendValue(
+            _clientConfig.recipient,
+            0
+        );
         if (!clientCanReceiveEther) {
-            revert FeeDistributor__ClientCannotReceiveEther(_clientConfig.recipient);
+            revert FeeDistributor__ClientCannotReceiveEther(
+                _clientConfig.recipient
+            );
         }
-        if (_referrerConfig.recipient != address(0)) {// if there is a referrer
-            bool referrerCanReceiveEther = P2pAddressLib._sendValue(_referrerConfig.recipient, 0);
+        if (_referrerConfig.recipient != address(0)) {
+            // if there is a referrer
+            bool referrerCanReceiveEther = P2pAddressLib._sendValue(
+                _referrerConfig.recipient,
+                0
+            );
             if (!referrerCanReceiveEther) {
-                revert FeeDistributor__ReferrerCannotReceiveEther(_referrerConfig.recipient);
+                revert FeeDistributor__ReferrerCannotReceiveEther(
+                    _referrerConfig.recipient
+                );
             }
         }
     }
@@ -156,7 +165,12 @@ abstract contract BaseFeeDistributor is Erc4337Account, OwnableTokenRecoverer, O
     }
 
     /// @inheritdoc IFeeDistributor
-    function client() public view override(Erc4337Account, IFeeDistributor) returns (address) {
+    function client()
+        public
+        view
+        override(Erc4337Account, IFeeDistributor)
+        returns (address)
+    {
         return s_clientConfig.recipient;
     }
 
@@ -176,17 +190,31 @@ abstract contract BaseFeeDistributor is Erc4337Account, OwnableTokenRecoverer, O
     }
 
     /// @inheritdoc ERC165
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
-        return interfaceId == type(IFeeDistributor).interfaceId || super.supportsInterface(interfaceId);
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC165, IERC165) returns (bool) {
+        return
+            interfaceId == type(IFeeDistributor).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     /// @inheritdoc IOwnable
-    function owner() public view override(Erc4337Account, OwnableBase, Ownable, IOwnable) returns (address) {
+    function owner()
+        public
+        view
+        override(Erc4337Account, OwnableBase, Ownable, IOwnable)
+        returns (address)
+    {
         return i_factory.owner();
     }
 
     /// @inheritdoc IOwnableWithOperator
-    function operator() public view override(Erc4337Account, OwnableWithOperator) returns (address) {
+    function operator()
+        public
+        view
+        override(Erc4337Account, OwnableWithOperator)
+        returns (address)
+    {
         return super.operator();
     }
 }

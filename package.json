@@ -44,9 +44,10 @@
     "sendErc4337UserOperation": "yarn hardhat run --network holesky scripts/sendErc4337UserOperation.ts",
     "sendErc4337UserOperationForOracleFeeDistributor": "yarn hardhat run --network holesky scripts/sendErc4337UserOperationForOracleFeeDistributor.ts",
     "generateMockMerkleTree": "yarn hardhat run --network holesky scripts/generateMockMerkleTree.ts",
-    "deployWithForge": "forge script script/Deploy.s.sol:Deploy --rpc-url $GOERLI_RPC_URL --private-key $PRIVATE_KEY --broadcast --chain holesky --json --verify --etherscan-api-key $ETHERSCAN_API_KEY -vvvv"
+    "deployWithForge": "forge script script/Deploy.s.sol:Deploy --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast --chain holesky --json --verify --etherscan-api-key $ETHERSCAN_API_KEY -vvvvv"
   },
   "dependencies": {
     "@google-cloud/bigquery": "6.2.0"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

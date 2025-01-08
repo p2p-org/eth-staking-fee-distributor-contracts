@@ -9,6 +9,7 @@ evm_version = 'cancun'
 via_ir = true
 optimizer = true
 optimizer-runs = 200
+gas_limit = "18446744073709551615"
 
 rpc_endpoints = { mainnet = "https://rpc.ankr.com/eth", holesky = "https://rpc.ankr.com/eth_holesky" }
 

@@ -30,11 +30,6 @@ contract DeoracleizedFeeDistributor is BaseFeeDistributor {
             revert FeeDistributor__ClientNotSet();
         }
 
-        if (address(this).balance == 0) {
-            // revert if there is no ether to withdraw
-            revert FeeDistributor__NothingToWithdraw();
-        }
-
         uint256 clientAmount = uint256(_withdrawal.clientAmount);
         uint256 serviceAmount = uint256(_withdrawal.serviceAmount);
         uint256 referrerAmount = uint256(_withdrawal.referrerAmount);

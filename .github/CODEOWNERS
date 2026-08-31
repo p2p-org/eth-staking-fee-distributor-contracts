@@ -1,0 +1,14 @@
+# CODEOWNERS
+#
+# This repository is classified as Tier 1 in the Repositories Map,
+# and the organization ruleset for that tier requires a review from a code owner on
+# the default branch. That requirement only has an effect while this file exists.
+#
+# The owners below were derived from the GitHub teams with write access to this repository.
+# Correct them if they are wrong — this file is never overwritten once it
+# exists, and finer per-path rules can replace the single rule below.
+#
+# Repositories Map: https://www.notion.so/c4d03b7d86fc4aee88ddcbc86ba5ea2d
+# CODEOWNERS syntax: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+*   @p2p-org/blockchain-dev-eth-sc @p2p-org/blockchain-dev-admins
